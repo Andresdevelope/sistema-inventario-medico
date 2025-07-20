@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('security_color_answer'); // hash de color favorito
+            $table->string('security_animal_answer'); // hash de animal favorito
+            $table->integer('login_attempts')->default(0); // intentos fallidos de login
+            $table->timestamp('locked_until')->nullable(); // bloqueo temporal
             $table->rememberToken();
             $table->timestamps();
         });

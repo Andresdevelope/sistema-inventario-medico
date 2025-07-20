@@ -134,17 +134,25 @@
         }
         .card .action {
             margin-top: auto;
+            width: 100%;
+            display: block;
             color: #fff;
-            background: #4093c7;
+            background: #2176ae;
             border: none;
-            border-radius: 5px;
-            padding: 0.4rem 1.2rem;
-            font-size: 1rem;
+            border-radius: 0 0 8px 8px;
+            padding: 0.7rem 0;
+            font-size: 1.08rem;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 0.5px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(33,118,174,0.08);
         }
         .card .action:hover {
-            background: #2b6a96;
+            background: #4093c7;
+            color: #fff;
+            text-decoration: none;
         }
         .card.blue { background: #1eb6e7; color: #fff; }
         .card.green { background: #1abc9c; color: #fff; }
