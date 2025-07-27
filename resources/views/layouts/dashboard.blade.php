@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SERVICIOS MEDICOS - Dashboard</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,6 +12,8 @@
             margin: 0;
             font-family: 'Roboto', Arial, sans-serif;
             background: #f3f6fa;
+            height: 100vh;
+            overflow: hidden;
         }
         .topbar {
             background: #4093c7;
@@ -94,8 +97,8 @@
             padding-top: 2.5rem;
             min-height: calc(100vh - 60px - 40px);
             transition: margin-left 0.2s;
-            height: calc(100vh - 60px - 40px);
             overflow-y: auto;
+            height: calc(100vh - 60px - 44px);
         }
         .cards {
             display: flex;
@@ -192,9 +195,7 @@
         <div class="logo">
             <i class="fa-solid fa-capsules"></i> Servicios Médicos 
         </div>
-        <button id="sidebar-toggle" style="background:none;border:none;color:#fff;font-size:1.7rem;cursor:pointer;outline:none;display:none;margin-left:1rem;" aria-label="Menú">
-            <i class="fa fa-bars"></i>
-        </button>
+        <!-- Botón de colapsar sidebar eliminado por limpieza -->
         <div class="user">
             <i class="fa-solid fa-user-circle"></i> {{ Auth::user()->username ?? 'Usuario' }}
         </div>
@@ -202,14 +203,21 @@
     <div class="sidebar" id="sidebar">
         <ul>
             <li><a href="/dashboard" class="active"><i class="fa fa-home"></i> <span class="sidebar-label">Inicio</span></a></li>
-            <li><a href="#"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
+            <li><a href="/categorias"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
             <li><a href="#"><i class="fa fa-pills"></i> <span class="sidebar-label">Productos</span></a></li>
             <li><a href="#"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
             <li><a href="#"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
             <li><a href="#"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
             <li><a href="#"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
             <li><a href="#"><i class="fa fa-key"></i> <span class="sidebar-label">Cambiar contraseña</span></a></li>
-            <li><a href="/logout"><i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Cerrar sesión</span></a></li>
+            <li>
+                <form action="{{ route('logout') }}" method="POST" style="display:inline; margin:0; padding:0;">
+                    @csrf
+                    <button type="submit" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:8px; color:inherit; font:inherit; padding:12px 24px; width:100%; text-align:left;">
+                        <i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Cerrar sesión</span>
+                    </button>
+                </form>
+            </li>
         </ul>
     </div>
     <div class="main-content" id="main-content">
@@ -219,32 +227,5 @@
         Copyright © 2025 - <a href="#">Sistemas Web</a>.
     </div>
     @stack('scripts')
-    <script>
-        // Botón para colapsar/expandir sidebar
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('main-content');
-        const toggleBtn = document.getElementById('sidebar-toggle');
-        function updateSidebar() {
-            if(window.innerWidth <= 1100) {
-                sidebar.classList.add('collapsed');
-                mainContent.style.marginLeft = '60px';
-                toggleBtn.style.display = 'inline-block';
-            } else {
-                sidebar.classList.remove('collapsed');
-                mainContent.style.marginLeft = '220px';
-                toggleBtn.style.display = 'none';
-            }
-        }
-        updateSidebar();
-        window.addEventListener('resize', updateSidebar);
-        toggleBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-            if(sidebar.classList.contains('collapsed')) {
-                mainContent.style.marginLeft = '60px';
-            } else {
-                mainContent.style.marginLeft = '220px';
-            }
-        });
-    </script>
 </body>
 </html>

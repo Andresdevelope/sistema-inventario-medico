@@ -1,19 +1,18 @@
-
 @extends('layouts.dashboard')
 
 @section('content')
     <div style="margin-bottom: 1.5rem;">
         <div style="background: #e3f4fd; color: #2176ae; padding: 1rem 1.5rem; border-radius: 7px; font-size: 1.1rem; display: flex; align-items: center;">
             <i class="fa fa-user" style="margin-right: 10px;"></i>
-            Bienvenido <b style="margin: 0 5px;">{{ Auth::user()->username ?? 'Usuario' }}</b> a la aplicación de inventario de medicamentos.
+            Bienvenido <b style="margin: 0 5px;">{{ Auth::user()->name ?? 'Usuario' }}</b> a la aplicación de inventario de medicamentos.
         </div>
     </div>
     <div class="cards">
         <div class="card blue">
-            <span class="count">-</span>
+            <span class="count">{{ $totalCategorias ?? '-' }}</span>
             <span class="label">Categorías</span>
             <i class="fa fa-folder icon-bg"></i>
-            <a href="#" style="margin-top:auto; width:100%; text-align:center; color:#fff; background:none; border:none; font-size:1.08rem; text-decoration:underline; font-weight:bold; cursor:pointer; padding:0.7rem 0; border-radius:0 0 8px 8px; transition:color 0.2s;" onmouseover="this.style.color='#1eb6e7'" onmouseout="this.style.color='#fff'">Ver categorías</a>
+            <a href="/categorias" style="margin-top:auto; width:100%; text-align:center; color:#fff; background:none; border:none; font-size:1.08rem; text-decoration:underline; font-weight:bold; cursor:pointer; padding:0.7rem 0; border-radius:0 0 8px 8px; transition:color 0.2s;" onmouseover="this.style.color='#1eb6e7'" onmouseout="this.style.color='#fff'">Ver categorías</a>
         </div>
         <div class="card green">
             <span class="count">-</span>
