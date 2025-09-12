@@ -178,8 +178,8 @@
                     <li><a href="/dashboard" class="active"><i class="fa fa-home"></i> <span class="sidebar-label">Inicio</span></a></li>
                     <li><a href="/categorias"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
                     <li><a href="/productos"><i class="fa fa-pills"></i> <span class="sidebar-label">Medicamentos</span></a></li>
-                    <li><a href="#"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
                     <li><a href="#"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
+                    <li><a href="#"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
                     <li><a href="#"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
                     <li><a href="#"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
 

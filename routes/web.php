@@ -9,29 +9,30 @@ use Illuminate\Support\Facades\Auth;
 // ================= DASHBOARD =================
 Route::get('/dashboard', function () {
     $totalCategorias = \App\Models\Categoria::count();
-    return view('dashboard', compact('totalCategorias'));
+    $totalProductos = \App\Models\Producto::count();
+    return view('dashboard', compact('totalCategorias', 'totalProductos'));
 })->middleware('auth');
 
 // ================= AUTENTICACIÓN =================
 Route::get('/', function () {
-    return view('auth');
+    return view('auth.auth');
 });
 Route::post('/register', [App\Http\Controllers\AuthController::class, 'register'])->name('register');
 Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
 Route::get('/login', function () {
-    return view('auth');
+    return view('auth.auth');
 })->name('login');
 
 // ================= PERFIL DE USUARIO =================
 Route::post('/perfil/validar-seguridad', [App\Http\Controllers\PerfilController::class, 'validarSeguridad'])->name('perfil.validarSeguridad')->middleware('auth');
 Route::get('/perfil', function () {
-    return view('perfil');
+    return view('auth.perfil');
 })->name('perfil')->middleware('auth');
 Route::post('/perfil/cambiar-contrasena', [App\Http\Controllers\PerfilController::class, 'cambiarContrasena'])->name('cambiar.contrasena')->middleware('auth');
 
 // ================= RECUPERACIÓN DE CONTRASEÑA =================
 Route::get('/recover', function () {
-    return view('recover');
+    return view('auth.recover');
 });
 Route::post('/recover/check-email', [App\Http\Controllers\RecoverController::class, 'checkEmail']);
 Route::post('/recover/check-security', [App\Http\Controllers\RecoverController::class, 'checkSecurity']);
@@ -39,7 +40,7 @@ Route::post('/recover/change-password', [App\Http\Controllers\RecoverController:
 
 // ================= CATEGORÍAS Y SUBCATEGORÍAS =================
 Route::get('/categorias', function() {
-    return view('categoria');
+    return view('layouts.categoria.categoria');
 })->middleware('auth')->name('categorias');
 Route::resource('categorias', CategoriaController::class)->middleware('auth');
 Route::resource('subcategorias', SubcategoriaController::class)->middleware('auth');

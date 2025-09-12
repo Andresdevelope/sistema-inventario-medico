@@ -28,8 +28,9 @@ class Producto extends Model
         'presentacion',
         'unidad_medida',
         'stock',
-        'proveedor_id',
-        'fecha_vencimiento',
+    'proveedor_id',
+    'fecha_ingreso',
+    'fecha_vencimiento',
         'created_by',
         'updated_by',
     ];

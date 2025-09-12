@@ -21,7 +21,7 @@ class CategoriaController extends Controller
      */
     public function index()
     {
-        return view('categoria');
+    return view('layouts.categoria.categoria');
     }
 
     /**

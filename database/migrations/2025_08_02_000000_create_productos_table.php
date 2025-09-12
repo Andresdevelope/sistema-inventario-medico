@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('unidad_medida');
             $table->integer('stock')->default(0);
             $table->unsignedBigInteger('proveedor_id');
+            $table->date('fecha_ingreso')->nullable();
             $table->date('fecha_vencimiento')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();

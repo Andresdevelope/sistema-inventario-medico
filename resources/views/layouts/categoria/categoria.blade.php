@@ -1,6 +1,6 @@
 <!-- Modal de confirmación genérico -->
 <div id="modal-confirmar" class="modal" style="display:none;">
-    <div class="modal-content" style="min-width:320px; max-width:90vw; text-align:center;">
+    <div class="modal-content" style="max-width:380px; width:100%; text-align:center; box-sizing:border-box; padding:1.5rem 1.2rem;">
         <h3 id="confirmar-titulo" style="color:#e74c3c; margin-bottom:1rem;">¿Confirmar acción?</h3>
         <div id="confirmar-mensaje" style="font-size:1.08rem; margin-bottom:1.5rem; color:#333;">¿Estás seguro de que deseas continuar?</div>
         <div style="display:flex; justify-content:center; gap:1.2rem;">
@@ -34,8 +34,8 @@
 
 <!-- Modal para añadir categoría y subcategoría -->
 <div id="modal-categoria" class="modal" style="display:none;">
-    <div class="modal-content" style="min-width:340px;">
-        <h3 id="modal-titulo" style="color:#2176ae;">Añadir Categoría</h3>
+    <div class="modal-content" style="max-width:380px; width:100%; box-sizing:border-box; padding:1.5rem 1.2rem;">
+        <h3 id="modal-titulo" style="color:#2176ae; font-size:1.25rem; margin-bottom:1.2rem;">Añadir Categoría</h3>
         <form id="form-categoria">
             <input type="hidden" name="categoria_id" id="categoria_id">
             <div style="margin-bottom:1rem;">
@@ -60,8 +60,8 @@
 </div>
 <!-- Modal para editar subcategoría -->
 <div id="modalEditarSubcategoria" class="modal" style="display:none;">
-  <div class="modal-content" style="min-width:340px;">
-    <h3 style="color:#2176ae;">Editar subcategoría</h3>
+    <div class="modal-content" style="max-width:380px; width:100%; box-sizing:border-box; padding:1.5rem 1.2rem;">
+        <h3 style="color:#2176ae; font-size:1.25rem; margin-bottom:1.2rem;">Editar subcategoría</h3>
     <input type="hidden" id="editSubId">
     <div class="form-group" style="margin-bottom:1rem;">
       <label for="editSubNombre">Nombre de la subcategoría</label>

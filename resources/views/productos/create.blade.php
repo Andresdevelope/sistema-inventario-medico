@@ -73,10 +73,14 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                        <div class="form-floating mb-3 position-relative">
-                            <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="form-control ps-5" placeholder="Fecha de Vencimiento">
-                            <label for="fecha_vencimiento"><i class="fas fa-calendar-alt me-2"></i> Fecha de Vencimiento</label>
-                        </div>
+            <div class="form-floating mb-3 position-relative">
+              <input type="date" name="fecha_ingreso" id="fecha_ingreso" class="form-control ps-5" placeholder="Fecha de Ingreso" required>
+              <label for="fecha_ingreso"><i class="fas fa-calendar-plus me-2"></i> Fecha de Ingreso</label>
+            </div>
+            <div class="form-floating mb-3 position-relative">
+              <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="form-control ps-5" placeholder="Fecha de Vencimiento">
+              <label for="fecha_vencimiento"><i class="fas fa-calendar-alt me-2"></i> Fecha de Vencimiento</label>
+            </div>
                     </div>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-4">

@@ -77,7 +77,8 @@ class ProductoController extends Controller
             'unidad_medida' => 'required|string|max:50',
             'stock' => 'required|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
-            'fecha_vencimiento' => 'nullable|date',
+            'fecha_ingreso' => 'required|date',
+            'fecha_vencimiento' => 'required|date',
         ]);
 
         $producto = Producto::create($request->all() + [
@@ -111,7 +112,10 @@ class ProductoController extends Controller
      */
     public function edit(Producto $producto)
     {
-        return view('productos.edit', compact('producto'));
+        $categorias = \App\Models\Categoria::all();
+        $subcategorias = \App\Models\Subcategoria::all();
+        $proveedores = \App\Models\Proveedor::all();
+        return view('productos.edit', compact('producto', 'categorias', 'subcategorias', 'proveedores'));
     }
 
     /**
@@ -129,6 +133,7 @@ class ProductoController extends Controller
             'unidad_medida' => 'required|string|max:50',
             'stock' => 'required|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
+            'fecha_ingreso' => 'required|date',
             'fecha_vencimiento' => 'nullable|date',
         ]);
 

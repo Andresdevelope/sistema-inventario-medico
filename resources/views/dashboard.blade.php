@@ -23,17 +23,8 @@
             <div class="d-flex align-items-center mb-2">
                 <i class="fa fa-pills fa-2x me-3"></i>
                 <div>
-                    <div class="fs-4 fw-bold">{{ $totalProductos ?? '-' }}</div>
+                    <div class="fs-4 fw-bold" style="font-size:2.5rem; color:#fff;">{{ isset($totalProductos) ? $totalProductos : '-' }}</div>
                     <div class="fs-6">Medicamento</div>
-                </div>
-            </div>
-        </a>
-        <a href="{{ url('/movimientos') }}" class="card-dashboard bg-warning text-dark" style="min-width:220px; flex:1; max-width:260px; text-decoration:none;">
-            <div class="d-flex align-items-center mb-2">
-                <i class="fa fa-exchange-alt fa-2x me-3"></i>
-                <div>
-                    <div class="fs-4 fw-bold">{{ $totalMovimientos ?? '-' }}</div>
-                    <div class="fs-6">Movimientos</div>
                 </div>
             </div>
         </a>
@@ -46,6 +37,16 @@
                 </div>
             </div>
         </a>
+         <a href="{{ url('/movimientos') }}" class="card-dashboard bg-warning text-dark" style="min-width:220px; flex:1; max-width:260px; text-decoration:none;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="fa fa-exchange-alt fa-2x me-3"></i>
+                <div>
+                    <div class="fs-4 fw-bold">{{ $totalMovimientos ?? '-' }}</div>
+                    <div class="fs-6">Movimientos</div>
+                </div>
+            </div>
+        </a>
+
         <a href="{{ url('/usuarios') }}" class="card-dashboard bg-dark text-white" style="min-width:220px; flex:1; max-width:260px; text-decoration:none;">
             <div class="d-flex align-items-center mb-2">
                 <i class="fa fa-users fa-2x me-3"></i>

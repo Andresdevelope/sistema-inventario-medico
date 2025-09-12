@@ -182,10 +182,10 @@
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">
                                     <a href="{{ route('productos.show', $producto) }}" class="btn btn-outline-info btn-sm px-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
                                     <a href="{{ route('productos.edit', $producto) }}" class="btn btn-outline-warning btn-sm px-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
-                                    <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block" onsubmit="return confirm('¿Seguro que deseas eliminar este medicamento?');">
+                                    <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block form-eliminar-medicamento">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm px-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm px-2 btn-modal-eliminar" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-nombre="{{ $producto->nombre }}"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -198,6 +198,39 @@
                     </tbody>
                 </table>
                 <div class="d-flex justify-content-between align-items-center mt-3">
+<!-- Modal de confirmación para eliminar medicamento -->
+<div id="modalEliminarMedicamento" class="modal" tabindex="-1" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); z-index:9999; justify-content:center; align-items:center;">
+    <div style="display:flex; justify-content:center; align-items:center; width:100%; height:100%;">
+        <div class="modal-content" style="margin:auto; max-width:380px; width:100%; text-align:center; box-sizing:border-box; padding:1.5rem 1.2rem; background:#fff; border-radius:10px; box-shadow:0 4px 24px rgba(0,0,0,0.18);">
+            <h3 style="color:#e74c3c; margin-bottom:1rem;">¿Eliminar medicamento?</h3>
+            <div id="mensajeEliminarMedicamento" style="font-size:1.08rem; margin-bottom:1.5rem; color:#333;">¿Estás seguro de que deseas eliminar este medicamento?</div>
+            <div style="display:flex; justify-content:center; gap:1.2rem;">
+                <button id="btnCancelarEliminar" type="button" style="background:#ccc;color:#222;padding:0.5rem 1.5rem;border:none;border-radius:5px;">Cancelar</button>
+                <button id="btnConfirmarEliminar" type="button" style="background:#e74c3c;color:#fff;padding:0.5rem 1.5rem;border:none;border-radius:5px;font-weight:bold;">Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let formEliminarActual = null;
+    document.querySelectorAll('.btn-modal-eliminar').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            formEliminarActual = btn.closest('form');
+            const nombre = btn.getAttribute('data-nombre');
+            document.getElementById('mensajeEliminarMedicamento').innerText = `¿Estás seguro de que deseas eliminar "${nombre}"?`;
+            document.getElementById('modalEliminarMedicamento').style.display = 'block';
+        });
+    });
+    document.getElementById('btnCancelarEliminar').onclick = function() {
+        document.getElementById('modalEliminarMedicamento').style.display = 'none';
+        formEliminarActual = null;
+    };
+    document.getElementById('btnConfirmarEliminar').onclick = function() {
+        if(formEliminarActual) formEliminarActual.submit();
+        document.getElementById('modalEliminarMedicamento').style.display = 'none';
+    };
+</script>
                     <div class="small text-muted">Mostrando {{ $productos->firstItem() ?? 0 }} - {{ $productos->lastItem() ?? 0 }} de {{ $productos->total() }} resultados</div>
                     <div>
                         {{ $productos->links() }}
