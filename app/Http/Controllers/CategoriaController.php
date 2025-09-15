@@ -9,11 +9,20 @@ use App\Models\Subcategoria;
 class CategoriaController extends Controller
 {
     /**
+     * Devuelve las subcategorías de una categoría específica (AJAX).
+     */
+    public function subcategoriasPorCategoria($categoriaId)
+    {
+        $subcategorias = Subcategoria::where('categoria_id', $categoriaId)->get();
+        return response()->json($subcategorias);
+    }
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return view('categoria');
+        $categorias = Categoria::with('subcategorias')->get();
+        return view('layouts.categoria.categoria', compact('categorias'));
     }
 
     /**

@@ -15,9 +15,19 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $email = 'test@example.com';
+        $password = 'inventario123';
+        if (!\App\Models\User::where('email', $email)->exists()) {
+            \App\Models\User::factory()->create([
+                'name' => 'Test User',
+                'email' => $email,
+                'password' => bcrypt($password),
+                'security_color_answer' => 'azul',
+                'security_animal_answer' => 'perro',
+            ]);
+            echo "\nUsuario de prueba creado:\nEmail: $email\nContraseña: $password\n";
+        } else {
+            echo "\nUsuario de prueba ya existe:\nEmail: $email\nContraseña: $password\n";
+        }
     }
 }

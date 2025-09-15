@@ -1,6 +1,6 @@
 <!-- Modal de confirmación genérico -->
 <div id="modal-confirmar" class="modal" style="display:none;">
-    <div class="modal-content" style="min-width:320px; max-width:90vw; text-align:center;">
+    <div class="modal-content" style="max-width:380px; width:100%; text-align:center; box-sizing:border-box; padding:1.5rem 1.2rem;">
         <h3 id="confirmar-titulo" style="color:#e74c3c; margin-bottom:1rem;">¿Confirmar acción?</h3>
         <div id="confirmar-mensaje" style="font-size:1.08rem; margin-bottom:1.5rem; color:#333;">¿Estás seguro de que deseas continuar?</div>
         <div style="display:flex; justify-content:center; gap:1.2rem;">
@@ -25,17 +25,67 @@
             <i class="fa fa-plus"></i> Añadir categoría
         </button>
     </div>
-    <div class="table-responsive">
-        <table class="table-lista">
-            <tbody id="tabla-categorias"></tbody>
-        </table>
+    <div class="accordion" id="categoriasAccordion">
+        @foreach($categorias as $cat)
+            <div class="accordion-item mb-2">
+                <h2 class="accordion-header" id="heading{{ $cat->id }}">
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $cat->id }}" aria-expanded="false" aria-controls="collapse{{ $cat->id }}">
+                                <span class="fw-semibold">{{ $cat->nombre }}</span>
+                                <span class="badge bg-info ms-3">{{ $cat->subcategorias->count() }} subcategorías</span>
+                            </button>
+                            <div class="d-flex align-items-center ms-3" style="gap: 0.5rem;">
+                                <button type="button" class="btn btn-sm btn-warning d-flex align-items-center btn-editar-categoria" title="Editar" data-id="{{ $cat->id }}" data-nombre="{{ $cat->nombre }}">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger d-flex align-items-center btn-eliminar-categoria" title="Eliminar" data-id="{{ $cat->id }}" data-nombre="{{ $cat->nombre }}">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </h2>
+                <div id="collapse{{ $cat->id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $cat->id }}" data-bs-parent="#categoriasAccordion">
+                    <div class="accordion-body">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Subcategoría</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($cat->subcategorias as $sub)
+                                    <tr>
+                                        <td>{{ $sub->nombre }}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-warning me-1 btn-editar-subcategoria" title="Editar" data-id="{{ $sub->id }}" data-nombre="{{ $sub->nombre }}" data-categoria="{{ $cat->nombre }}">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-subcategoria" title="Eliminar" data-id="{{ $sub->id }}" data-nombre="{{ $sub->nombre }}" data-categoria="{{ $cat->nombre }}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="2" class="text-muted text-center">Sin subcategorías</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endforeach
     </div>
 </div>
 
 <!-- Modal para añadir categoría y subcategoría -->
 <div id="modal-categoria" class="modal" style="display:none;">
-    <div class="modal-content" style="min-width:340px;">
-        <h3 id="modal-titulo" style="color:#2176ae;">Añadir Categoría</h3>
+    <div class="modal-content" style="max-width:380px; width:100%; box-sizing:border-box; padding:1.5rem 1.2rem;">
+        <h3 id="modal-titulo" style="color:#2176ae; font-size:1.25rem; margin-bottom:1.2rem;">Añadir Categoría</h3>
         <form id="form-categoria">
             <input type="hidden" name="categoria_id" id="categoria_id">
             <div style="margin-bottom:1rem;">
@@ -60,8 +110,8 @@
 </div>
 <!-- Modal para editar subcategoría -->
 <div id="modalEditarSubcategoria" class="modal" style="display:none;">
-  <div class="modal-content" style="min-width:340px;">
-    <h3 style="color:#2176ae;">Editar subcategoría</h3>
+    <div class="modal-content" style="max-width:380px; width:100%; box-sizing:border-box; padding:1.5rem 1.2rem;">
+        <h3 style="color:#2176ae; font-size:1.25rem; margin-bottom:1.2rem;">Editar subcategoría</h3>
     <input type="hidden" id="editSubId">
     <div class="form-group" style="margin-bottom:1rem;">
       <label for="editSubNombre">Nombre de la subcategoría</label>
@@ -149,7 +199,7 @@ button,
   border: none;
   font-size: 1.1rem;
 }
-</style>
+</>
 @endpush
 
 @push('scripts')
@@ -277,38 +327,103 @@ function getCsrfToken() {
 
 // Cargar y filtrar categorías y subcategorías
 let categoriasData = [];
-function renderCategoriasLista(data) {
-    const tbody = document.getElementById('tabla-categorias');
-    tbody.innerHTML = '';
+// Renderizar categorías y subcategorías en el acordeón dinámicamente
+function renderCategoriasAccordion(data, expandAll = false) {
+    const container = document.getElementById('categoriasAccordion');
+    if (!container) return;
+    container.innerHTML = '';
     data.forEach(cat => {
-        let subcats = '';
-        if(cat.subcategorias.length > 0) {
-            cat.subcategorias.forEach(sub => {
-                subcats += `<span class="badge-subcat">
-                    ${sub.nombre}
-                    <button class="btn-edit-sub" title="Editar subcategoría" onclick="abrirModalEditarSubcategoria(${sub.id}, '${sub.nombre.replace(/'/g, "\\'")}')" style="background:none;border:none;color:#2176ae;cursor:pointer;margin-left:6px;font-size:1rem;vertical-align:middle;">
-                        <i class='fa fa-pencil-alt'></i>
-                    </button>
-                    <button class="btn-delete-sub" title="Eliminar subcategoría" onclick="eliminarSubcategoria(${sub.id})" style="background:none;border:none;color:#e74c3c;cursor:pointer;margin-left:2px;font-size:1rem;vertical-align:middle;">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </span>`;
-            });
-        } else {
-            subcats = '<span class="badge-subcat" style="background:#eee;color:#888;">Sin subcategoría</span>';
-        }
-        tbody.innerHTML += `
-        <tr>
-            <td style="width:40px;"><i class="fa fa-folder"></i></td>
-            <td>
-                <div><strong>${cat.nombre}</strong></div>
-                <div>${subcats}</div>
-            </td>
-            <td>
-                <button class="btn-edit" onclick="editarCategoria(${cat.id}, '${cat.nombre.replace(/'/g, "\\'")}', '${cat.subcategorias.length > 0 ? cat.subcategorias[0].nombre.replace(/'/g, "\\'") : ''}')" title="Editar"><i class='fa fa-edit'></i></button>
-                <button class="btn-delete" onclick="eliminarCategoria(${cat.id})" title="Eliminar"><i class='fa fa-trash'></i></button>
-            </td>
-        </tr>`;
+        // Si la categoría tiene subcategorías filtradas, expandir el acordeón
+        const expand = expandAll || (cat.subcategorias.length > 0 && cat.subcategorias.length !== (cat.total_subcategorias || cat.subcategorias.length));
+        const item = document.createElement('div');
+        item.className = 'accordion-item mb-2';
+        // Resaltar subcategoría buscada si hay filtro
+        let searchVal = document.getElementById('buscador-general')?.value.trim().toLowerCase();
+        item.innerHTML = `
+            <h2 class="accordion-header" id="heading${cat.id}">
+                <div class="d-flex align-items-center justify-content-between w-100">
+                    <div class="d-flex align-items-center flex-grow-1">
+                        <button class="accordion-button${expand ? '' : ' collapsed'} flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${cat.id}" aria-expanded="${expand ? 'true' : 'false'}" aria-controls="collapse${cat.id}">
+                            <span class="fw-semibold">${cat.nombre}</span>
+                            <span class="badge bg-info ms-3">${cat.subcategorias.length} subcategorías</span>
+                        </button>
+                        <div class="d-flex align-items-center ms-3" style="gap: 0.5rem;">
+                            <button type="button" class="btn btn-sm btn-warning d-flex align-items-center btn-editar-categoria" title="Editar" data-id="${cat.id}" data-nombre="${cat.nombre}">
+                                <i class="fa fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger d-flex align-items-center btn-eliminar-categoria" title="Eliminar" data-id="${cat.id}" data-nombre="${cat.nombre}">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </h2>
+            <div id="collapse${cat.id}" class="accordion-collapse collapse${expand ? ' show' : ''}" aria-labelledby="heading${cat.id}" data-bs-parent="#categoriasAccordion">
+                <div class="accordion-body">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subcategoría</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cat.subcategorias.length > 0 ? cat.subcategorias.map(sub => {
+                                let nombreSub = sub.nombre;
+                                if(searchVal && nombreSub.toLowerCase().includes(searchVal)) {
+                                    nombreSub = `<span style='background: #ffe066; color: #222; border-radius: 4px; padding: 2px 6px;'>${nombreSub}</span> <span class='text-muted' style='font-size:0.95em;'>(en categoría: ${cat.nombre})</span>`;
+                                }
+                                return `
+                                    <tr>
+                                        <td>${nombreSub}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-warning me-1 btn-editar-subcategoria" title="Editar" data-id="${sub.id}" data-nombre="${sub.nombre}" data-categoria="${cat.nombre}">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-subcategoria" title="Eliminar" data-id="${sub.id}" data-nombre="${sub.nombre}" data-categoria="${cat.nombre}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('') : `
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Sin subcategorías</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+    // Asignar eventos a los botones de acción generados
+    container.querySelectorAll('.btn-editar-categoria').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const nombre = this.getAttribute('data-nombre');
+            editarCategoria(id, nombre, '');
+        });
+    });
+    container.querySelectorAll('.btn-eliminar-categoria').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            eliminarCategoria(id);
+        });
+    });
+    container.querySelectorAll('.btn-editar-subcategoria').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const nombre = this.getAttribute('data-nombre');
+            abrirModalEditarSubcategoria(id, nombre);
+        });
+    });
+    container.querySelectorAll('.btn-eliminar-subcategoria').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            eliminarSubcategoria(id);
+        });
     });
 }
 function cargarCategorias() {
@@ -316,7 +431,7 @@ function cargarCategorias() {
         .then(res => res.json())
         .then(data => {
             categoriasData = data;
-            renderCategoriasLista(data);
+            renderCategoriasAccordion(data);
         });
 }
 cargarCategorias();
@@ -324,10 +439,12 @@ cargarCategorias();
 // Buscador general de categoría o subcategoría
 document.addEventListener('DOMContentLoaded', function() {
     const inputGeneral = document.getElementById('buscador-general');
+    const acordeon = document.getElementById('categoriasAccordion');
+    let backupHTML = acordeon.innerHTML;
     function filtrar() {
         const val = inputGeneral.value.trim().toLowerCase();
         if(val === '') {
-            renderCategoriasLista(categoriasData);
+            acordeon.innerHTML = backupHTML;
             return;
         }
         let filtradas = categoriasData.map(cat => {
@@ -344,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return null;
         }).filter(Boolean);
-        renderCategoriasLista(filtradas);
+        renderCategoriasAccordion(filtradas);
     }
     inputGeneral.addEventListener('input', filtrar);
 });

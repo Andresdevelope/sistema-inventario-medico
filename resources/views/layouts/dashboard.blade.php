@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,13 +8,18 @@
     <title>SERVICIOS MEDICOS - Dashboard</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             margin: 0;
             font-family: 'Roboto', Arial, sans-serif;
             background: #f3f6fa;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+        }
+        .layout-wrapper {
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
         }
         .topbar {
             background: #4093c7;
@@ -24,6 +30,8 @@
             padding: 0 2rem;
             height: 60px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            z-index: 1020;
+            position: relative;
         }
         .topbar .logo {
             display: flex;
@@ -43,27 +51,30 @@
             margin-right: 8px;
         }
         .sidebar {
-            width: 220px;
+            width: 60px;
             background: #222e36;
             color: #fff;
-            position: fixed;
-            top: 60px;
+            position: relative;
+            top: 0;
             left: 0;
             bottom: 0;
             padding-top: 1rem;
-            z-index: 100;
+            z-index: 1010;
             transition: width 0.2s;
             overflow-x: hidden;
-            height: calc(100vh - 60px);
+            height: auto;
+            min-height: calc(100vh - 60px);
         }
-        .sidebar.collapsed {
-            width: 60px !important;
+        .sidebar:hover {
+            width: 220px;
         }
-        .sidebar.collapsed .sidebar-label {
+        .sidebar .sidebar-label {
             display: none;
+            transition: opacity 0.2s;
         }
-        .sidebar.collapsed ul li a {
-            justify-content: center;
+        .sidebar:hover .sidebar-label {
+            display: inline;
+            opacity: 1;
         }
         .sidebar ul {
             list-style: none;
@@ -92,75 +103,19 @@
             text-align: center;
         }
         .main-content {
-            margin-left: 220px;
-            padding: 2rem;
-            padding-top: 2.5rem;
-            min-height: calc(100vh - 60px - 40px);
+            /* margin-left eliminado, ahora usa flexbox */
+            flex: 1;
+            padding: 2rem 1rem 2.5rem 1rem;
+            min-height: calc(100vh - 60px - 44px);
             transition: margin-left 0.2s;
-            overflow-y: auto;
-            height: calc(100vh - 60px - 44px);
+            overflow-x: auto;
+            background: #f3f6fa;
         }
-        .cards {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
+        @media (max-width: 900px) {
+            .sidebar { width: 60px; }
+            .sidebar .sidebar-label { display: none; }
+            .main-content { margin-left: 60px; padding: 1rem 0.5rem 2.5rem 0.5rem; }
         }
-        .card {
-            flex: 1 1 220px;
-            min-width: 220px;
-            max-width: 260px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            padding: 1.5rem 1rem 1rem 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            position: relative;
-            overflow: hidden;
-        }
-        .card .icon-bg {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            font-size: 3.5rem;
-            color: rgba(0,0,0,0.07);
-        }
-        .card .count {
-            font-size: 2.2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .card .label {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        .card .action {
-            margin-top: auto;
-            width: 100%;
-            display: block;
-            color: #fff;
-            background: #2176ae;
-            border: none;
-            border-radius: 0 0 8px 8px;
-            padding: 0.7rem 0;
-            font-size: 1.08rem;
-            font-weight: bold;
-            text-align: center;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: background 0.2s, box-shadow 0.2s;
-            box-shadow: 0 2px 8px rgba(33,118,174,0.08);
-        }
-        .card .action:hover {
-            background: #4093c7;
-            color: #fff;
-            text-decoration: none;
-        }
-        .card.blue { background: #1eb6e7; color: #fff; }
-        .card.green { background: #1abc9c; color: #fff; }
-        .card.orange { background: #f39c12; color: #fff; }
-        .card.red { background: #e74c3c; color: #fff; }
         .footer {
             height: 44px;
             background: linear-gradient(90deg, #e0e3e8 0%, #cfd4db 100%);
@@ -174,7 +129,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            z-index: 99;
+            z-index: 1030;
             box-shadow: 0 -2px 10px rgba(180,180,180,0.10);
             letter-spacing: 0.5px;
         }
@@ -183,49 +138,81 @@
             text-decoration: underline;
             font-weight: bold;
         }
-        @media (max-width: 900px) {
-            .main-content { padding: 1rem; }
-            .cards { flex-direction: column; gap: 1rem; }
-        }
     </style>
     @stack('styles')
 </head>
 <body>
-    <div class="topbar">
-        <div class="logo">
-            <i class="fa-solid fa-capsules"></i> Servicios Médicos 
+    <div class="layout-wrapper">
+        <div class="topbar">
+            <div class="logo">
+                <i class="fa-solid fa-capsules"></i> Servicios Médicos
+            </div>
+            <div class="user dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: #2196f3; border-radius: 2rem; padding: 0.3rem 1rem;">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? Auth::user()->username ?? 'U') }}" alt="avatar" class="rounded-circle me-2" width="36" height="36">
+                    <span class="fw-bold" style="font-size:1.1rem;">{{ Auth::user()->name ?? 'Usuario' }}</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg p-3" aria-labelledby="userDropdown" style="min-width: 270px;">
+                    <li class="text-center mb-2">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? Auth::user()->username ?? 'U') }}" alt="avatar" class="rounded-circle mb-2" width="60" height="60">
+                        <div class="fw-bold" style="font-size:1.1rem;">{{ Auth::user()->name }}</div>
+                        <div class="text-muted small mb-2">{{ Auth::user()->email }}</div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="mb-2">
+                        <a class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" href="{{ route('perfil') }}" style="font-weight:500;">
+                            <i class="fa fa-user"></i> Ver perfil
+                        </a>
+                    </li>
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" style="display:inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-danger w-100 d-flex align-items-center justify-content-center gap-2" style="font-weight:500;">
+                                <i class="fa fa-sign-out-alt"></i> Cerrar sesión
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+    <style>
+        .topbar .user .dropdown-toggle::after {
+            margin-left: 0.5em;
+        }
+        .dropdown-menu {
+            min-width: 180px;
+        }
+    </style>
         </div>
-        <!-- Botón de colapsar sidebar eliminado por limpieza -->
-        <div class="user">
-            <i class="fa-solid fa-user-circle"></i> {{ Auth::user()->username ?? 'Usuario' }}
+        <div style="display: flex; flex: 1; min-height: calc(100vh - 60px);">
+            <div class="sidebar" id="sidebar">
+                <ul>
+                    <li><a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}"><i class="fa fa-home"></i> <span class="sidebar-label">Inicio</span></a></li>
+                    <li><a href="/categorias" class="{{ request()->is('categorias*') ? 'active' : '' }}"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
+                    <li><a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}"><i class="fa fa-pills"></i> <span class="sidebar-label">Medicamentos</span></a></li>
+                    <li><a href="#" class="{{ request()->is('inventario*') ? 'active' : '' }}"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
+                    <li><a href="#" class="{{ request()->is('movimientos*') ? 'active' : '' }}"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
+                    <li><a href="#" class="{{ request()->is('usuarios*') ? 'active' : '' }}"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
+                    <li><a href="#" class="{{ request()->is('reportes*') ? 'active' : '' }}"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
+
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" style="display:inline; margin:0; padding:0;">
+                            @csrf
+                            <button type="submit" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:8px; color:inherit; font:inherit; padding:12px 24px; width:100%; text-align:left;">
+                                <i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Cerrar sesión</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            <div class="main-content" id="main-content">
+                @yield('content')
+            </div>
+        </div>
+        <div class="footer">
+            Copyright © 2025 - <a href="#">Sistemas Web</a>.
         </div>
     </div>
-    <div class="sidebar" id="sidebar">
-        <ul>
-            <li><a href="/dashboard" class="active"><i class="fa fa-home"></i> <span class="sidebar-label">Inicio</span></a></li>
-            <li><a href="/categorias"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
-            <li><a href="#"><i class="fa fa-pills"></i> <span class="sidebar-label">Productos</span></a></li>
-            <li><a href="#"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
-            <li><a href="#"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
-            <li><a href="#"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
-            <li><a href="#"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
-            <li><a href="#"><i class="fa fa-key"></i> <span class="sidebar-label">Cambiar contraseña</span></a></li>
-            <li>
-                <form action="{{ route('logout') }}" method="POST" style="display:inline; margin:0; padding:0;">
-                    @csrf
-                    <button type="submit" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:8px; color:inherit; font:inherit; padding:12px 24px; width:100%; text-align:left;">
-                        <i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Cerrar sesión</span>
-                    </button>
-                </form>
-            </li>
-        </ul>
-    </div>
-    <div class="main-content" id="main-content">
-        @yield('content')
-    </div>
-    <div class="footer">
-        Copyright © 2025 - <a href="#">Sistemas Web</a>.
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
 </body>
 </html>
