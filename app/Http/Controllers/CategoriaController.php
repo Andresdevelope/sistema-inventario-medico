@@ -21,7 +21,8 @@ class CategoriaController extends Controller
      */
     public function index()
     {
-    return view('layouts.categoria.categoria');
+        $categorias = Categoria::with('subcategorias')->get();
+        return view('layouts.categoria.categoria', compact('categorias'));
     }
 
     /**

@@ -95,6 +95,19 @@
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
+                <style>
+                    .sticky-actions {
+                        position: sticky;
+                        right: 0;
+                        background: #f8fafc;
+                        z-index: 2;
+                        box-shadow: -2px 0 8px -4px rgba(0,0,0,0.08);
+                    }
+                    .table-sm th, .table-sm td {
+                        font-size: 0.92rem;
+                        padding: 0.35rem 0.45rem;
+                    }
+                </style>
                 <table class="table table-hover table-sm align-middle mb-0 text-nowrap">
                     <thead class="table-primary text-center align-middle">
                         <tr>
@@ -107,8 +120,8 @@
                                     return 'asc';
                                 };
                             @endphp
-                            <th scope="col">Código</th>
-                            <th scope="col">
+                            <th scope="col" style="width: 70px;">Código</th>
+                            <th scope="col" style="min-width: 140px;">
                                 @php $dirNombre = $toggleDir('nombre'); @endphp
                                 <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'nombre','dir'=>$dirNombre])) }}" aria-label="Ordenar por nombre">Nombre
                                     @if($currentSort === 'nombre')
@@ -128,7 +141,7 @@
                                     @endif
                                 </a>
                             </th>
-                            <th scope="col">Subcat.</th>
+                            <th scope="col" style="width: 90px;">Subcat.</th>
                             <th scope="col">
                                 @php $dirPres = $toggleDir('presentacion'); @endphp
                                 <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'presentacion','dir'=>$dirPres])) }}" aria-label="Ordenar por presentación">Presentación
@@ -149,8 +162,8 @@
                                     @endif
                                 </a>
                             </th>
-                            <th scope="col">Proveedor</th>
-                            <th scope="col">Acciones</th>
+                            <th scope="col" style="width: 110px;">Proveedor</th>
+                            <th scope="col" class="sticky-actions" style="width: 110px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -178,14 +191,14 @@
                                 @endif
                             </td>
                             <td><span class="badge bg-secondary small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
-                            <td class="text-center">
+                            <td class="text-center sticky-actions">
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">
-                                    <a href="{{ route('productos.show', $producto) }}" class="btn btn-outline-info btn-sm px-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
-                                    <a href="{{ route('productos.edit', $producto) }}" class="btn btn-outline-warning btn-sm px-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
+                                    <a href="{{ route('productos.show', $producto) }}" class="btn btn-outline-info btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('productos.edit', $producto) }}" class="btn btn-outline-warning btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
                                     <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block form-eliminar-medicamento">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" class="btn btn-outline-danger btn-sm px-2 btn-modal-eliminar" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-nombre="{{ $producto->nombre }}"><i class="fas fa-trash"></i></button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm px-1 btn-modal-eliminar" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-nombre="{{ $producto->nombre }}"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -233,7 +246,9 @@
 </script>
                     <div class="small text-muted">Mostrando {{ $productos->firstItem() ?? 0 }} - {{ $productos->lastItem() ?? 0 }} de {{ $productos->total() }} resultados</div>
                     <div>
-                        {{ $productos->links() }}
+                        <nav aria-label="Paginación de medicamentos">
+                            {!! $productos->links('pagination::bootstrap-5') !!}
+                        </nav>
                     </div>
                 </div>
                 
