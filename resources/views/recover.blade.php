@@ -1,345 +1,247 @@
 @extends('layouts.app')
 
-@section('content')
-
-<div class="gradient-bg" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;">
-    <svg class="wave-bg-svg" viewBox="0 0 1440 320" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;">
-        <path id="wave1" fill="#222e3c" fill-opacity="0.7" d="M0,160L60,165.3C120,171,240,181,360,186.7C480,192,600,192,720,186.7C840,181,960,171,1080,176C1200,181,1320,203,1380,213.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
-            <animate attributeName="d" dur="12s" repeatCount="indefinite"
-                values="M0,160L60,165.3C120,171,240,181,360,186.7C480,192,600,192,720,186.7C840,181,960,171,1080,176C1200,181,1320,203,1380,213.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z;
-                M0,180L60,185.3C120,191,240,201,360,206.7C480,212,600,212,720,206.7C840,201,960,191,1080,196C1200,201,1320,223,1380,233.3L1440,244L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z;
-                M0,160L60,165.3C120,171,240,181,360,186.7C480,192,600,192,720,186.7C840,181,960,171,1080,176C1200,181,1320,203,1380,213.3L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z" />
-        </path>
-        <path id="wave2" fill="#0d1b2a" fill-opacity="0.5" d="M0,224L60,218.7C120,213,240,203,360,186.7C480,171,600,149,720,154.7C840,160,960,192,1080,186.7C1200,181,1320,139,1380,117.3L1440,96L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z">
-            <animate attributeName="d" dur="16s" repeatCount="indefinite"
-                values="M0,224L60,218.7C120,213,240,203,360,186.7C480,171,600,149,720,154.7C840,160,960,192,1080,186.7C1200,181,1320,139,1380,117.3L1440,96L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z;
-                M0,244L60,238.7C120,233,240,223,360,206.7C480,191,600,169,720,174.7C840,180,960,212,1080,206.7C1200,201,1320,159,1380,137.3L1440,116L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z;
-                M0,224L60,218.7C120,213,240,203,360,186.7C480,171,600,149,720,154.7C840,160,960,192,1080,186.7C1200,181,1320,139,1380,117.3L1440,96L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z" />
-        </path>
-    </svg>
-    <div class="neomorph-panel">
-        <div class="neomorph-logo">
-            <img src="/favicon.ico" alt="Logo farmacia" style="width:50px; margin-bottom:10px;">
-        </div>
-        <div class="neomorph-content active" id="neo-recover">
-            <h2 class="neomorph-title">Recuperar Contraseña</h2>
-            <form id="recover-email-form">
-                <input type="email" name="email" id="recover-email" placeholder="Correo registrado" required>
-                <button type="submit">Continuar</button>
-            </form>
-        </div>
-        <!-- Modal preguntas de seguridad -->
-        <div id="security-recover-modal" class="modal" style="display:none;">
-            <div class="modal-content">
-                <h3>Verificación de Seguridad</h3>
-                <form id="security-recover-form">
-                    <input type="text" name="color" class="modal-input" placeholder="¿Color favorito?" required>
-                    <input type="text" name="animal" class="modal-input" placeholder="¿Animal favorito?" required>
-                    <button type="submit" class="modal-btn">Verificar</button>
-                </form>
-            </div>
-        </div>
-        <!-- Modal cambio de contraseña -->
-        <div id="change-password-modal" class="modal" style="display:none;">
-            <div class="modal-content">
-                <h3>Cambiar Contraseña</h3>
-                <form id="change-password-form">
-                    <input type="password" name="new_password" class="modal-input" placeholder="Nueva contraseña" required>
-                    <input type="password" name="confirm_password" class="modal-input" placeholder="Confirmar contraseña" required>
-                    <button type="submit" class="modal-btn">Cambiar contraseña</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal preguntas de seguridad -->
-<div id="security-recover-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Verificación de Seguridad</h3>
-        <form id="security-recover-form">
-            <input type="text" name="color" class="modal-input" placeholder="¿Color favorito?" required>
-            <input type="text" name="animal" class="modal-input" placeholder="¿Animal favorito?" required>
-            <button type="submit" class="modal-btn">Verificar</button>
-        </form>
-    </div>
-</div>
-
-<!-- Modal cambio de contraseña -->
-<div id="change-password-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Cambiar Contraseña</h3>
-        <form id="change-password-form">
-            <input type="password" name="new_password" class="modal-input" placeholder="Nueva contraseña" required>
-            <input type="password" name="confirm_password" class="modal-input" placeholder="Confirmar contraseña" required>
-            <button type="submit" class="modal-btn">Cambiar contraseña</button>
-        </form>
-    </div>
-</div>
-@endsection
-
 @push('styles')
 <style>
-.gradient-bg {
-    min-height: 100vh;
-    width: 100vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-    background: linear-gradient(120deg, #1a2533 0%, #263a4f 100%);
-    z-index: -1;
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+:root{ --bg:#181c24; --panel:#232a36; --input:#222e3c; --text:#ffffff; --muted:#b0b8c1; --accent:#8ecae6; --accentH:#219ebc; }
+html, body{ height:100%; margin:0; }
+.auth-page{
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; font-family:'Montserrat',sans-serif;
+  min-height:100svh;
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(1200px 800px at 10% -10%, #2a3a4a 0%, transparent 60%),
+    radial-gradient(900px 700px at 110% 20%, #1f2a38 0%, transparent 50%),
+    linear-gradient(180deg, #0f141b 0%, #181c24 60%, #121721 100%);
 }
-.neomorph-panel {
-    background: #1a2533;
-    border-radius: 28px;
-    box-shadow: 8px 8px 24px #222e3c, -8px -8px 24px #0d1b2a;
-    border: 2px solid #263a4f;
-    min-width: 320px;
-    max-width: 370px;
-    margin: 1.5rem auto;
-    transition: box-shadow 0.3s, border-color 0.3s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2.5rem 2rem 2rem 2rem;
-    position: relative;
-    z-index: 1;
+.auth-page::before,
+.auth-page::after{
+  content:""; position:absolute; inset:-20%; z-index:0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(142,202,230,.12) 0%, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(33,158,188,.12) 0%, transparent 45%);
+  filter: blur(60px);
 }
-.neomorph-logo {
-    margin-bottom: 10px;
-    text-align: center;
+.panel{ background:var(--panel); border-radius:10px; box-shadow:0 14px 28px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.22); width:420px; max-width:calc(100vw - 32px); padding:32px 24px; text-align:center; position:relative; z-index:1; }
+h1{ color:var(--text); margin:0 0 16px; font-size:24px; }
+p{ color:var(--muted); margin:0 0 24px; }
+input{
+  background:var(--input);
+  border:none;
+  color:var(--text);
+  padding:12px 18px;
+  margin:10px auto;
+  width:100%;
+  max-width:340px;
+  display:block;
+  border-radius:6px;
+  box-sizing:border-box;
 }
-.neomorph-title {
-    margin-bottom: 1.2rem;
-    color: #2193b0;
-    font-weight: 700;
-    font-size: 1.6rem;
-    letter-spacing: 1px;
-    text-align: center;
-}
-.neomorph-content {
-    width: 100%;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    animation: fadeInNeo 0.5s;
-}
-.neomorph-content.active {
-    display: flex;
-    animation: scaleInNeo 0.5s;
-}
-.neomorph-content form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-@keyframes scaleInNeo {
-    0% { opacity: 0; transform: scale(0.9); }
-    100% { opacity: 1; transform: scale(1); }
-}
-@keyframes fadeInNeo {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-}
-.neomorph-content input {
-    width: 100%;
-    max-width: 320px;
-    margin-bottom: 1rem;
-    padding: 0.8rem;
-    border-radius: 14px;
-    border: 1.5px solid #263a4f;
-    font-size: 1.05rem;
-    background: #f7fafd;
-    box-shadow: 2px 2px 8px #222e3c, -2px -2px 8px #0d1b2a;
-}
-.neomorph-content button {
-    width: 100%;
-    max-width: 320px;
-    padding: 0.9rem;
-    background: linear-gradient(90deg, #263a4f 0%, #1a2533 100%);
-    color: #fff;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 1.1rem;
-    box-shadow: 2px 2px 8px #222e3c, -2px -2px 8px #0d1b2a;
-    transition: background 0.3s;
-}
-.neomorph-content button:hover {
-    background: linear-gradient(90deg, #6dd5ed 0%, #2193b0 100%);
-}
-.modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-.modal-content {
-    background: #1a2533;
-    padding: 2.5rem 2rem 2rem 2rem;
-    border-radius: 28px;
-    min-width: 320px;
-    box-shadow: 8px 8px 24px #222e3c, -8px -8px 24px #0d1b2a;
-    border: 2px solid #263a4f;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.modal-content h3 {
-    color: #2193b0;
-    font-weight: 700;
-    font-size: 1.3rem;
-    letter-spacing: 1px;
-    text-align: center;
-    margin-bottom: 1.2rem;
-}
-.modal-input {
-    width: 100%;
-    max-width: 320px;
-    margin-bottom: 1rem;
-    padding: 0.8rem;
-    border-radius: 14px;
-    border: 1.5px solid #263a4f;
-    font-size: 1.05rem;
-    background: #f7fafd;
-    box-shadow: 2px 2px 8px #222e3c, -2px -2px 8px #0d1b2a;
-}
-.modal-btn {
-    width: 100%;
-    max-width: 320px;
-    padding: 0.9rem;
-    background: linear-gradient(90deg, #263a4f 0%, #1a2533 100%);
-    color: #fff;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 1.1rem;
-    box-shadow: 2px 2px 8px #222e3c, -2px -2px 8px #0d1b2a;
-    transition: background 0.3s;
-    margin-bottom: 0.5rem;
-}
-.modal-btn:hover {
-    background: linear-gradient(90deg, #6dd5ed 0%, #2193b0 100%);
-}
-@media (max-width: 600px) {
-    .neomorph-panel {
-        min-width: 95vw;
-        max-width: 98vw;
-        padding: 1.2rem 0.5rem 1rem 0.5rem;
-    }
-}
+input::placeholder{ color:var(--muted); }
+button{ border-radius:20px; border:1px solid var(--input); background:var(--input); color:var(--text); font-size:12px; font-weight:700; padding:12px 45px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+button:hover{ background:#2a3a4a; }
+.alert-box{ width:100%; margin:8px 0 0; padding:10px 12px; border-radius:8px; background:rgba(220,53,69,.08); border:1px solid rgba(220,53,69,.35); color:#ffb3b9; text-align:left; font-size:13px; display:none; }
+.alert-box.info{ background:rgba(33,158,188,.08); border-color:rgba(33,158,188,.35); color:#bfe7f4; }
+.alert-box.success{ background:rgba(40,167,69,.08); border-color:rgba(40,167,69,.35); color:#b7eac6; }
+ .modal {
+   position: fixed;
+   inset: 0;
+   background: rgba(0,0,0,.5);
+   display: none;
+   align-items: center;
+   justify-content: center;
+   z-index: 9999 !important;
+ }
+ .modal[style*="display: flex"] {
+   display: flex !important;
+ }
+ .modal .card {
+   background: var(--panel);
+   padding: 24px;
+   border-radius: 10px;
+   width: 420px;
+   max-width: calc(100vw - 32px);
+   box-shadow: 0 14px 28px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.22);
+   z-index: 10000;
+ }
+ .modal h3 { color: var(--text); margin: 0 0 12px; }
+ .modal .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: center; }
+.link{ color:var(--accent); text-decoration:none; }
+.link:hover{ color:var(--accentH); }
 </style>
 @endpush
 
+@section('content')
+<div class="auth-page">
+  <div class="panel">
+    <h1>Recuperar contraseña</h1>
+    <p>Ingresa tu correo registrado para continuar</p>
+    <form id="recover-email-form">
+      @csrf
+  <input type="email" id="recover-email" placeholder="Correo registrado" required autocomplete="username" />
+      <button type="submit">Continuar</button>
+    </form>
+    <div id="recover-alert" class="alert-box" role="alert"></div>
+    <p style="margin-top:12px"><a class="link" href="{{ url('/login') }}">Volver al inicio de sesión</a></p>
+  </div>
+  <!-- Modales -->
+  <div id="security-recover-modal" class="modal">
+    <div class="card">
+      <h3>Verificación de seguridad</h3>
+      <form id="security-recover-form">
+        <div id="security-recover-alert" class="alert-box" role="alert" style="margin-bottom:8px;"></div>
+  <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" />
+  <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" />
+        <div class="actions">
+          <button type="submit">Verificar</button>
+          <button type="button" id="cancel-security">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="change-password-modal" class="modal">
+    <div class="card">
+      <h3>Cambiar contraseña</h3>
+      <form id="change-password-form">
+  <input type="password" name="new_password" placeholder="Nueva contraseña" required autocomplete="new-password" />
+  <input type="password" name="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" />
+        <div class="actions">
+          <button type="submit">Cambiar</button>
+          <button type="button" id="cancel-change">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+@endsection
+
 @push('scripts')
 <script>
-
 let recoverUserId = null;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const recoverAlert = document.getElementById('recover-alert');
 
-// Si el correo viene por la URL, lo autocompleta y deshabilita el input
-window.onload = function() {
-    const params = new URLSearchParams(window.location.search);
-    const email = params.get('email');
-    if(email) {
-        const emailInput = document.getElementById('recover-email');
-        emailInput.value = email;
-        emailInput.readOnly = true;
+// Usar rutas generadas por Blade para máxima compatibilidad
+const routeCheckEmail = "{{ url('/recover/check-email') }}";
+const routeCheckSecurity = "{{ url('/recover/check-security') }}";
+const routeChangePassword = "{{ url('/recover/change-password') }}";
+const routeLogin = "{{ url('/login') }}";
+
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email');
+  if (email) {
+    const emailInput = document.getElementById('recover-email');
+    emailInput.value = email;
+    emailInput.readOnly = true;
+  }
+});
+
+document.getElementById('recover-email-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const email = document.getElementById('recover-email').value.trim();
+  if (recoverAlert){ recoverAlert.style.display='none'; recoverAlert.textContent=''; recoverAlert.className='alert-box'; }
+  const btn = this.querySelector('button[type="submit"]');
+  const prev = btn?.textContent;
+  if (btn){ btn.disabled = true; btn.textContent = 'Verificando…'; }
+  fetch(routeCheckEmail, {
+    method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
+    body: JSON.stringify({ email })
+  }).then(async r => {
+  const data = await r.json().catch(() => null);
+    if (data && data.success){
+      recoverUserId = data.user_id;
+      document.getElementById('security-recover-modal').style.display = 'flex';
+    } else {
+      if (recoverAlert){ recoverAlert.textContent = 'Correo no encontrado'; recoverAlert.style.display = 'block'; }
     }
-};
+  }).catch((err) => {
+    if (recoverAlert){ recoverAlert.textContent = 'No se pudo contactar al servidor. Asegúrate de abrir la app en http://localhost (Laravel), no en el puerto de Vite.'; recoverAlert.style.display = 'block'; }
+  }).finally(() => { if (btn){ btn.disabled = false; btn.textContent = prev; } });
+});
 
-document.getElementById('recover-email-form').onsubmit = function(e) {
-    e.preventDefault();
-    const email = document.getElementById('recover-email').value;
-    fetch('/recover/check-email', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({ email })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success){
-            recoverUserId = data.user_id;
-            document.getElementById('security-recover-modal').style.display = 'flex';
-        }else{
-            alert('Correo no encontrado');
+document.getElementById('security-recover-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const color = this.color.value.trim();
+  const animal = this.animal.value.trim();
+  const alertBox = document.getElementById('security-recover-alert');
+  if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; alertBox.className = 'alert-box'; }
+  fetch(routeCheckSecurity, {
+    method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
+    body: JSON.stringify({ user_id: recoverUserId, color, animal })
+  }).then(r => r.json()).then(data => {
+    if (data && data.success){
+      document.getElementById('security-recover-modal').style.display = 'none';
+      document.getElementById('change-password-modal').style.display = 'flex';
+    } else {
+      if (alertBox) {
+        let msg = '';
+        if (data && Array.isArray(data.incorrect)) {
+          if (data.incorrect.length === 2) {
+            msg = 'Ambas respuestas son incorrectas.';
+          } else if (data.incorrect[0] === 'color') {
+            msg = 'El color favorito es incorrecto.';
+          } else if (data.incorrect[0] === 'animal') {
+            msg = 'El animal favorito es incorrecto.';
+          }
+        } else {
+          msg = 'Respuestas incorrectas. Intenta nuevamente.';
         }
-    });
-};
-
-document.getElementById('security-recover-form').onsubmit = function(e) {
-    e.preventDefault();
-    const color = this.color.value;
-    const animal = this.animal.value;
-    fetch('/recover/check-security', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({
-            user_id: recoverUserId,
-            color: color,
-            animal: animal
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success){
-            document.getElementById('security-recover-modal').style.display = 'none';
-            document.getElementById('change-password-modal').style.display = 'flex';
-        }else{
-            alert('Respuestas incorrectas');
-        }
-    });
-};
-
-document.getElementById('change-password-form').onsubmit = function(e) {
-    e.preventDefault();
-    const newPassword = this.new_password.value;
-    const confirmPassword = this.confirm_password.value;
-    if(newPassword !== confirmPassword){
-        alert('Las contraseñas no coinciden');
-        return;
+        alertBox.textContent = msg;
+        alertBox.style.display = 'block';
+      }
     }
-    fetch('/recover/change-password', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({
-            user_id: recoverUserId,
-            password: newPassword
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success){
-            alert('Contraseña cambiada correctamente');
-            document.getElementById('change-password-modal').style.display = 'none';
-            window.location.href = '/';
-        }else{
-            alert('Error al cambiar la contraseña');
-        }
-    });
-};
+  }).catch(() => {
+    if (alertBox) {
+      alertBox.textContent = 'Error de red. Intenta nuevamente.';
+      alertBox.style.display = 'block';
+    }
+  });
+});
+
+document.getElementById('change-password-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const newPassword = this.new_password.value;
+  const confirmPassword = this.confirm_password.value;
+  if (newPassword !== confirmPassword){
+    alert('Las contraseñas no coinciden');
+    return;
+  }
+  fetch(routeChangePassword, {
+    method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
+    body: JSON.stringify({ user_id: recoverUserId, password: newPassword })
+  }).then(r => r.json()).then(data => {
+    if (data && data.success){
+      document.getElementById('change-password-modal').style.display = 'none';
+      // Mostrar mensaje bonito centrado
+      let successMsg = document.getElementById('recover-success-msg');
+      if (!successMsg) {
+        successMsg = document.createElement('div');
+        successMsg.id = 'recover-success-msg';
+        successMsg.innerHTML = `<div style="position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
+          <div style="background:var(--panel,#232a36);padding:36px 32px 28px 32px;border-radius:16px;box-shadow:0 8px 32px rgba(31,38,135,.37);text-align:center;max-width:90vw;min-width:320px;">
+            <div style='font-size:2.5rem;line-height:1;margin-bottom:12px;color:#8ecae6;'><i class='fa fa-check-circle'></i></div>
+            <h2 style='color:#b7eac6;margin:0 0 10px;font-size:1.4rem;'>¡Contraseña cambiada!</h2>
+            <div style='color:#b0b8c1;font-size:1.1rem;margin-bottom:10px;'>Ahora puedes iniciar sesión con tu nueva contraseña.</div>
+            <div style='color:#8ecae6;font-size:1rem;'>Redirigiendo al inicio de sesión…</div>
+          </div>
+        </div>`;
+        document.body.appendChild(successMsg);
+      } else {
+        successMsg.style.display = 'flex';
+      }
+      setTimeout(() => { window.location.href = routeLogin; }, 2200);
+    } else {
+      alert('Error al cambiar la contraseña');
+    }
+  }).catch(() => alert('Error de red.'));
+});
+
+document.getElementById('cancel-security').addEventListener('click', ()=>{
+  document.getElementById('security-recover-modal').style.display = 'none';
+});
+document.getElementById('cancel-change').addEventListener('click', ()=>{
+  document.getElementById('change-password-modal').style.display = 'none';
+});
 </script>
 @endpush

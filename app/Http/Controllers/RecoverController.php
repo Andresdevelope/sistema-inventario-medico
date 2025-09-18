@@ -30,10 +30,18 @@ class RecoverController extends Controller
             'animal' => 'required|string',
         ]);
         $user = User::find($request->user_id);
-        if ($user && Hash::check($request->color, $user->security_color_answer) && Hash::check($request->animal, $user->security_animal_answer)) {
+        if (!$user) {
+            return response()->json(['success' => false, 'error' => 'Usuario no encontrado']);
+        }
+        $colorOk = Hash::check($request->color, $user->security_color_answer);
+        $animalOk = Hash::check($request->animal, $user->security_animal_answer);
+        if ($colorOk && $animalOk) {
             return response()->json(['success' => true]);
         }
-        return response()->json(['success' => false]);
+        $errors = [];
+        if (!$colorOk) $errors[] = 'color';
+        if (!$animalOk) $errors[] = 'animal';
+        return response()->json(['success' => false, 'incorrect' => $errors]);
     }
 
     // Cambia la contraseña del usuario

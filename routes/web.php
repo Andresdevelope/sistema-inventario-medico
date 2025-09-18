@@ -15,24 +15,24 @@ Route::get('/dashboard', function () {
 
 // ================= AUTENTICACIÓN =================
 Route::get('/', function () {
-    return view('auth.auth');
+    return view('auth');
 });
 Route::post('/register', [App\Http\Controllers\AuthController::class, 'register'])->name('register');
 Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
 Route::get('/login', function () {
-    return view('auth.auth');
+    return view('auth');
 })->name('login');
 
 // ================= PERFIL DE USUARIO =================
 Route::post('/perfil/validar-seguridad', [App\Http\Controllers\PerfilController::class, 'validarSeguridad'])->name('perfil.validarSeguridad')->middleware('auth');
 Route::get('/perfil', function () {
-    return view('auth.perfil');
+    return view('perfil');
 })->name('perfil')->middleware('auth');
 Route::post('/perfil/cambiar-contrasena', [App\Http\Controllers\PerfilController::class, 'cambiarContrasena'])->name('cambiar.contrasena')->middleware('auth');
 
 // ================= RECUPERACIÓN DE CONTRASEÑA =================
 Route::get('/recover', function () {
-    return view('auth.recover');
+    return view('recover');
 });
 Route::post('/recover/check-email', [App\Http\Controllers\RecoverController::class, 'checkEmail']);
 Route::post('/recover/check-security', [App\Http\Controllers\RecoverController::class, 'checkSecurity']);
