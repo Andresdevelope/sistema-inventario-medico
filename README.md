@@ -1,3 +1,34 @@
+## Funcionamiento Offline y Build Optimizado
+
+Este sistema está preparado para funcionar completamente sin conexión a internet, incluyendo todos los estilos, fuentes e iconos. Para asegurar la mejor experiencia y evitar parpadeos de diseño (FOUC), sigue estos pasos:
+
+1. Instala las dependencias locales:
+	```powershell
+	npm install
+	```
+2. Genera los assets optimizados para producción:
+	```powershell
+	npm run build
+	```
+3. Limpia cachés de Laravel:
+	```powershell
+	php artisan view:clear
+	php artisan config:clear
+	php artisan cache:clear
+	php artisan route:clear
+	```
+4. Inicia el servidor de Laravel:
+	```powershell
+	php artisan serve
+	```
+5. Accede a la app desde el navegador. Puedes desconectar internet y el sistema seguirá mostrando todos los estilos y fuentes correctamente.
+
+**Notas:**
+- No es necesario ejecutar `npm run dev` para producción o uso offline.
+- Todos los recursos (Bootstrap, Font Awesome, fuentes) están auto-hospedados y no dependen de CDNs.
+- Los avatares de usuario se generan localmente con iniciales, sin llamadas externas.
+
+Si ves algún parpadeo de diseño, asegúrate de haber ejecutado el build y limpiado cachés.
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

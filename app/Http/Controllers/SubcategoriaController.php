@@ -33,8 +33,15 @@ class SubcategoriaController extends Controller
             'nombre' => 'required|string|max:255',
             'categoria_id' => 'required|exists:categorias,id',
         ]);
+        $nombre = trim($request->nombre);
+        $existe = Subcategoria::where('categoria_id', $request->categoria_id)
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+            ->exists();
+        if ($existe) {
+            return response()->json(['success' => false, 'message' => 'Ya existe una subcategoría con ese nombre en esta categoría.']);
+        }
         $subcategoria = Subcategoria::create([
-            'nombre' => $request->nombre,
+            'nombre' => $nombre,
             'categoria_id' => $request->categoria_id
         ]);
         return response()->json(['success' => true, 'subcategoria' => $subcategoria]);
@@ -65,7 +72,15 @@ class SubcategoriaController extends Controller
             'nombre' => 'required|string|max:255',
         ]);
         $subcategoria = Subcategoria::findOrFail($id);
-        $subcategoria->nombre = $request->nombre;
+        $nombre = trim($request->nombre);
+        $existe = Subcategoria::where('categoria_id', $subcategoria->categoria_id)
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+            ->where('id', '!=', $id)
+            ->exists();
+        if ($existe) {
+            return response()->json(['success' => false, 'message' => 'Ya existe una subcategoría con ese nombre en esta categoría.']);
+        }
+        $subcategoria->nombre = $nombre;
         $subcategoria->save();
         return response()->json(['success' => true, 'subcategoria' => $subcategoria]);
     }

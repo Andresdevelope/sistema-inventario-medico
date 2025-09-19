@@ -2,7 +2,7 @@
 
 @push('styles')
 <style>
-@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+/* Fuentes ahora cargadas localmente vía @fontsource en app.js */
 :root{ --bg:#181c24; --panel:#232a36; --input:#222e3c; --text:#ffffff; --muted:#b0b8c1; --accent:#8ecae6; --accentH:#219ebc; }
 html, body{ height:100%; margin:0; }
 .auth-page{

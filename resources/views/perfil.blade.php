@@ -5,7 +5,10 @@
   <div class="card shadow border-0" style="max-width: 700px; width:100%; border-radius: 1rem;">
     <div class="row g-0">
       <div class="col-md-4 bg-primary text-white d-flex flex-column align-items-center justify-content-center p-4" style="border-radius: 1rem 0 0 1rem;">
-        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? Auth::user()->username ?? 'U') }}&size=64&background=4093c7&color=fff" alt="avatar" class="rounded-circle mb-3 shadow" width="64" height="64">
+        @php($__name = Auth::user()->username ?? Auth::user()->name ?? 'U')
+        <span class="rounded-circle mb-3 shadow d-inline-flex align-items-center justify-content-center bg-light text-primary fw-bold" style="width:64px;height:64px;font-size:1.8rem;">
+          {{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}
+        </span>
         <h5 class="fw-bold mb-1">{{ Auth::user()->username ?? Auth::user()->name ?? '-' }}</h5>
         <span class="small"><i class="fa fa-envelope me-1"></i> {{ Auth::user()->email ?? '-' }}</span>
       </div>

@@ -42,17 +42,23 @@ class CategoriaController extends Controller
             'nombre_categoria' => 'required|string|max:255',
             'nombre_subcategoria' => 'nullable|string|max:255',
         ]);
-        // Buscar o crear la categoría
-        $categoria = Categoria::firstOrCreate(['nombre' => $request->nombre_categoria]);
+        // Validar unicidad (case-insensitive) de categoría
+        $nombreCat = trim($request->nombre_categoria);
+        $existeCat = Categoria::whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombreCat)])->exists();
+        if ($existeCat) {
+            return response()->json(['success' => false, 'message' => 'Ya existe una categoría con ese nombre.']);
+        }
+        $categoria = Categoria::create(['nombre' => $nombreCat]);
         $subcategoria = null;
         if ($request->filled('nombre_subcategoria')) {
             // Validar que no exista la misma subcategoría para esa categoría
-            $existe = $categoria->subcategorias()->where('nombre', $request->nombre_subcategoria)->exists();
+            $subNombre = trim($request->nombre_subcategoria);
+            $existe = $categoria->subcategorias()->whereRaw('LOWER(nombre) = ?', [mb_strtolower($subNombre)])->exists();
             if ($existe) {
                 return response()->json(['success' => false, 'message' => 'Ya existe esa subcategoría para esta categoría.']);
             }
             $subcategoria = Subcategoria::create([
-                'nombre' => $request->nombre_subcategoria,
+                'nombre' => $subNombre,
                 'categoria_id' => $categoria->id
             ]);
         }
@@ -88,7 +94,14 @@ class CategoriaController extends Controller
             'nombre_categoria' => 'required|string|max:255',
         ]);
         $categoria = Categoria::findOrFail($id);
-        $categoria->nombre = $request->nombre_categoria;
+        $nuevoNombre = trim($request->nombre_categoria);
+        $existe = Categoria::whereRaw('LOWER(nombre) = ?', [mb_strtolower($nuevoNombre)])
+            ->where('id', '!=', $id)
+            ->exists();
+        if ($existe) {
+            return response()->json(['success' => false, 'message' => 'Ya existe otra categoría con ese nombre.']);
+        }
+        $categoria->nombre = $nuevoNombre;
         $categoria->save();
         return response()->json(['success' => true, 'categoria' => $categoria]);
     }

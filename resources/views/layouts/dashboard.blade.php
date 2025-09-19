@@ -6,9 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SERVICIOS MEDICOS - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    {{-- Assets locales compilados con Vite (fonts, bootstrap, fontawesome) --}}
+    @vite(['resources/css/app.css','resources/js/app.js'])
     <style>
         body {
             margin: 0;
@@ -149,12 +148,18 @@
             </div>
             <div class="user dropdown">
                 <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: #2196f3; border-radius: 2rem; padding: 0.3rem 1rem;">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? Auth::user()->username ?? 'U') }}" alt="avatar" class="rounded-circle me-2" width="36" height="36">
+                    @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
+                    <span class="rounded-circle me-2 d-inline-flex align-items-center justify-content-center bg-light text-primary fw-bold" style="width:36px;height:36px; font-size:0.9rem;">
+                        {{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}
+                    </span>
                     <span class="fw-bold" style="font-size:1.1rem;">{{ Auth::user()->name ?? 'Usuario' }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg p-3" aria-labelledby="userDropdown" style="min-width: 270px;">
                     <li class="text-center mb-2">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name ?? Auth::user()->username ?? 'U') }}" alt="avatar" class="rounded-circle mb-2" width="60" height="60">
+                        @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
+                        <span class="rounded-circle mb-2 d-inline-flex align-items-center justify-content-center bg-light text-primary fw-bold shadow" style="width:60px;height:60px; font-size:1.4rem;">
+                            {{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}
+                        </span>
                         <div class="fw-bold" style="font-size:1.1rem;">{{ Auth::user()->name }}</div>
                         <div class="text-muted small mb-2">{{ Auth::user()->email }}</div>
                     </li>
@@ -212,7 +217,7 @@
             Copyright © 2025 - <a href="#">Sistemas Web</a>.
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {{-- JS ya incluido vía Vite (bootstrap bundle) --}}
     @stack('scripts')
 </body>
 </html>
