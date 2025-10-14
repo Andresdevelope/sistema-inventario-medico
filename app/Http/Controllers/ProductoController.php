@@ -85,6 +85,7 @@ class ProductoController extends Controller
             'created_by' => Auth::user() ? Auth::user()->id : null,
             'updated_by' => Auth::user() ? Auth::user()->id : null,
         ]);
+        $this->logBitacora('producto.crear', ['id'=>$producto->id,'nombre'=>$producto->nombre,'codigo'=>$producto->codigo]);
 
         return redirect()->route('productos.index')->with('success', 'Producto creado correctamente.');
     }
@@ -137,9 +138,11 @@ class ProductoController extends Controller
             'fecha_vencimiento' => 'nullable|date',
         ]);
 
+        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','stock','proveedor_id']);
         $producto->update($request->all() + [
             'updated_by' => Auth::user() ? Auth::user()->id : null,
         ]);
+        $this->logBitacora('producto.actualizar', ['antes'=>$old,'despues'=>$producto->only(array_keys($old))]);
 
         return redirect()->route('productos.index')->with('success', 'Producto actualizado correctamente.');
     }
@@ -149,7 +152,9 @@ class ProductoController extends Controller
      */
     public function destroy(Producto $producto)
     {
-        $producto->delete();
+    $snapshot = $producto->only(['id','nombre','codigo']);
+    $producto->delete();
+    $this->logBitacora('producto.eliminar', $snapshot);
         return redirect()->route('productos.index')->with('success', 'Producto eliminado correctamente.');
     }
 

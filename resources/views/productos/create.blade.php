@@ -56,12 +56,15 @@
                             <label for="stock"><i class="fas fa-boxes me-2"></i> Stock</label>
                         </div>
                         <div class="form-floating mb-3 position-relative d-flex align-items-center gap-2">
-                            <select name="proveedor_id" id="proveedor_id" class="form-select ps-5" required style="max-width: 70%;">
-                                <option value="" disabled selected>Selecciona un proveedor</option>
-                                @foreach($proveedores as $proveedor)
-                                    <option value="{{ $proveedor->id }}">{{ $proveedor->nombre }}</option>
-                                @endforeach
-                            </select>
+              <select name="proveedor_id" id="proveedor_id" class="form-select ps-5" required style="max-width: 70%;">
+                <option value="" disabled selected>Selecciona un proveedor</option>
+                @foreach($proveedores as $proveedor)
+                  <option value="{{ $proveedor->id }}" 
+                      data-contacto="{{ $proveedor->contacto }}" 
+                      data-direccion="{{ $proveedor->direccion }}" 
+                      data-email="{{ $proveedor->email }}">{{ $proveedor->nombre }}</option>
+                @endforeach
+              </select>
                             <label for="proveedor_id" class="form-label"><i class="fas fa-truck me-2"></i> Seleccionar proveedor</label>
                             <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#modalProveedor">
                                 <i class="fas fa-plus"></i>
@@ -92,108 +95,9 @@
     </div>
 </div>
 
-<!-- Toast y modales -->
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
-  <div id="toastNotificacion" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body" id="toastMsg"><!-- Mensaje dinámico --></div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Confirmar Eliminación Proveedor -->
-<div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-labelledby="modalConfirmarEliminarLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="modalConfirmarEliminarLabel"><i class="fas fa-exclamation-triangle me-2"></i> Confirmar Eliminación</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body text-center">
-        <p class="fs-5">¿Estás seguro que deseas eliminar este proveedor?</p>
-        <div class="d-flex justify-content-center gap-3 mt-3">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-danger" id="btnConfirmarEliminarProveedor">Eliminar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Añadir Proveedor -->
-<div class="modal fade" id="modalProveedor" tabindex="-1" aria-labelledby="modalProveedorLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalProveedorLabel">Añadir Proveedor</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <form id="formProveedor">
-          @csrf
-          <div class="mb-3">
-            <label for="proveedor_nombre" class="form-label">Nombre De la Empresa</label>
-            <input type="text" class="form-control" id="proveedor_nombre" name="nombre" required>
-          </div>
-          <div class="mb-3">
-            <label for="proveedor_contacto" class="form-label">Contacto</label>
-            <input type="text" class="form-control" id="proveedor_contacto" name="contacto">
-          </div>
-          <div class="mb-3">
-            <label for="proveedor_direccion" class="form-label">Dirección</label>
-            <input type="text" class="form-control" id="proveedor_direccion" name="direccion">
-          </div>
-          <div class="mb-3">
-            <label for="proveedor_email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="proveedor_email" name="email">
-          </div>
-          <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">Guardar</button>
-          </div>
-        </form>
-        <div id="proveedorMsg" class="mt-2"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Editar Proveedor -->
-<div class="modal fade" id="modalEditarProveedor" tabindex="-1" aria-labelledby="modalEditarProveedorLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalEditarProveedorLabel">Editar Proveedor</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <form id="formEditarProveedor">
-          @csrf
-          <div class="mb-3">
-            <label for="editar_proveedor_nombre" class="form-label">Nombre De la Empresa</label>
-            <input type="text" class="form-control" id="editar_proveedor_nombre" name="nombre" required>
-          </div>
-          <div class="mb-3">
-            <label for="editar_proveedor_contacto" class="form-label">Contacto</label>
-            <input type="text" class="form-control" id="editar_proveedor_contacto" name="contacto">
-          </div>
-          <div class="mb-3">
-            <label for="editar_proveedor_direccion" class="form-label">Dirección</label>
-            <input type="text" class="form-control" id="editar_proveedor_direccion" name="direccion">
-          </div>
-          <div class="mb-3">
-            <label for="editar_proveedor_email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="editar_proveedor_email" name="email">
-          </div>
-          <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-          </div>
-        </form>
-        <div id="editarProveedorMsg" class="mt-2"></div>
-      </div>
-    </div>
-  </div>
-</div>
+@push('modals')
+  @include('productos.partials.modales-proveedores')
+@endpush
 
 @endsection
 
@@ -274,8 +178,13 @@ document.addEventListener('DOMContentLoaded', function() {
           const option = document.createElement('option');
           option.value = data.proveedor.id;
           option.textContent = data.proveedor.nombre;
-          if (proveedorSelect) proveedorSelect.appendChild(option);
-          if (proveedorSelect) proveedorSelect.value = data.proveedor.id;
+          option.setAttribute('data-contacto', data.proveedor.contacto || '');
+          option.setAttribute('data-direccion', data.proveedor.direccion || '');
+          option.setAttribute('data-email', data.proveedor.email || '');
+          if (proveedorSelect) {
+            proveedorSelect.appendChild(option);
+            proveedorSelect.value = data.proveedor.id;
+          }
           mostrarToast('Proveedor añadido correctamente.', true);
           formProveedor.reset();
           setTimeout(() => { const m = bootstrap.Modal.getInstance(document.getElementById('modalProveedor')); if (m) m.hide(); }, 800);
@@ -315,18 +224,79 @@ document.addEventListener('DOMContentLoaded', function() {
     formEditarProveedor.addEventListener('submit', function(e) {
       e.preventDefault();
       const selected = proveedorSelect ? proveedorSelect.value : null;
+      if (!selected) {
+        mostrarToast('Selecciona un proveedor antes de editar.', false);
+        return;
+      }
       const formData = new FormData(formEditarProveedor);
-  fetch(`/proveedores/ajax/${selected}`, { method: 'PUT', headers: { 'X-CSRF-TOKEN': csrfToken }, body: formData })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          const option = proveedorSelect ? proveedorSelect.querySelector(`option[value='${selected}']`) : null;
-          if (option) option.textContent = data.proveedor.nombre;
-          mostrarToast('Proveedor editado correctamente.', true);
-          setTimeout(() => { const m = bootstrap.Modal.getInstance(document.getElementById('modalEditarProveedor')); if (m) m.hide(); }, 800);
-        } else mostrarToast('Error al editar proveedor.', false);
+      const url = `/proveedores/ajax/${selected}`;
+      console.debug('[EditarProveedor] ID seleccionado:', selected, 'URL:', url);
+      // Asegurar que el campo nombre no esté vacío
+      const nombreInputEdit = formEditarProveedor.querySelector('input[name="nombre"]');
+      if (nombreInputEdit && !nombreInputEdit.value.trim()) {
+        const optSel = proveedorSelect ? proveedorSelect.querySelector(`option[value='${selected}']`) : null;
+        if (optSel) {
+          nombreInputEdit.value = (optSel.textContent || '').trim();
+          console.debug('[EditarProveedor] Campo nombre estaba vacío. Valor recuperado desde option:', nombreInputEdit.value);
+        }
+      }
+      // Refrescar formData por si modificamos el input
+      formData.set('nombre', (nombreInputEdit ? nombreInputEdit.value : formData.get('nombre') || '').trim());
+      // Método de refuerzo para algunos servidores que esperan _method
+  formData.set('_method','PUT');
+      // Log de pares clave-valor
+      try {
+        const entries = {};
+        for (const [k,v] of formData.entries()) { entries[k]=v; }
+        console.debug('[EditarProveedor] FormData a enviar:', entries);
+      } catch(e) { /* no-op */ }
+      fetch(url, {
+        // IMPORTANTE: usar POST + _method=PUT porque PHP solo parsea multipart/form-data en POST.
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': csrfToken,
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
       })
-      .catch(() => mostrarToast('Error de conexión.', false));
+      .then(async r => {
+        if (!r.ok) {
+          // Intentar extraer texto/JSON para diagnosticar.
+          const ct = r.headers.get('Content-Type') || '';
+          let payload;
+          try { payload = ct.includes('application/json') ? await r.json() : await r.text(); } catch { payload = null; }
+          const statusMsg = r.status === 404 ? 'Proveedor no encontrado (puede haber sido eliminado o el ID es inválido).' : `Error ${r.status}`;
+          throw new Error(statusMsg + (payload ? `: ${typeof payload === 'string' ? payload.slice(0,180) : JSON.stringify(payload).slice(0,180)}` : ''));
+        }
+        return r.json();
+      })
+      .then(data => {
+        if (data && data.success) {
+          const option = proveedorSelect ? proveedorSelect.querySelector(`option[value='${selected}']`) : null;
+          if (option) {
+            option.textContent = data.proveedor.nombre;
+            option.setAttribute('data-contacto', data.proveedor.contacto || '');
+            option.setAttribute('data-direccion', data.proveedor.direccion || '');
+            option.setAttribute('data-email', data.proveedor.email || '');
+          }
+          mostrarToast('Proveedor editado correctamente.', true);
+          setTimeout(() => {
+            const modalEl = document.getElementById('modalEditarProveedor');
+            const m = bootstrap.Modal.getInstance(modalEl);
+            if (modalEl && modalEl.contains(document.activeElement)) {
+              document.activeElement.blur();
+            }
+            if (m) m.hide();
+          }, 500);
+        } else {
+          mostrarToast('Respuesta inesperada al editar proveedor.', false);
+        }
+      })
+      .catch(err => {
+        console.error('Fallo al editar proveedor:', err.message);
+        mostrarToast(err.message.includes('no encontrado') ? err.message : 'Error de conexión/edición.', false);
+      });
     });
   }
 
@@ -335,8 +305,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const selected = proveedorSelect ? proveedorSelect.value : null;
     if (!selected) return;
     proveedorAEliminar = selected;
-    const modalConfirm = new bootstrap.Modal(document.getElementById('modalConfirmarEliminar'));
-    modalConfirm.show();
+  const modalConfirmEl = document.getElementById('modalConfirmarEliminar');
+  const modalConfirm = new bootstrap.Modal(modalConfirmEl);
+  modalConfirm.show();
   });
 
   const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminarProveedor');
@@ -345,7 +316,11 @@ document.addEventListener('DOMContentLoaded', function() {
   fetch(`/proveedores/ajax/${proveedorAEliminar}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } })
     .then(r => r.json())
     .then(data => {
-      const modalConfirm = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminar'));
+      const modalConfirmEl = document.getElementById('modalConfirmarEliminar');
+      const modalConfirm = bootstrap.Modal.getInstance(modalConfirmEl);
+      if (modalConfirmEl && modalConfirmEl.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
       if (modalConfirm) modalConfirm.hide();
       if (data.success) {
         const opt = proveedorSelect ? proveedorSelect.querySelector(`option[value='${proveedorAEliminar}']`) : null;
@@ -356,7 +331,16 @@ document.addEventListener('DOMContentLoaded', function() {
       } else mostrarToast('Error al eliminar proveedor.', false);
       proveedorAEliminar = null;
     })
-    .catch(() => { const modalConfirm = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminar')); if (modalConfirm) modalConfirm.hide(); mostrarToast('Error de conexión.', false); proveedorAEliminar = null; });
+    .catch(() => { 
+      const modalConfirmEl = document.getElementById('modalConfirmarEliminar');
+      const modalConfirm = bootstrap.Modal.getInstance(modalConfirmEl);
+      if (modalConfirmEl && modalConfirmEl.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
+      if (modalConfirm) modalConfirm.hide();
+      mostrarToast('Error de conexión.', false); 
+      proveedorAEliminar = null; 
+    });
   });
 
   function mostrarToast(mensaje, exito = true) {

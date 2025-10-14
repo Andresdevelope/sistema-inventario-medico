@@ -1,6 +1,19 @@
 @extends('layouts.dashboard')
 
 @section('content')
+    @if(session('error'))
+        <div id="noti-error" style="position:fixed; top:30px; right:30px; z-index:9999; min-width:320px; max-width:400px; background:#f44336; color:#fff; box-shadow:0 4px 16px rgba(44,62,80,0.13); border-radius:8px; padding:1.1rem 1.5rem 1.1rem 1.2rem; display:flex; align-items:center; gap:12px; font-size:1.08rem;">
+            <i class="fa fa-exclamation-triangle" style="font-size:1.5rem;"></i>
+            <span>{{ session('error') }}</span>
+            <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:#fff; font-size:1.3rem; margin-left:auto; cursor:pointer;">&times;</button>
+        </div>
+        <script>
+            setTimeout(function(){
+                var n = document.getElementById('noti-error');
+                if(n) n.style.display = 'none';
+            }, 5000);
+        </script>
+    @endif
     <div style="margin-bottom: 2.2rem;">
         <div style="background: #e3f4fd; color: #2176ae; padding: 1.5rem 1.5rem 1.2rem 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(44,62,80,0.06);">
             <div style="font-size: 1.2rem; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 0.2rem;">Bienvenido</div>

@@ -13,6 +13,20 @@ Route::get('/dashboard', function () {
     return view('dashboard', compact('totalCategorias', 'totalProductos'));
 })->middleware('auth');
 
+// ================= GESTIÓN DE USUARIOS (SOLO ADMIN) =================
+use App\Http\Controllers\UserController;
+Route::middleware(['auth', 'is_admin'])->group(function () {
+    Route::get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
+    Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store');
+    Route::get('/usuarios/{id}/edit', [UserController::class, 'edit'])->name('usuarios.edit');
+    Route::put('/usuarios/{id}', [UserController::class, 'update'])->name('usuarios.update');
+    Route::delete('/usuarios/{id}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+    // Nueva ruta para AJAX
+    Route::get('/usuarios-lista', [UserController::class, 'listaAjax'])->name('usuarios.listaAjax');
+    // Bitácora
+    Route::get('/bitacora', [\App\Http\Controllers\BitacoraController::class, 'index'])->name('bitacora.index');
+});
+
 // ================= AUTENTICACIÓN =================
 Route::get('/', function () {
     return view('auth');
@@ -44,18 +58,11 @@ Route::get('/categorias', function() {
 })->middleware('auth')->name('categorias');
 Route::resource('categorias', CategoriaController::class)->middleware('auth');
 Route::resource('subcategorias', SubcategoriaController::class)->middleware('auth');
-// Solo una vez, no duplicar
-Route::resource('productos', ProductoController::class)->middleware('auth');
 Route::get('categorias-listar', [App\Http\Controllers\CategoriaController::class, 'listar'])->middleware('auth');
 // Endpoint AJAX para subcategorías por categoría
 Route::get('/subcategorias/by-categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'subcategoriasPorCategoria'])->middleware('auth');
 // Ruta para actualizar subcategoría individualmente
 Route::put('/subcategorias/{id}', [CategoriaController::class, 'updateSubcategoria']);
-// ================= PROVEEDORES =================
-// Endpoint AJAX para editar proveedor desde modal
-Route::put('/proveedores/ajax/{id}', [App\Http\Controllers\ProveedorController::class, 'updateAjax'])->name('proveedores.ajax.update');
-// Endpoint AJAX para eliminar proveedor desde modal
-Route::delete('/proveedores/ajax/{id}', [App\Http\Controllers\ProveedorController::class, 'destroyAjax'])->name('proveedores.ajax.destroy');
 
 
 // Endpoint AJAX para generar código candidato basado en nombre
@@ -64,13 +71,25 @@ Route::post('/productos/generar-codigo', [ProductoController::class, 'generarCod
 // ================= PRODUCTOS O MEDICAMENTOS =================
 Route::resource('productos', ProductoController::class)->middleware('auth');
 
-// ================= PROVEEDORES =================
-// Endpoint AJAX para crear proveedor desde modal
-Route::post('/proveedores/ajax', [App\Http\Controllers\ProveedorController::class, 'storeAjax'])->name('proveedores.ajax');
-Route::put('/proveedores/ajax/{id}', [App\Http\Controllers\ProveedorController::class, 'updateAjax'])->name('proveedores.ajax.update');
-Route::delete('/proveedores/ajax/{id}', [App\Http\Controllers\ProveedorController::class, 'destroyAjax'])->name('proveedores.ajax.destroy');
+// ================= INVENTARIO (placeholder) =================
+Route::get('/inventario', [\App\Http\Controllers\InventarioController::class, 'index'])->middleware('auth')->name('inventario.index');
+
+// ================= MOVIMIENTOS (placeholder) =================
+Route::get('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'index'])->middleware('auth')->name('movimientos.index');
+
+// ================= REPORTES (placeholder) =================
+Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');
+
+// ================= PROVEEDORES (AJAX) =================
+Route::prefix('proveedores/ajax')->name('proveedores.ajax')->group(function() {
+    Route::post('/', [App\Http\Controllers\ProveedorController::class, 'storeAjax']);
+    Route::put('/{id}', [App\Http\Controllers\ProveedorController::class, 'updateAjax'])->name('.update');
+    Route::delete('/{id}', [App\Http\Controllers\ProveedorController::class, 'destroyAjax'])->name('.destroy');
+});
 // ================= SESIÓN =================
 Route::post('/logout', function () {
+    // Registrar en bitácora antes de cerrar sesión
+    try { if (Auth::check()) { \App\Models\Bitacora::create(['user_id'=>Auth::id(),'accion'=>'auth.logout','detalles'=>null,'fecha_hora'=>now()]); } } catch (\Throwable $e) {}
     Auth::logout();
     return redirect('/login')->with('success', 'Sesión cerrada correctamente');
 })->name('logout');

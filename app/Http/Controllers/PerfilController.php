@@ -49,6 +49,7 @@ class PerfilController extends Controller
             // Guardar nueva contraseña
             $user->password = Hash::make($nueva);
             $user->save();
+            $this->logBitacora('perfil.cambiar_contrasena', ['user_id'=>$user->id]);
             return back()->with('success', '¡Contraseña cambiada correctamente!');
         }
         // Si no se envió el formulario completo, no hacer nada

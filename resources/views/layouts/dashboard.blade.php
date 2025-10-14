@@ -194,10 +194,14 @@
                     <li><a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}"><i class="fa fa-home"></i> <span class="sidebar-label">Inicio</span></a></li>
                     <li><a href="/categorias" class="{{ request()->is('categorias*') ? 'active' : '' }}"><i class="fa fa-folder"></i> <span class="sidebar-label">Categorías</span></a></li>
                     <li><a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}"><i class="fa fa-pills"></i> <span class="sidebar-label">Medicamentos</span></a></li>
-                    <li><a href="#" class="{{ request()->is('inventario*') ? 'active' : '' }}"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
-                    <li><a href="#" class="{{ request()->is('movimientos*') ? 'active' : '' }}"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
-                    <li><a href="#" class="{{ request()->is('usuarios*') ? 'active' : '' }}"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
-                    <li><a href="#" class="{{ request()->is('reportes*') ? 'active' : '' }}"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
+                    <li><a href="{{ route('inventario.index') }}" class="{{ request()->is('inventario*') ? 'active' : '' }}"><i class="fa fa-warehouse"></i> <span class="sidebar-label">Inventario</span></a></li>
+                    @if(Auth::user() && Auth::user()->role === 'admin')
+                        <li><a href="{{ route('usuarios.index') }}" class="{{ request()->is('usuarios*') ? 'active' : '' }}"><i class="fa fa-users"></i> <span class="sidebar-label">Usuarios</span></a></li>
+                        <li><a href="{{ route('bitacora.index') }}" class="{{ request()->is('bitacora*') ? 'active' : '' }}"><i class="fa fa-book"></i> <span class="sidebar-label">Registro De Movimientos</span></a></li>
+                    @endif
+                   
+                    <li><a href="{{ route('movimientos.index') }}" class="{{ request()->is('movimientos*') ? 'active' : '' }}"><i class="fa fa-exchange-alt"></i> <span class="sidebar-label">Movimientos</span></a></li>
+                    <li><a href="{{ route('reportes.index') }}" class="{{ request()->is('reportes*') ? 'active' : '' }}"><i class="fa fa-chart-bar"></i> <span class="sidebar-label">Reportes</span></a></li>
 
                     <li>
                         <form action="{{ route('logout') }}" method="POST" style="display:inline; margin:0; padding:0;">
@@ -214,10 +218,28 @@
             </div>
         </div>
         <div class="footer">
-            Copyright © 2025 - <a href="#">Sistemas Web</a>.
+            Copyright © 2025 - <a href="#">Sistemas inventario SERVICIOS MEDICOS</a>.
         </div>
     </div>
     {{-- JS ya incluido vía Vite (bootstrap bundle) --}}
+</div>
+    <!-- Contenedor global para notificaciones tipo toast -->
+    <div id="toast-container" style="position:fixed;top:30px;right:30px;z-index:3000;"></div>
+    <script>
+    // Notificación tipo toast global
+    window.showToast = function(msg, tipo='success') {
+        const c = document.getElementById('toast-container');
+        if (!c) return;
+        const d = document.createElement('div');
+        d.textContent = msg;
+        d.setAttribute('role', 'alert');
+        d.style.cssText = `background:${tipo==='success'?'#2176ae':'#e74c3c'};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
+        c.appendChild(d);
+        requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateX(0)';});
+        setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400);},2700);
+    }
+    </script>
+    @stack('modals')
     @stack('scripts')
 </body>
 </html>

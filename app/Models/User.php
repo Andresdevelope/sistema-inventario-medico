@@ -25,6 +25,7 @@ class User extends Authenticatable
         'security_animal_answer',
         'login_attempts',
         'locked_until',
+        'role', // permite asignar el rol desde formularios o seeds
     ];
 
     /**

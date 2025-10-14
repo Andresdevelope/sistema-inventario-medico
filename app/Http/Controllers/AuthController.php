@@ -15,10 +15,17 @@ class AuthController extends Controller
         $request->validate([
             'username' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'password' => ['required','string','min:8','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color' => 'required|string',
             'animal' => 'required|string',
+        ], [
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
         ]);
+
+
+        // Asignar rol: el primer usuario será admin, los demás operador
+        $rol = User::count() === 0 ? 'admin' : 'operador';
 
         $user = User::create([
             'name' => $request->username,
@@ -26,6 +33,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'security_color_answer' => Hash::make($request->color),
             'security_animal_answer' => Hash::make($request->animal),
+            'role' => $rol,
         ]);
 
         return response()->json(['success' => true, 'user' => $user]);
@@ -53,6 +61,7 @@ class AuthController extends Controller
                 $user->locked_until = null;
                 $user->save();
                 Auth::login($user);
+                $this->logBitacora('auth.login', ['user_id'=>$user->id,'name'=>$user->name]);
                 return response()->json(['success' => true, 'redirect' => url('/dashboard')]);
             } else {
                 $user->login_attempts++;
@@ -66,9 +75,11 @@ class AuthController extends Controller
                     return response()->json(['success' => false, 'message' => 'Usuario bloqueado. Intenta en ' . $segundos . ' segundos.'], 403);
                 }
                 $user->save();
+                $this->logBitacora('auth.login_fallido', ['username'=>$request->username]);
                 return response()->json(['success' => false, 'message' => 'Credenciales incorrectas'], 401);
             }
         }
+        $this->logBitacora('auth.login_fallido', ['username'=>$request->username]);
         return response()->json(['success' => false, 'message' => 'Credenciales incorrectas'], 401);
     }
 }

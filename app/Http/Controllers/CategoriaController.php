@@ -48,7 +48,8 @@ class CategoriaController extends Controller
         if ($existeCat) {
             return response()->json(['success' => false, 'message' => 'Ya existe una categoría con ese nombre.']);
         }
-        $categoria = Categoria::create(['nombre' => $nombreCat]);
+    $categoria = Categoria::create(['nombre' => $nombreCat]);
+    $this->logBitacora('categoria.crear', ['id' => $categoria->id, 'nombre' => $categoria->nombre]);
         $subcategoria = null;
         if ($request->filled('nombre_subcategoria')) {
             // Validar que no exista la misma subcategoría para esa categoría
@@ -61,6 +62,7 @@ class CategoriaController extends Controller
                 'nombre' => $subNombre,
                 'categoria_id' => $categoria->id
             ]);
+            $this->logBitacora('subcategoria.crear', ['id'=>$subcategoria->id,'nombre'=>$subNombre,'categoria_id'=>$categoria->id]);
         }
         return response()->json([
             'success' => true,
@@ -101,8 +103,10 @@ class CategoriaController extends Controller
         if ($existe) {
             return response()->json(['success' => false, 'message' => 'Ya existe otra categoría con ese nombre.']);
         }
+        $old = ['id'=>$categoria->id,'nombre'=>$categoria->nombre];
         $categoria->nombre = $nuevoNombre;
         $categoria->save();
+        $this->logBitacora('categoria.actualizar', ['antes'=>$old,'despues'=>['id'=>$categoria->id,'nombre'=>$categoria->nombre]]);
         return response()->json(['success' => true, 'categoria' => $categoria]);
     }
 
@@ -123,8 +127,10 @@ class CategoriaController extends Controller
         if ($existe) {
             return response()->json(['success' => false, 'message' => 'Ya existe esa subcategoría para esta categoría.']);
         }
+        $old = ['id'=>$subcategoria->id,'nombre'=>$subcategoria->nombre,'categoria_id'=>$subcategoria->categoria_id];
         $subcategoria->nombre = $request->nombre;
         $subcategoria->save();
+        $this->logBitacora('subcategoria.actualizar', ['antes'=>$old,'despues'=>['id'=>$subcategoria->id,'nombre'=>$subcategoria->nombre,'categoria_id'=>$subcategoria->categoria_id]]);
         return response()->json(['success' => true, 'subcategoria' => $subcategoria]);
     }
     /**
@@ -133,7 +139,9 @@ class CategoriaController extends Controller
     public function destroy($id)
     {
         $categoria = Categoria::findOrFail($id);
+        $snapshot = ['id'=>$categoria->id,'nombre'=>$categoria->nombre];
         $categoria->delete();
+        $this->logBitacora('categoria.eliminar', $snapshot);
         return response()->json(['success' => true]);
     }
 

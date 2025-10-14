@@ -19,6 +19,7 @@ class ProveedorController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
         $proveedor = Proveedor::create($request->all());
+        $this->logBitacora('proveedor.crear', ['id'=>$proveedor->id,'nombre'=>$proveedor->nombre]);
         return response()->json(['success' => true, 'proveedor' => $proveedor]);
     }
 
@@ -34,7 +35,9 @@ class ProveedorController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
         $proveedor = Proveedor::findOrFail($id);
+        $old = $proveedor->only(['id','nombre','contacto','direccion','email']);
         $proveedor->update($request->all());
+        $this->logBitacora('proveedor.actualizar', ['antes'=>$old,'despues'=>$proveedor->only(array_keys($old))]);
         return response()->json(['success' => true, 'proveedor' => $proveedor]);
     }
 
@@ -44,7 +47,9 @@ class ProveedorController extends Controller
     public function destroyAjax($id)
     {
         $proveedor = Proveedor::findOrFail($id);
+        $snapshot = $proveedor->only(['id','nombre']);
         $proveedor->delete();
+        $this->logBitacora('proveedor.eliminar', $snapshot);
         return response()->json(['success' => true]);
     }
   

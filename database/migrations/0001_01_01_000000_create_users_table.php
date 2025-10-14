@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('security_animal_answer'); // hash de animal favorito
             $table->integer('login_attempts')->default(0); // intentos fallidos de login
             $table->timestamp('locked_until')->nullable(); // bloqueo temporal
+            $table->string('role')->default('operador'); // rol del usuario: admin u operador
             $table->rememberToken();
             $table->timestamps();
         });
