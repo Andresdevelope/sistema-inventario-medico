@@ -17,7 +17,9 @@ return new class extends Migration
             $table->unsignedBigInteger('subcategoria_id');
             $table->string('presentacion');
             $table->string('unidad_medida');
+            $table->string('categoria_inventario', 30)->default('general')->comment('general u odontologia');
             $table->integer('stock')->default(0);
+            $table->integer('stock_minimo')->nullable()->default(null)->comment('Stock mínimo recomendado para alerta');
             $table->unsignedBigInteger('proveedor_id');
             $table->date('fecha_ingreso')->nullable();
             $table->date('fecha_vencimiento')->nullable();

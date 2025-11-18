@@ -51,15 +51,31 @@
                     <th><i class="fas fa-balance-scale"></i> Unidad de Medida</th>
                     <td>{{ $producto->unidad_medida }}</td>
                 </tr>
+                <!-- Categoría de inventario -->
+                <tr>
+                    <th><i class="fas fa-warehouse"></i> Categoría de Inventario</th>
+                    <td>
+                        @if($producto->categoria_inventario === 'odontologia')
+                            Odontología
+                        @else
+                            Inventario General
+                        @endif
+                    </td>
+                </tr>
                 <!-- Stock actual -->
                 <tr>
                     <th><i class="fas fa-boxes"></i> Stock</th>
-                    <td>{{ $producto->stock }}</td>
+                    <td>{{ $producto->stock_total }}</td>
                 </tr>
                 <!-- Proveedor del medicamento -->
                 <tr>
                     <th><i class="fas fa-user-md"></i> Proveedor</th>
                     <td>{{ $producto->proveedor->nombre ?? '-' }}</td>
+                </tr>
+                <!-- Fecha de ingreso -->
+                <tr>
+                    <th><i class="fas fa-calendar-day"></i> Fecha de Ingreso</th>
+                    <td>{{ $producto->fecha_ingreso ? \Carbon\Carbon::parse($producto->fecha_ingreso)->format('d/m/Y') : '-' }}</td>
                 </tr>
                 <!-- Fecha de vencimiento -->
                 <tr>

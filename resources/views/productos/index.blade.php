@@ -152,16 +152,7 @@
                                     @endif
                                 </a>
                             </th>
-                            <th scope="col">
-                                @php $dirStock = $toggleDir('stock'); @endphp
-                                <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'stock','dir'=>$dirStock])) }}" aria-label="Ordenar por stock">Stock
-                                    @if($currentSort === 'stock')
-                                        <i class="fas fa-sort-{{ $currentDir === 'asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
-                                    @else
-                                        <i class="fas fa-sort ms-1 text-muted" aria-hidden="true"></i>
-                                    @endif
-                                </a>
-                            </th>
+                            <!-- Columna de stock eliminada para que el stock solo se vea en inventario y detalle -->
                             <th scope="col" style="width: 110px;">Proveedor</th>
                             <th scope="col" class="sticky-actions" style="width: 110px;">Acciones</th>
                         </tr>
@@ -181,15 +172,7 @@
                             <td><span class="badge bg-info text-dark small">{{ $producto->categoria->nombre ?? '-' }}</span></td>
                             <td><span class="badge bg-light text-dark border small">{{ $producto->subcategoria->nombre ?? '-' }}</span></td>
                             <td><span class="text-secondary small">{{ $producto->presentacion }}</span></td>
-                            <td class="small">
-                                @if($producto->stock == 0)
-                                    <span class="badge bg-danger">Agotado</span>
-                                @elseif($producto->stock <= 10)
-                                    <span class="badge bg-warning text-dark">Bajo ({{ $producto->stock }})</span>
-                                @else
-                                    <span class="badge bg-success">{{ $producto->stock }}</span>
-                                @endif
-                            </td>
+                            <!-- Celda de stock eliminada -->
                             <td><span class="badge bg-secondary small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
                             <td class="text-center sticky-actions">
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">

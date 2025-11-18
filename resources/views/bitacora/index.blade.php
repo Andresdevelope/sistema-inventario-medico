@@ -69,7 +69,51 @@
         </table>
     </div>
 
-    {{ $bitacora->links() }}
+        <!-- Paginador moderno -->
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+            <div class="text-muted small mb-2 mb-md-0">
+                @php
+                    $from = $bitacora->firstItem();
+                    $to = $bitacora->lastItem();
+                    $total = $bitacora->total();
+                @endphp
+                Mostrando <b>{{ $from }}</b> - <b>{{ $to }}</b> de <b>{{ $total }}</b> registros
+            </div>
+            <nav aria-label="Paginador bitácora">
+                <ul class="pagination pagination-lg mb-0">
+                    <!-- Primera página -->
+                    <li class="page-item {{ $bitacora->onFirstPage() ? 'disabled' : '' }}">
+                        <a class="page-link" href="{{ $bitacora->url(1) }}" aria-label="Primera">
+                            <i class="fa fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <!-- Página anterior -->
+                    <li class="page-item {{ $bitacora->onFirstPage() ? 'disabled' : '' }}">
+                        <a class="page-link" href="{{ $bitacora->previousPageUrl() }}" aria-label="Anterior">
+                            <i class="fa fa-angle-left"></i>
+                        </a>
+                    </li>
+                    <!-- Páginas -->
+                    @foreach ($bitacora->getUrlRange(max(1, $bitacora->currentPage()-2), min($bitacora->lastPage(), $bitacora->currentPage()+2)) as $page => $url)
+                        <li class="page-item {{ $page == $bitacora->currentPage() ? 'active' : '' }}">
+                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                        </li>
+                    @endforeach
+                    <!-- Página siguiente -->
+                    <li class="page-item {{ $bitacora->hasMorePages() ? '' : 'disabled' }}">
+                        <a class="page-link" href="{{ $bitacora->nextPageUrl() }}" aria-label="Siguiente">
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <!-- Última página -->
+                    <li class="page-item {{ $bitacora->hasMorePages() ? '' : 'disabled' }}">
+                        <a class="page-link" href="{{ $bitacora->url($bitacora->lastPage()) }}" aria-label="Última">
+                            <i class="fa fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
 </div>
     <script>
     document.addEventListener('DOMContentLoaded', function() {

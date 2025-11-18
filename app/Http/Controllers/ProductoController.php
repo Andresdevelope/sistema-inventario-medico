@@ -75,10 +75,12 @@ class ProductoController extends Controller
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|max:100',
             'unidad_medida' => 'required|string|max:50',
+            'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:0',
+            'stock_minimo' => 'nullable|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
             'fecha_ingreso' => 'required|date',
-            'fecha_vencimiento' => 'required|date',
+            'fecha_vencimiento' => 'required|date'
         ]);
 
         $producto = Producto::create($request->all() + [
@@ -132,13 +134,15 @@ class ProductoController extends Controller
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|max:100',
             'unidad_medida' => 'required|string|max:50',
+            'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:0',
+            'stock_minimo' => 'nullable|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
             'fecha_ingreso' => 'required|date',
             'fecha_vencimiento' => 'nullable|date',
         ]);
 
-        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','stock','proveedor_id']);
+        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','categoria_inventario','stock','proveedor_id','stock_minimo']);
         $producto->update($request->all() + [
             'updated_by' => Auth::user() ? Auth::user()->id : null,
         ]);

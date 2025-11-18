@@ -28,9 +28,10 @@ class Producto extends Model
         'presentacion',
         'unidad_medida',
         'stock',
-    'proveedor_id',
-    'fecha_ingreso',
-    'fecha_vencimiento',
+        'stock_minimo',
+        'proveedor_id',
+        'fecha_ingreso',
+        'fecha_vencimiento',
         'created_by',
         'updated_by',
     ];
@@ -55,6 +56,18 @@ class Producto extends Model
     public function editor()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+    public function inventarios()
+    {
+        return $this->hasMany(Inventario::class);
+    }
+
+    /**
+     * Accesor para obtener el stock total sumando todos los inventarios asociados
+     */
+    public function getStockTotalAttribute()
+    {
+        return $this->inventarios()->sum('cantidad');
     }
     /**
      * Genera un código único basado en el nombre: BASE-0001

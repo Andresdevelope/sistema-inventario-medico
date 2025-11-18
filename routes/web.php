@@ -73,12 +73,18 @@ Route::resource('productos', ProductoController::class)->middleware('auth');
 
 // ================= INVENTARIO (placeholder) =================
 Route::get('/inventario', [\App\Http\Controllers\InventarioController::class, 'index'])->middleware('auth')->name('inventario.index');
+Route::get('/inventario/export', [\App\Http\Controllers\InventarioController::class, 'export'])->middleware('auth')->name('inventario.export');
 
 // ================= MOVIMIENTOS (placeholder) =================
 Route::get('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'index'])->middleware('auth')->name('movimientos.index');
+Route::post('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'store'])->middleware('auth')->name('movimientos.store');
 
 // ================= REPORTES (placeholder) =================
 Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');
+
+// ================= NOTIFICACIONES (campana) =================
+Route::get('/notificaciones/movimientos', [\App\Http\Controllers\NotificacionesController::class, 'movimientos'])->middleware('auth')->name('notificaciones.movimientos');
+Route::post('/notificaciones/movimientos/leer', [\App\Http\Controllers\NotificacionesController::class, 'leerMovimientos'])->middleware('auth')->name('notificaciones.movimientos.leer');
 
 // ================= PROVEEDORES (AJAX) =================
 Route::prefix('proveedores/ajax')->name('proveedores.ajax')->group(function() {

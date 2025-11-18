@@ -60,6 +60,10 @@
                             <input type="number" name="stock" id="stock" class="form-control ps-5" min="0" placeholder="Stock" value="{{ old('stock', $producto->stock) }}" required>
                             <label for="stock"><i class="fas fa-boxes me-2"></i> Stock</label>
                         </div>
+                        <div class="form-floating mb-3 position-relative">
+                            <input type="number" name="stock_minimo" id="stock_minimo" class="form-control ps-5" min="0" placeholder="Stock mínimo recomendado" value="{{ old('stock_minimo', $producto->stock_minimo) }}">
+                            <label for="stock_minimo"><i class="fas fa-exclamation-triangle me-2"></i> Stock mínimo recomendado</label>
+                        </div>
                         <div class="form-floating mb-3 position-relative d-flex align-items-center gap-2">
                             <select name="proveedor_id" id="proveedor_id" class="form-select ps-5" required style="max-width: 70%;">
                                 <option value="" disabled>Selecciona un proveedor</option>

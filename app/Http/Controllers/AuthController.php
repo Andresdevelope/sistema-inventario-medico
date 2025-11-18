@@ -64,6 +64,7 @@ class AuthController extends Controller
                 $this->logBitacora('auth.login', ['user_id'=>$user->id,'name'=>$user->name]);
                 return response()->json(['success' => true, 'redirect' => url('/dashboard')]);
             } else {
+                // Manejar intentos fallidos
                 $user->login_attempts++;
                 if ($user->login_attempts == 3) {
                     $user->locked_until = $now->addMinute();

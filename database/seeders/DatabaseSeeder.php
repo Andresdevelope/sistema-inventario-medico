@@ -52,5 +52,8 @@ class DatabaseSeeder extends Seeder
             $operador->update(['name' => 'operador','role' => 'operador']);
             echo "\nUsuario OPERADOR actualizado/confirmado (name=operador)\nEmail: $opEmail\nContraseña: $opPassword\n";
         }
+
+        // Destinos base (para egresos)
+        $this->call(\Database\Seeders\DestinoSeeder::class);
     }
 }

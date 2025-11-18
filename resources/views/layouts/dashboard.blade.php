@@ -146,7 +146,24 @@
             <div class="logo">
                 <i class="fa-solid fa-capsules"></i> Servicios Médicos
             </div>
-            <div class="user dropdown">
+            <div style="display:flex; align-items:center; gap:1.2rem;">
+                <div class="notificaciones" style="position:relative;">
+                    <button id="notifBell" type="button" aria-label="Notificaciones" style="background:none; border:none; color:#fff; position:relative; cursor:pointer; font-size:1.3rem;">
+                        <i class="fa fa-bell"></i>
+                        <span id="notifCount" style="display:none; position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; font-size:0.65rem; padding:2px 5px; border-radius:10px; min-width:20px; text-align:center; font-weight:600; box-shadow:0 0 0 2px #4093c7;">0</span>
+                    </button>
+                    <div id="notifPanel" style="display:none; position:absolute; right:0; top:42px; width:340px; background:#fff; color:#2c3e50; border-radius:12px; box-shadow:0 10px 28px -6px rgba(0,0,0,0.25); padding:0.8rem 0.8rem 0.9rem; z-index:1200;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
+                            <div style="font-weight:600; font-size:0.95rem; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                                <i class="fa fa-bell" style="color:#4093c7;"></i> Movimientos recientes
+                            </div>
+                            <button id="notifMarkAll" type="button" style="background:#4093c7; color:#fff; border:none; font-size:0.7rem; padding:4px 9px; border-radius:18px; cursor:pointer; font-weight:600; letter-spacing:0.5px;">Marcar leídas</button>
+                        </div>
+                        <div id="notifItems" style="max-height:300px; overflow-y:auto; scrollbar-width:thin;"></div>
+                        <div id="notifEmpty" style="display:none; text-align:center; padding:1.2rem 0; font-size:0.8rem; color:#607d8b;">Sin movimientos registrados.</div>
+                    </div>
+                </div>
+                <div class="user dropdown">
                 <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: #2196f3; border-radius: 2rem; padding: 0.3rem 1rem;">
                     @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
                     <span class="rounded-circle me-2 d-inline-flex align-items-center justify-content-center bg-light text-primary fw-bold" style="width:36px;height:36px; font-size:0.9rem;">
@@ -178,6 +195,7 @@
                         </form>
                     </li>
                 </ul>
+                </div>
             </div>
     <style>
         .topbar .user .dropdown-toggle::after {
