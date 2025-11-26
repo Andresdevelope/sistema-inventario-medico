@@ -49,16 +49,20 @@
             <option value="ajuste_neg" @selected(old('tipo')==='ajuste_neg')>Ajuste -</option>
           </select>
         </div>
-        <div class="col-md-4" id="destino-wrapper" style="display:none;">
+        <div class="col-md-4" id="destino-wrapper" style="{{ old('tipo','ingreso')==='egreso' ? '' : 'display:none;' }}">
           <label class="form-label">Destino (solo SALIDA)</label>
+          @php $hayDestinos = isset($destinos) && count($destinos)>0; @endphp
           <select name="destino_id" id="destino_id" class="form-select">
             <option value="">Seleccione destino...</option>
-            @isset($destinos)
+            @if($hayDestinos)
               @foreach($destinos as $d)
                 <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }} ({{ $d->codigo }})</option>
               @endforeach
-            @endisset
+            @endif
           </select>
+          @if(!$hayDestinos)
+            <div class="alert alert-warning mt-2 p-2 small mb-0">No hay destinos cargados. Ejecute migraciones y seeders (php artisan migrate --seed) o verifique la tabla <code>destinos</code>.</div>
+          @endif
         </div>
         <div class="col-md-2">
           <label class="form-label">Cantidad</label>
@@ -135,7 +139,14 @@
                 </td>
                 <td><span class="badge bg-{{ $badge }} text-uppercase">{{ $m->tipo }}</span></td>
                 <td>{{ $m->cantidad }}</td>
-                <td><span class="badge bg-dark">{{ $m->salida ?? '-' }}</span></td>
+                <td>
+                  @php $dest = $m->destino; @endphp
+                  @if($m->tipo==='egreso')
+                    <span class="badge bg-dark" title="Destino normalizado">{{ $dest?->nombre ?? $m->salida ?? '-' }}</span>
+                  @else
+                    <span class="text-muted">-</span>
+                  @endif
+                </td>
                 <td>
                   @if($fv)
                     @php $fvC = \Carbon\Carbon::parse($fv); $dias = now()->diffInDays($fvC, false); @endphp
