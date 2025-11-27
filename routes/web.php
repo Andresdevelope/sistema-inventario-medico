@@ -65,8 +65,6 @@ Route::get('/subcategorias/by-categoria/{id}', [App\Http\Controllers\CategoriaCo
 Route::put('/subcategorias/{id}', [CategoriaController::class, 'updateSubcategoria']);
 
 
-// Endpoint AJAX para generar código candidato basado en nombre
-Route::post('/productos/generar-codigo', [ProductoController::class, 'generarCodigo'])->middleware('auth')->name('productos.generarCodigo');
 
 // ================= PRODUCTOS O MEDICAMENTOS =================
 Route::resource('productos', ProductoController::class)->middleware('auth');

@@ -10,14 +10,7 @@ class Producto extends Model
 {
     use HasFactory;
 
-    protected static function booted()
-    {
-        static::creating(function ($producto) {
-            if (empty($producto->codigo)) {
-                $producto->codigo = self::generateUniqueCodigo($producto->nombre ?? 'PRD');
-            }
-        });
-    }
+    // Eliminado: No se autogenera el código, debe ser ingresado manualmente por el usuario.
 
     protected $fillable = [
         'nombre',
@@ -69,26 +62,5 @@ class Producto extends Model
     {
         return $this->inventarios()->sum('cantidad');
     }
-    /**
-     * Genera un código único basado en el nombre: BASE-0001
-     */
-    public static function generateUniqueCodigo(string $nombre): string
-    {
-        $base = Str::ascii(Str::upper(Str::slug($nombre, '')));
-        $base = preg_replace('/[^A-Z0-9]/', '', $base);
-        $base = substr($base, 0, 6) ?: 'PRD';
-
-        $attempt = 1;
-        do {
-            $suffix = str_pad((string)$attempt, 4, '0', STR_PAD_LEFT);
-            $codigo = $base . '-' . $suffix;
-            if (!self::where('codigo', $codigo)->exists()) {
-                return $codigo;
-            }
-            $attempt++;
-        } while ($attempt <= 9999);
-
-        // Fallback if agotamos secuencia
-        return $base . '-' . time();
-    }
+    // Eliminado: No se genera código automáticamente, el usuario debe ingresar el código real del medicamento.
 }

@@ -152,31 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const categoriaSelect = document.getElementById('categoria_id');
   const subcategoriaSelect = document.getElementById('subcategoria_id');
   const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
-  // Generar código en tiempo real al escribir el nombre (debounce)
-  const nombreInput = document.getElementById('nombre');
-  const codigoInput = document.getElementById('codigo');
-  let debounceTimer = null;
-  if (nombreInput && codigoInput) {
-    nombreInput.addEventListener('input', function() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        const nombre = nombreInput.value.trim();
-        if (!nombre) return;
-  fetch('/productos/generar-codigo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-          body: JSON.stringify({ nombre })
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.codigo) {
-            codigoInput.value = data.codigo;
-          }
-        })
-        .catch(() => { /* no interrumpir la UX si falla */ });
-      }, 450);
-    });
-  }
+  // Eliminado: No se genera código automáticamente, el usuario debe ingresar el código real del medicamento.
   if (categoriaSelect && subcategoriaSelect) {
     categoriaSelect.addEventListener('change', function() {
       const categoriaId = this.value;
