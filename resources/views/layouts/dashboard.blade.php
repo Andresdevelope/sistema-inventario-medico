@@ -12,6 +12,26 @@
     <title>SERVICIOS MEDICOS - Dashboard</title>
     {{-- Carga de estilos y scripts principales con Vite --}}
     @vite(['resources/css/app.css','resources/js/app.js'])
+        {{--
+                Solución al bug de parpadeo del tema claro/oscuro:
+                Se aplica la clase 'theme-light' directamente en <head> mediante un script inline,
+                antes de que se renderice el contenido visual. Esto asegura que el fondo claro
+                se muestre instantáneamente si el usuario tiene el modo claro guardado en localStorage,
+                evitando el flash de fondo oscuro al navegar entre secciones o recargar.
+                La clase se aplica tanto a <html> como a <body> para máxima compatibilidad CSS.
+        --}}
+        <script>
+        // Aplicar tema claro/oscuro ANTES del renderizado visual para evitar parpadeo
+        (function(){
+            try {
+                var mode = localStorage.getItem('dashTheme');
+                if(mode==='light') {
+                    document.documentElement.classList.add('theme-light');
+                    document.body.classList.add('theme-light');
+                }
+            } catch(e){}
+        })();
+        </script>
     <style>
         /*
             Variables CSS para paleta Slate Accent y layout general
@@ -255,8 +275,41 @@ if(badge){ badge.style.display='none'; badge.textContent='0'; }
 // Toggle de accesos rápidos (tiles)
 const toggleTilesBtn=document.getElementById('toggleTiles'); const tilesGrid=document.getElementById('tilesGrid'); if(toggleTilesBtn&&tilesGrid){ toggleTilesBtn.addEventListener('click',()=>{ const hidden=tilesGrid.classList.toggle('tiles-hidden'); toggleTilesBtn.setAttribute('aria-expanded', hidden?'false':'true'); toggleTilesBtn.textContent= hidden? '+' : '−'; toggleTilesBtn.title = hidden? 'Mostrar accesos' : 'Ocultar accesos'; }); }
 // Toggle de tema claro/oscuro
-const themeBtn=document.getElementById('themeToggle'); const themeIcon=document.getElementById('themeIcon'); function applyTheme(mode){ if(mode==='light'){ document.body.classList.add('theme-light'); themeIcon.classList.remove('fa-sun'); themeIcon.classList.add('fa-moon'); } else { document.body.classList.remove('theme-light'); themeIcon.classList.remove('fa-moon'); themeIcon.classList.add('fa-sun'); } localStorage.setItem('dashTheme', mode); }
-const stored=localStorage.getItem('dashTheme'); applyTheme(stored||'dark'); themeBtn?.addEventListener('click',()=>{ const current=document.body.classList.contains('theme-light')?'light':'dark'; applyTheme(current==='light'?'dark':'light'); });
+const themeBtn=document.getElementById('themeToggle');
+const themeIcon=document.getElementById('themeIcon');
+function applyTheme(mode){
+    if(mode==='light'){
+        document.documentElement.classList.add('theme-light');
+        document.body.classList.add('theme-light');
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+    } else {
+        document.documentElement.classList.remove('theme-light');
+        document.body.classList.remove('theme-light');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+    }
+    localStorage.setItem('dashTheme', mode);
+}
+const stored=localStorage.getItem('dashTheme');
+if(stored==='light'){
+    document.documentElement.classList.add('theme-light');
+    document.body.classList.add('theme-light');
+}else{
+    document.documentElement.classList.remove('theme-light');
+    document.body.classList.remove('theme-light');
+}
+applyTheme(stored||'dark');
+themeBtn?.addEventListener('click',()=>{
+    const current=document.body.classList.contains('theme-light')?'light':'dark';
+    applyTheme(current==='light'?'dark':'light');
+    // Sincroniza ambas clases tras el cambio
+    if(document.body.classList.contains('theme-light')){
+        document.documentElement.classList.add('theme-light');
+    }else{
+        document.documentElement.classList.remove('theme-light');
+    }
+});
 </script>
 @stack('modals')
 @stack('scripts')
