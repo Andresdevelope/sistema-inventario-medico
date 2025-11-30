@@ -7,8 +7,9 @@
 
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Editar Medicamento</h4>
+            <span class="small"><i class="fas fa-user-edit me-1"></i>Última edición por: <strong>{{ $producto->editor->name ?? $producto->creador->name ?? 'N/D' }}</strong></span>
         </div>
         <div class="card-body p-4">
             <form action="{{ route('productos.update', $producto->id) }}" method="POST">
@@ -84,9 +85,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save"></i> Guardar Cambios</button>
-                    <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-warning py-2 mb-3 small" role="status">
+                            <i class="fas fa-user-clock me-1"></i> Se registrará <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong> como último modificador.
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save"></i> Guardar Cambios</button>
+                        <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                    </div>
                 </div>
             </form>
         </div>

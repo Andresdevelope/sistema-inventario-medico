@@ -3,8 +3,9 @@
 @section('content')
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Añadir Nuevo Medicamento</h4>
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Añadir Nuevo Medicamento</h4>
+          <span class="small"><i class="fas fa-user me-1"></i>Será creado por: <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong></span>
         </div>
     <div class="card-body p-4">
       <!-- Toast de errores de validación -->
@@ -111,9 +112,16 @@
             </div>
                     </div>
                 </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="submit" class="btn btn-success px-4">Guardar</button>
+                <div class="row mt-4">
+                  <div class="col-md-6">
+                    <div class="alert alert-info py-2 mb-3 small" role="status">
+                      <i class="fas fa-info-circle me-1"></i> Este registro guardará al usuario <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong> como creador.
+                    </div>
+                  </div>
+                  <div class="col-md-6 d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-success px-4"><i class="fas fa-save me-1"></i>Guardar</button>
                     <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                  </div>
                 </div>
             </form>
         </div>
