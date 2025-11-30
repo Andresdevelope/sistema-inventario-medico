@@ -6,7 +6,7 @@
 <div class="container-fluid px-2 px-md-4 mt-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 gap-2">
         <h3 class="mb-0"><i class="fas fa-capsules me-2"></i>Medicamentos</h3>
-        <a href="{{ route('productos.create') }}" class="btn btn-success shadow-sm"><i class="fas fa-plus"></i> Nuevo Medicamento</a>
+        <a href="{{ route('productos.create') }}" class="btn sp-btn-accent shadow-sm"><i class="fas fa-plus"></i> Nuevo Medicamento</a>
     </div>
 
     <!-- Opción A: Barra compacta inline (limpia) -->
@@ -96,46 +96,59 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <style>
-                    .sticky-actions {
-                        position: sticky;
-                        right: 0;
-                        background: #f8fafc;
-                        z-index: 2;
-                        box-shadow: -2px 0 8px -4px rgba(0,0,0,0.08);
-                    }
-                    .table-sm th, .table-sm td {
-                        font-size: 0.92rem;
-                        padding: 0.35rem 0.45rem;
-                    }
+                    /* Slate Pro: tabla refinada con zebra suave */
+                    .sp-btn-accent{ background:var(--accent); color:#fff; border:1px solid var(--accent); }
+                    .sp-btn-accent:hover{ background:var(--accent-soft); border-color:var(--accent-soft); color:#fff; }
+                    .sp-btn-outline-accent{ background:transparent; color:var(--accent); border:1px solid var(--accent); }
+                    .sp-btn-outline-accent:hover{ background:var(--accent); color:#fff; }
+                    .sp-btn-outline-muted{ background:transparent; color:var(--txt-sec); border:1px solid var(--slate-border); }
+                    .sp-btn-outline-muted:hover{ background:var(--slate-surface-soft); color:var(--txt); border-color:var(--accent); }
+
+                    .sp-text-accent{ color:var(--accent)!important; }
+                    .sp-text-muted{ color:var(--txt-sec)!important; }
+
+                    .sticky-actions{ position:sticky; right:0; background:var(--slate-surface); z-index:2; box-shadow:-2px 0 8px -4px rgba(0,0,0,0.18); }
+                    .table-sm th, .table-sm td{ font-size:0.92rem; padding:0.45rem 0.55rem; }
+
+                    .sp-thead th{ background:var(--slate-surface); color:var(--txt-sec); text-transform:uppercase; font-size:.72rem; letter-spacing:.4px; border-bottom:1px solid var(--slate-line); position:sticky; top:0; z-index:1; }
+                    .sp-thead a{ color:var(--txt-sec); font-weight:700; }
+                    .sp-thead a:hover{ color:var(--accent); }
+
+                    .sp-table tbody tr{ border-bottom:1px solid var(--slate-border); }
+                    .sp-table tbody tr:nth-child(even){ background:rgba(255,255,255,.02); }
+                    .sp-table tbody tr:hover{ background:var(--slate-surface-soft); }
+
+                    .sp-chip{ background:transparent; color:var(--txt); border:1px solid var(--slate-border); border-radius:999px; padding:.15rem .5rem; font-size:.78em; font-weight:600; }
+                    .sp-chip-muted{ background:transparent; color:var(--txt-sec); border:1px solid var(--slate-border); border-radius:999px; padding:.15rem .5rem; font-size:.78em; font-weight:600; }
+
+                    .sp-status{ display:inline-flex; align-items:center; gap:.4rem; font-size:.85em; font-weight:600; }
+                    .sp-dot{ width:.5rem; height:.5rem; border-radius:50%; display:inline-block; }
+                    .sp-dot-ok{ background:#7fb77e; }
+                    .sp-dot-warn{ background:#f39c12; }
+                    .sp-dot-danger{ background:#e74c3c; }
                 </style>
-                <table class="table table-hover table-sm align-middle mb-0 text-nowrap">
-                    <thead class="table-primary text-center align-middle">
+                <table class="table table-hover table-sm align-middle mb-0 text-nowrap sp-table">
+                    <thead class="text-center align-middle sp-thead">
                         <tr>
                             @php
-                                $baseQuery = request()->except('page');
-                                $currentSort = request('sort', 'nombre');
-                                $currentDir = request('dir', 'asc');
-                                $toggleDir = function($col) use ($currentSort, $currentDir) {
-                                    if ($currentSort === $col) return $currentDir === 'asc' ? 'desc' : 'asc';
-                                    return 'asc';
-                                };
+                                $dirNombre = (request('sort')==='nombre') ? (request('dir','asc')==='asc' ? 'desc':'asc') : 'asc';
+                                $dirCat = (request('sort')==='categoria_id') ? (request('dir','asc')==='asc' ? 'desc':'asc') : 'asc';
+                                $dirPres = (request('sort')==='presentacion') ? (request('dir','asc')==='asc' ? 'desc':'asc') : 'asc';
                             @endphp
                             <th scope="col" style="width: 70px;">Código</th>
                             <th scope="col" style="min-width: 140px;">
-                                @php $dirNombre = $toggleDir('nombre'); @endphp
-                                <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'nombre','dir'=>$dirNombre])) }}" aria-label="Ordenar por nombre">Nombre
-                                    @if($currentSort === 'nombre')
-                                        <i class="fas fa-sort-{{ $currentDir === 'asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
+                                <a href="{{ request()->fullUrlWithQuery(['sort'=>'nombre','dir'=>$dirNombre]) }}" aria-label="Ordenar por nombre">Nombre
+                                    @if(request('sort')==='nombre')
+                                        <i class="fas fa-sort-{{ request('dir','asc')==='asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
                                     @else
                                         <i class="fas fa-sort ms-1 text-muted" aria-hidden="true"></i>
                                     @endif
                                 </a>
                             </th>
                             <th scope="col">
-                                @php $dirCat = $toggleDir('categoria_id'); @endphp
-                                <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'categoria_id','dir'=>$dirCat])) }}" aria-label="Ordenar por categoría">Categoría
-                                    @if($currentSort === 'categoria_id')
-                                        <i class="fas fa-sort-{{ $currentDir === 'asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
+                                <a href="{{ request()->fullUrlWithQuery(['sort'=>'categoria_id','dir'=>$dirCat]) }}" aria-label="Ordenar por categoría">Categoría
+                                    @if(request('sort')==='categoria_id')
+                                        <i class="fas fa-sort-{{ request('dir','asc')==='asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
                                     @else
                                         <i class="fas fa-sort ms-1 text-muted" aria-hidden="true"></i>
                                     @endif
@@ -143,15 +156,15 @@
                             </th>
                             <th scope="col" style="width: 90px;">Subcat.</th>
                             <th scope="col">
-                                @php $dirPres = $toggleDir('presentacion'); @endphp
-                                <a href="?{{ http_build_query(array_merge($baseQuery, ['sort'=>'presentacion','dir'=>$dirPres])) }}" aria-label="Ordenar por presentación">Presentación
-                                    @if($currentSort === 'presentacion')
-                                        <i class="fas fa-sort-{{ $currentDir === 'asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
+                                <a href="{{ request()->fullUrlWithQuery(['sort'=>'presentacion','dir'=>$dirPres]) }}" aria-label="Ordenar por presentación">Presentación
+                                    @if(request('sort')==='presentacion')
+                                        <i class="fas fa-sort-{{ request('dir','asc')==='asc' ? 'up' : 'down' }} ms-1" aria-hidden="true"></i>
                                     @else
                                         <i class="fas fa-sort ms-1 text-muted" aria-hidden="true"></i>
                                     @endif
                                 </a>
                             </th>
+                            <th scope="col" style="width: 120px;">Estado</th>
                             <!-- Columna de stock eliminada para que el stock solo se vea en inventario y detalle -->
                             <th scope="col" style="width: 110px;">Proveedor</th>
                             <th scope="col" class="sticky-actions" style="width: 110px;">Acciones</th>
@@ -160,24 +173,28 @@
                     <tbody>
                         @forelse($productos as $producto)
                         <tr>
-                            <td class="fw-bold text-primary small">{{ $producto->codigo }}</td>
-                            <td class="small">
-                                <span class="fw-semibold">{{ $producto->nombre }}</span>
-                                @if($producto->fecha_vencimiento && \Carbon\Carbon::parse($producto->fecha_vencimiento)->isPast())
-                                    <span class="badge bg-danger ms-1" title="Vencido"><i class="fas fa-exclamation-triangle"></i></span>
-                                @elseif($producto->fecha_vencimiento && \Carbon\Carbon::parse($producto->fecha_vencimiento)->diffInDays(now()) <= 30)
-                                    <span class="badge bg-warning text-dark ms-1" title="Próximo a vencer"><i class="fas fa-hourglass-half"></i></span>
-                                @endif
+                            <td class="fw-bold sp-text-accent small">{{ $producto->codigo }}</td>
+                            <td class="small"><span class="fw-semibold">{{ $producto->nombre }}</span></td>
+                            <td><span class="sp-chip small">{{ $producto->categoria->nombre ?? '-' }}</span></td>
+                            <td><span class="sp-chip-muted small">{{ $producto->subcategoria->nombre ?? '-' }}</span></td>
+                            <td><span class="sp-text-muted small">{{ $producto->presentacion }}</span></td>
+                            <td>
+                                @php
+                                    $estado = 'ok'; $estadoTxt = 'Activo';
+                                    if($producto->fecha_vencimiento){
+                                        $fv = \Carbon\Carbon::parse($producto->fecha_vencimiento);
+                                        if($fv->isPast()){ $estado='danger'; $estadoTxt='Vencido'; }
+                                        elseif($fv->diffInDays(now()) <= 30){ $estado='warn'; $estadoTxt='Vence pronto'; }
+                                    }
+                                @endphp
+                                <span class="sp-status"><span class="sp-dot sp-dot-{{ $estado }}" aria-hidden="true"></span><span>{{ $estadoTxt }}</span></span>
                             </td>
-                            <td><span class="badge bg-info text-dark small">{{ $producto->categoria->nombre ?? '-' }}</span></td>
-                            <td><span class="badge bg-light text-dark border small">{{ $producto->subcategoria->nombre ?? '-' }}</span></td>
-                            <td><span class="text-secondary small">{{ $producto->presentacion }}</span></td>
                             <!-- Celda de stock eliminada -->
-                            <td><span class="badge bg-secondary small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
+                            <td><span class="sp-chip-muted small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
                             <td class="text-center sticky-actions">
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">
-                                    <a href="{{ route('productos.show', $producto) }}" class="btn btn-outline-info btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
-                                    <a href="{{ route('productos.edit', $producto) }}" class="btn btn-outline-warning btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
+                                    <a href="{{ route('productos.show', $producto) }}" class="btn sp-btn-outline-accent btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('productos.edit', $producto) }}" class="btn sp-btn-outline-muted btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
                                     <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block form-eliminar-medicamento">
                                         @csrf
                                         @method('DELETE')
