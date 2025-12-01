@@ -65,8 +65,6 @@ Route::get('/subcategorias/by-categoria/{id}', [App\Http\Controllers\CategoriaCo
 Route::put('/subcategorias/{id}', [CategoriaController::class, 'updateSubcategoria']);
 
 
-// Endpoint AJAX para generar código candidato basado en nombre
-Route::post('/productos/generar-codigo', [ProductoController::class, 'generarCodigo'])->middleware('auth')->name('productos.generarCodigo');
 
 // ================= PRODUCTOS O MEDICAMENTOS =================
 Route::resource('productos', ProductoController::class)->middleware('auth');
@@ -79,8 +77,9 @@ Route::get('/inventario/export', [\App\Http\Controllers\InventarioController::cl
 Route::get('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'index'])->middleware('auth')->name('movimientos.index');
 Route::post('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'store'])->middleware('auth')->name('movimientos.store');
 
-// ================= REPORTES (placeholder) =================
+// ================= REPORTES (MVP) =================
 Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');
+Route::get('/reportes/export-csv', [\App\Http\Controllers\ReportesController::class, 'exportCsv'])->middleware('auth')->name('reportes.export.csv');
 
 // ================= NOTIFICACIONES (campana) =================
 Route::get('/notificaciones/movimientos', [\App\Http\Controllers\NotificacionesController::class, 'movimientos'])->middleware('auth')->name('notificaciones.movimientos');

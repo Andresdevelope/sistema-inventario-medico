@@ -85,12 +85,12 @@
                 <!-- Usuario que creó el registro -->
                 <tr>
                     <th><i class="fas fa-user"></i> Creado por</th>
-                    <td>{{ $producto->createdBy->name ?? '-' }}</td>
+                    <td>{{ $producto->creador->name ?? '—' }}</td>
                 </tr>
                 <!-- Usuario que actualizó el registro -->
                 <tr>
                     <th><i class="fas fa-user-edit"></i> Actualizado por</th>
-                    <td>{{ $producto->updatedBy->name ?? '-' }}</td>
+                    <td>{{ $producto->editor->name ?? '—' }}</td>
                 </tr>
                 <!-- Fecha de creación del registro -->
                 <tr>

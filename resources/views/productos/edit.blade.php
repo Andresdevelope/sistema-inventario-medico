@@ -7,10 +7,33 @@
 
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Editar Medicamento</h4>
+            <span class="small"><i class="fas fa-user-edit me-1"></i>Última edición por: <strong>{{ $producto->editor->name ?? $producto->creador->name ?? 'N/D' }}</strong></span>
         </div>
         <div class="card-body p-4">
+            @if(session('success'))
+                <div class="alert alert-warning alert-dismissible fade show" role="alert" style="background:var(--accent);color:#fff;border:1px solid var(--accent-soft);">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-warning alert-dismissible fade show" role="alert" style="background:var(--accent);color:#fff;border:1px solid var(--accent-soft);">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            @endif
+            @if($errors->any())
+                <div class="alert alert-warning alert-dismissible fade show" role="alert" style="background:var(--accent);color:#fff;border:1px solid var(--accent-soft);">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Por favor corrige los siguientes errores:<ul class="mb-0 mt-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            @endif
             <form action="{{ route('productos.update', $producto->id) }}" method="POST">
                 @csrf
                 @method('PUT')
@@ -82,11 +105,26 @@
                             <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="form-control ps-5" placeholder="Fecha de Vencimiento" value="{{ old('fecha_vencimiento', $producto->fecha_vencimiento) }}">
                             <label for="fecha_vencimiento"><i class="fas fa-calendar-alt me-2"></i> Fecha de Vencimiento</label>
                         </div>
+                            <div class="form-floating mb-3 position-relative">
+                                <select name="categoria_inventario" id="categoria_inventario" class="form-select ps-5" required>
+                                    <option value="" disabled>Selecciona tipo de inventario</option>
+                                    <option value="general" {{ old('categoria_inventario', $producto->categoria_inventario) == 'general' ? 'selected' : '' }}>General</option>
+                                    <option value="odontologia" {{ old('categoria_inventario', $producto->categoria_inventario) == 'odontologia' ? 'selected' : '' }}>Odontología</option>
+                                </select>
+                                <label for="categoria_inventario"><i class="fas fa-archive me-2"></i> Tipo de Inventario</label>
+                            </div>
                     </div>
                 </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save"></i> Guardar Cambios</button>
-                    <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-warning py-2 mb-3 small" role="status">
+                            <i class="fas fa-user-clock me-1"></i> Se registrará <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong> como último modificador.
+                        </div>
+                    </div>
+                    <div class="col-md-6 d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save"></i> Guardar Cambios</button>
+                        <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                    </div>
                 </div>
             </form>
         </div>

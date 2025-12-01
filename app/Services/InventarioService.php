@@ -31,6 +31,12 @@ class InventarioService
         DB::transaction(function() use ($data, $tipo, $cantidad) {
             /** @var Producto $producto */
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
+            // Sincronizar stock del producto con la suma real de inventarios si está desfasado
+            $stockInventariosActual = \App\Models\Inventario::where('producto_id', $producto->id)->sum('cantidad');
+            if ((int)$producto->stock !== (int)$stockInventariosActual) {
+                $producto->stock = (int)$stockInventariosActual;
+                $producto->save();
+            }
             $destinoId = $data['destino_id'] ?? null;
             $destino = null;
             if ($destinoId) {
@@ -63,6 +69,10 @@ class InventarioService
                 }
                 $inv->cantidad += $cantidad;
                 $inv->save();
+
+                // Actualizar stock agregado del producto
+                $producto->stock += $cantidad;
+                $producto->save();
 
                 Movimiento::create([
                     'producto_id' => $producto->id,
@@ -105,6 +115,10 @@ class InventarioService
                     ->get();
 
                 $saldoTotal = $inventarios->sum('cantidad');
+                // Validar también contra stock agregado del producto por coherencia
+                if ($producto->stock < $porConsumir) {
+                    throw new InvalidArgumentException('Stock insuficiente (producto) para egreso');
+                }
                 if ($saldoTotal < $porConsumir) {
                     throw new InvalidArgumentException('Stock insuficiente para egreso');
                 }
@@ -131,6 +145,10 @@ class InventarioService
 
                     $porConsumir -= $consume;
                 }
+                // Actualizar stock agregado del producto (restar cantidad total egresada)
+                $producto->stock -= $cantidad;
+                if ($producto->stock < 0) { $producto->stock = 0; }
+                $producto->save();
             }
             elseif ($tipo === 'ajuste_neg') {
                 // Ajuste negativo: bajar de inventarios (FEFO) validando suficiente saldo
@@ -143,6 +161,9 @@ class InventarioService
                     ->get();
 
                 $saldoTotal = $inventarios->sum('cantidad');
+                if ($producto->stock < $porAjustar) {
+                    throw new InvalidArgumentException('Stock insuficiente (producto) para ajuste negativo');
+                }
                 if ($saldoTotal < $porAjustar) {
                     throw new InvalidArgumentException('Stock insuficiente para ajuste negativo');
                 }
@@ -169,6 +190,9 @@ class InventarioService
 
                     $porAjustar -= $consume;
                 }
+                $producto->stock -= $cantidad;
+                if ($producto->stock < 0) { $producto->stock = 0; }
+                $producto->save();
             }
         });
     }
