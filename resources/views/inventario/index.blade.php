@@ -133,18 +133,18 @@
                         $badgeClass = 'secondary';
                         $labelVence = '-';
                         if ($fechaVencimiento) {
-                            $hoy = \Carbon\Carbon::today();
-                            $fv = \Carbon\Carbon::parse($fechaVencimiento);
-                            $dias = $hoy->diffInDays($fv, false);
+                            $hoy = \Carbon\Carbon::now()->startOfDay();
+                            $fv = \Carbon\Carbon::parse($fechaVencimiento)->startOfDay();
+                            $dias = (int) $hoy->diffInDays($fv, false);
                             if ($dias < 0) {
                                 $badgeClass = 'danger';
                                 $labelVence = 'Vencido';
                             } elseif ($dias <= 30) {
                                 $badgeClass = 'warning';
-                                $labelVence = $fv->format('d/m/Y') . " ({$dias} d)";
+                                $labelVence = 'Próx. (' . $dias . ' días)';
                             } else {
-                                $badgeClass = 'info';
-                                $labelVence = $fv->format('d/m/Y');
+                                $badgeClass = 'success';
+                                $labelVence = 'Activo';
                             }
                         }
                     @endphp
@@ -165,7 +165,7 @@
                             @endif
                         </td>
                         <td>
-                            <span class="badge bg-{{ $badgeClass }}">{{ $labelVence }}</span>
+                            <span class="badge bg-{{ $badgeClass }}" title="{{ $fechaVencimiento ? 'Vence: ' . \Carbon\Carbon::parse($fechaVencimiento)->format('d/m/Y') : 'Sin fecha' }}">{{ $labelVence }}</span>
                         </td>
                         <td>
                             @if($isLow)

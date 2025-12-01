@@ -156,9 +156,18 @@ class ProductoController extends Controller
      */
     public function destroy(Producto $producto)
     {
-    $snapshot = $producto->only(['id','nombre','codigo']);
-    $producto->delete();
-    $this->logBitacora('producto.eliminar', $snapshot);
+        // Validación previa: evitar borrar si existen inventarios o movimientos asociados
+        $inventariosCount = \App\Models\Inventario::where('producto_id', $producto->id)->count();
+        $movimientosCount = \App\Models\Movimiento::where('producto_id', $producto->id)->count();
+
+        if ($inventariosCount > 0 || $movimientosCount > 0) {
+            return redirect()->route('productos.index')
+                ->with('error', "No se puede eliminar: tiene {$inventariosCount} inventario(s) y {$movimientosCount} movimiento(s) asociados.");
+        }
+
+        $snapshot = $producto->only(['id','nombre','codigo']);
+        $producto->delete();
+        $this->logBitacora('producto.eliminar', $snapshot);
         return redirect()->route('productos.index')->with('success', 'Producto eliminado correctamente.');
     }
 

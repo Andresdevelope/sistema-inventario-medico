@@ -4,6 +4,20 @@
 
 @section('content')
 <div class="container-fluid px-2 px-md-4 mt-4">
+    
+    @if(session('success'))
+        <script>document.addEventListener('DOMContentLoaded',()=>{ window.showToast(@json(session('success')), 'success'); });</script>
+    @endif
+    @if(session('error'))
+        <script>document.addEventListener('DOMContentLoaded',()=>{ window.showToast(@json(session('error')), 'error'); });</script>
+    @endif
+    @if($errors->any())
+        <script>
+        document.addEventListener('DOMContentLoaded',()=>{
+            window.showToast('Por favor corrige los errores del formulario', 'error');
+        });
+        </script>
+    @endif
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3 gap-2">
         <h3 class="mb-0"><i class="fas fa-capsules me-2"></i>Medicamentos</h3>
         <a href="{{ route('productos.create') }}" class="btn sp-btn-accent shadow-sm"><i class="fas fa-plus"></i> Nuevo Medicamento</a>
@@ -62,12 +76,16 @@
         if (toastEl && toastMsg) {
             @if(session('success'))
                 toastMsg.textContent = {!! json_encode(session('success')) !!};
-                toastEl.classList.remove('bg-danger'); toastEl.classList.add('bg-success');
-                new bootstrap.Toast(toastEl).show();
+                toastEl.classList.remove('bg-danger','bg-success'); toastEl.classList.add('bg-warning');
+                toastEl.style.background = 'var(--accent)';
+                toastEl.style.color = '#fff';
+                new bootstrap.Toast(toastEl, { delay: 3500 }).show();
             @elseif(session('error'))
                 toastMsg.textContent = {!! json_encode(session('error')) !!};
-                toastEl.classList.remove('bg-success'); toastEl.classList.add('bg-danger');
-                new bootstrap.Toast(toastEl).show();
+                toastEl.classList.remove('bg-success','bg-warning'); toastEl.classList.add('bg-danger');
+                toastEl.style.background = 'var(--accent)';
+                toastEl.style.color = '#fff';
+                new bootstrap.Toast(toastEl, { delay: 3500 }).show();
             @endif
         }
 
@@ -96,6 +114,19 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <style>
+                        /* Paleta clínica: azul oscuro + naranjita (acento) */
+                        :root{
+                            --primary-dark:#0f2742; /* azul oscuro dashboard */
+                            --primary:#153a66;       /* azul medio para títulos */
+                            --accent:#ff7a1a;        /* naranjita principal */
+                            --accent-soft:#ff9a50;   /* naranjita suave hover */
+                            --slate-surface:#f7f8fa; /* fondos claros */
+                            --slate-surface-soft:#f1f4f8;
+                            --slate-border:#e2e6ee;
+                            --slate-line:#dfe3eb;
+                            --txt:#1e293b;
+                            --txt-sec:#5b6b82;
+                        }
                     /* Slate Pro: tabla refinada con zebra suave */
                     .sp-btn-accent{ background:var(--accent); color:#fff; border:1px solid var(--accent); }
                     .sp-btn-accent:hover{ background:var(--accent-soft); border-color:var(--accent-soft); color:#fff; }
@@ -123,9 +154,10 @@
 
                     .sp-status{ display:inline-flex; align-items:center; gap:.4rem; font-size:.85em; font-weight:600; }
                     .sp-dot{ width:.5rem; height:.5rem; border-radius:50%; display:inline-block; }
-                    .sp-dot-ok{ background:#7fb77e; }
-                    .sp-dot-warn{ background:#f39c12; }
+                    .sp-dot-ok{ background:#2ecc71; }
+                    .sp-dot-warn{ background:var(--accent); }
                     .sp-dot-danger{ background:#e74c3c; }
+                    .sp-state-pill{ border-radius:999px; padding:.18rem .6rem; border:1px solid var(--slate-border); }
                 </style>
                 <table class="table table-hover table-sm align-middle mb-0 text-nowrap sp-table">
                     <thead class="text-center align-middle sp-thead">
@@ -184,10 +216,19 @@
                                     if($producto->fecha_vencimiento){
                                         $fv = \Carbon\Carbon::parse($producto->fecha_vencimiento);
                                         if($fv->isPast()){ $estado='danger'; $estadoTxt='Vencido'; }
-                                        elseif($fv->diffInDays(now()) <= 30){ $estado='warn'; $estadoTxt='Vence pronto'; }
+                                        else {
+                                            // Calcular días enteros restantes, sin decimales
+                                            $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays($fv->copy()->startOfDay(), false);
+                                            $diasEnteros = (int) $dias; // asegurar entero
+                                            if($diasEnteros <= 30){ $estado='warn'; $estadoTxt = 'Próx. (' . $diasEnteros . ' días)'; }
+                                            else { $estado='ok'; $estadoTxt = 'Activo'; }
+                                        }
                                     }
                                 @endphp
-                                <span class="sp-status"><span class="sp-dot sp-dot-{{ $estado }}" aria-hidden="true"></span><span>{{ $estadoTxt }}</span></span>
+                                <span class="sp-status" title="{{ $producto->fecha_vencimiento ? 'Vence: ' . \Carbon\Carbon::parse($producto->fecha_vencimiento)->format('d/m/Y') : 'Sin fecha' }}">
+                                    <span class="sp-dot sp-dot-{{ $estado }}" aria-hidden="true"></span>
+                                    <span class="sp-state-pill">{{ $estadoTxt }}</span>
+                                </span>
                             </td>
                             <!-- Celda de stock eliminada -->
                             <td><span class="sp-chip-muted small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
@@ -195,7 +236,12 @@
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">
                                     <a href="{{ route('productos.show', $producto) }}" class="btn sp-btn-outline-accent btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
                                     <a href="{{ route('productos.edit', $producto) }}" class="btn sp-btn-outline-muted btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>
-                                    <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block form-eliminar-medicamento">
+                                    @php
+                                        $invCount = \App\Models\Inventario::where('producto_id',$producto->id)->count();
+                                        $movCount = \App\Models\Movimiento::where('producto_id',$producto->id)->count();
+                                    @endphp
+                                    <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline-block form-eliminar-medicamento"
+                                          data-inv="{{ $invCount }}" data-mov="{{ $movCount }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="button" class="btn btn-outline-danger btn-sm px-1 btn-modal-eliminar" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar" data-nombre="{{ $producto->nombre }}"><i class="fas fa-trash"></i></button>
@@ -231,7 +277,12 @@
             e.preventDefault();
             formEliminarActual = btn.closest('form');
             const nombre = btn.getAttribute('data-nombre');
-            document.getElementById('mensajeEliminarMedicamento').innerText = `¿Estás seguro de que deseas eliminar "${nombre}"?`;
+            const inv = formEliminarActual?.getAttribute('data-inv') ?? 0;
+            const mov = formEliminarActual?.getAttribute('data-mov') ?? 0;
+            const detalle = (Number(inv)>0 || Number(mov)>0)
+                ? `\nEste producto tiene ${inv} inventario(s) y ${mov} movimiento(s) asociados.\nDebe eliminar/ajustar esos registros antes.`
+                : '';
+            document.getElementById('mensajeEliminarMedicamento').innerText = `¿Estás seguro de que deseas eliminar "${nombre}"?${detalle}`;
             document.getElementById('modalEliminarMedicamento').style.display = 'block';
         });
     });
