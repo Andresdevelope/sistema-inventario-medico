@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Models\Inventario;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
@@ -89,6 +90,18 @@ class ProductoController extends Controller
         ]);
         $this->logBitacora('producto.crear', ['id'=>$producto->id,'nombre'=>$producto->nombre,'codigo'=>$producto->codigo]);
 
+        // Crear inventario inicial para que el stock se refleje en detalle (stock_total) y movimientos futuros.
+        if ($producto->stock > 0 && Inventario::where('producto_id',$producto->id)->count() === 0) {
+            Inventario::create([
+                'producto_id' => $producto->id,
+                'lote' => null,
+                'cantidad' => $producto->stock,
+                'fecha_vencimiento' => $producto->fecha_vencimiento,
+                'stock_minimo' => $producto->stock_minimo,
+                'estado' => 'activo',
+            ]);
+        }
+
         return redirect()->route('productos.index')->with('success', 'Producto creado correctamente.');
     }
 
@@ -147,6 +160,19 @@ class ProductoController extends Controller
             'updated_by' => Auth::user() ? Auth::user()->id : null,
         ]);
         $this->logBitacora('producto.actualizar', ['antes'=>$old,'despues'=>$producto->only(array_keys($old))]);
+
+        // Si tras la actualización no existen inventarios y stock > 0, crear inventario base para mantener consistencia con stock_total.
+        $invCount = Inventario::where('producto_id',$producto->id)->count();
+        if ($invCount === 0 && $producto->stock > 0) {
+            Inventario::create([
+                'producto_id' => $producto->id,
+                'lote' => null,
+                'cantidad' => $producto->stock,
+                'fecha_vencimiento' => $producto->fecha_vencimiento,
+                'stock_minimo' => $producto->stock_minimo,
+                'estado' => 'activo',
+            ]);
+        }
 
         return redirect()->route('productos.index')->with('success', 'Producto actualizado correctamente.');
     }

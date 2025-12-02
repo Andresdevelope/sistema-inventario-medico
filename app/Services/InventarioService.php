@@ -31,9 +31,12 @@ class InventarioService
         DB::transaction(function() use ($data, $tipo, $cantidad) {
             /** @var Producto $producto */
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
-            // Sincronizar stock del producto con la suma real de inventarios si está desfasado
+            // Sincronizar stock del producto con la suma real de inventarios SI existen inventarios.
+            // Evitar el caso donde un egreso inicial sin registros de inventario borra el stock declarado del producto (lo deja en 0).
             $stockInventariosActual = \App\Models\Inventario::where('producto_id', $producto->id)->sum('cantidad');
-            if ((int)$producto->stock !== (int)$stockInventariosActual) {
+            $inventariosCount = \App\Models\Inventario::where('producto_id', $producto->id)->count();
+            // Si existen registros de inventario (aunque sumen 0) forzar la sincronización para evitar desajustes.
+            if ($inventariosCount > 0 && (int)$producto->stock !== (int)$stockInventariosActual) {
                 $producto->stock = (int)$stockInventariosActual;
                 $producto->save();
             }
@@ -95,14 +98,12 @@ class InventarioService
                     $invInicial = Inventario::create([
                         'producto_id' => $producto->id,
                         'lote' => null,
-                        'cantidad' => (int)$producto->stock,
+                        'cantidad' => (int)$producto->stock, // trasladar el stock declarado al primer registro de inventario
                         'fecha_vencimiento' => null,
                         'stock_minimo' => $producto->stock_minimo,
                         'estado' => 'activo',
                     ]);
-                    // Dejar productos.stock en 0 para evitar doble conteo
-                    $producto->stock = 0;
-                    $producto->save();
+                    // Mantener productos.stock para validaciones posteriores y consistencia.
                 }
 
                 // Consumir por FEFO (fecha de vencimiento más próxima primero, null al final)
@@ -116,9 +117,7 @@ class InventarioService
 
                 $saldoTotal = $inventarios->sum('cantidad');
                 // Validar también contra stock agregado del producto por coherencia
-                if ($producto->stock < $porConsumir) {
-                    throw new InvalidArgumentException('Stock insuficiente (producto) para egreso');
-                }
+                // Validar sólo contra el saldo real de inventarios (el campo productos.stock puede haber sido editado manualmente)
                 if ($saldoTotal < $porConsumir) {
                     throw new InvalidArgumentException('Stock insuficiente para egreso');
                 }
@@ -161,9 +160,7 @@ class InventarioService
                     ->get();
 
                 $saldoTotal = $inventarios->sum('cantidad');
-                if ($producto->stock < $porAjustar) {
-                    throw new InvalidArgumentException('Stock insuficiente (producto) para ajuste negativo');
-                }
+                // Validar sólo contra inventarios
                 if ($saldoTotal < $porAjustar) {
                     throw new InvalidArgumentException('Stock insuficiente para ajuste negativo');
                 }
