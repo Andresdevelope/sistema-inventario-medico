@@ -92,6 +92,9 @@ button:hover{ background:#2a3a4a; }
         <div id="security-recover-alert" class="alert-box" role="alert" style="margin-bottom:8px;"></div>
   <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" />
   <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" />
+        <div id="padre-container" style="display:none;">
+          <input type="text" name="padre" placeholder="¿Nombre del padre?" autocomplete="off" />
+        </div>
         <div class="actions">
           <button type="submit">Verificar</button>
           <button type="button" id="cancel-security">Cancelar</button>
@@ -164,25 +167,44 @@ document.getElementById('security-recover-form').addEventListener('submit', func
   e.preventDefault();
   const color = this.color.value.trim();
   const animal = this.animal.value.trim();
+  const padreInput = this.querySelector('input[name="padre"]');
+  const padre = padreInput ? padreInput.value.trim() : '';
   const alertBox = document.getElementById('security-recover-alert');
   if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; alertBox.className = 'alert-box'; }
   fetch(routeCheckSecurity, {
     method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
-    body: JSON.stringify({ user_id: recoverUserId, color, animal })
+    body: JSON.stringify({ user_id: recoverUserId, color, animal, padre })
   }).then(r => r.json()).then(data => {
     if (data && data.success){
       document.getElementById('security-recover-modal').style.display = 'none';
       document.getElementById('change-password-modal').style.display = 'flex';
     } else {
-      if (alertBox) {
+      const padreContainer = document.getElementById('padre-container');
+      if (data && data.require_padre) {
+        // Mostrar la tercera pregunta
+        if (padreContainer) padreContainer.style.display = 'block';
+        if (alertBox) {
+          alertBox.className = 'alert-box info';
+          // Mostrar el mensaje específico que viene del backend
+          alertBox.textContent = data.message || 'Necesitamos una verificación adicional.';
+          alertBox.style.display = 'block';
+        }
+      } else if (alertBox) {
+        // Mensajes más específicos
         let msg = '';
         if (data && Array.isArray(data.incorrect)) {
-          if (data.incorrect.length === 2) {
+          if (data.incorrect.includes('color') && data.incorrect.includes('animal') && data.incorrect.includes('padre')) {
+            msg = 'Las respuestas proporcionadas no coinciden. Intenta nuevamente.';
+          } else if (data.incorrect.includes('padre')) {
+            msg = 'La verificación adicional no fue correcta.';
+          } else if (data.incorrect.includes('color') && data.incorrect.includes('animal')) {
             msg = 'Ambas respuestas son incorrectas.';
-          } else if (data.incorrect[0] === 'color') {
+          } else if (data.incorrect.includes('color')) {
             msg = 'El color favorito es incorrecto.';
-          } else if (data.incorrect[0] === 'animal') {
+          } else if (data.incorrect.includes('animal')) {
             msg = 'El animal favorito es incorrecto.';
+          } else {
+            msg = 'Respuestas incorrectas. Intenta nuevamente.';
           }
         } else {
           msg = 'Respuestas incorrectas. Intenta nuevamente.';

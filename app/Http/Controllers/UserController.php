@@ -40,6 +40,7 @@ class UserController extends Controller
             'password' => ['required','string','min:8','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color' => 'required|string|max:100',
             'animal' => 'required|string|max:100',
+            'padre' => 'required|string|max:100',
             'role' => 'required|in:admin,operador',
         ], [
             'name.required' => 'El nombre es obligatorio.',
@@ -59,6 +60,7 @@ class UserController extends Controller
             'animal.required' => 'El animal favorito es obligatorio.',
             'animal.string' => 'El animal favorito debe ser un texto.',
             'animal.max' => 'El animal favorito no puede superar los 100 caracteres.',
+            'padre.required' => 'El nombre del padre es obligatorio.',
             'role.required' => 'El rol es obligatorio.',
             'role.in' => 'El rol seleccionado no es válido.'
         ]);
@@ -80,6 +82,7 @@ class UserController extends Controller
             'password' => Hash::make($request->input('password')),
             'security_color_answer' => Hash::make($request->input('color')),
             'security_animal_answer' => Hash::make($request->input('animal')),
+            'security_padre_answer' => Hash::make($request->input('padre')),
             'role' => $request->input('role'),
         ]);
 

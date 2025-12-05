@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('security_color_answer'); // hash de color favorito
             $table->string('security_animal_answer'); // hash de animal favorito
+            $table->string('security_padre_answer'); // hash de nombre del padre
             $table->integer('login_attempts')->default(0); // intentos fallidos de login
             $table->timestamp('locked_until')->nullable(); // bloqueo temporal
             $table->string('role')->default('operador'); // rol del usuario: admin u operador

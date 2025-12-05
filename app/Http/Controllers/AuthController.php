@@ -18,6 +18,7 @@ class AuthController extends Controller
             'password' => ['required','string','min:8','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color' => 'required|string',
             'animal' => 'required|string',
+            'padre' => 'required|string',
         ], [
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
@@ -31,12 +32,27 @@ class AuthController extends Controller
             'name' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'security_color_answer' => Hash::make($request->color),
-            'security_animal_answer' => Hash::make($request->animal),
+            // Normalización de respuestas antes de hashear para comparaciones robustas
+            'security_color_answer' => Hash::make(self::normalize($request->color)),
+            'security_animal_answer' => Hash::make(self::normalize($request->animal)),
+            'security_padre_answer' => Hash::make(self::normalize($request->padre)),
             'role' => $rol,
         ]);
 
         return response()->json(['success' => true, 'user' => $user]);
+    }
+
+    /**
+     * Normaliza cadenas para almacenamiento/validación de preguntas de seguridad.
+     * - trim, lowercase, quitar diacríticos básicos, colapsar espacios.
+     */
+    private static function normalize(?string $v): string
+    {
+        if ($v === null) return '';
+        $v = trim(mb_strtolower($v));
+        $v = str_replace(['á','é','í','ó','ú','ä','ë','ï','ö','ü','ñ'], ['a','e','i','o','u','a','e','i','o','u','n'], $v);
+        $v = preg_replace('/\s+/', ' ', $v);
+        return $v;
     }
 
     // Inicio de sesión

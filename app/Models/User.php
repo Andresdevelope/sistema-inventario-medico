@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'security_color_answer',
         'security_animal_answer',
+        'security_padre_answer',
         'login_attempts',
         'locked_until',
         'role', // permite asignar el rol desde formularios o seeds
@@ -38,6 +39,7 @@ class User extends Authenticatable
         'remember_token',
         'security_color_answer',
         'security_animal_answer',
+        'security_padre_answer',
     ];
 
     /**

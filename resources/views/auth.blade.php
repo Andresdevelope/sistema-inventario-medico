@@ -100,6 +100,7 @@ input:focus{ outline:2px solid #2a9d8f66; box-shadow:0 0 0 3px #2a9d8f22; }
         <input type="password" name="password" placeholder="Contraseña" required />
         <input type="text" name="color" placeholder="¿Color favorito?" required />
         <input type="text" name="animal" placeholder="¿Animal favorito?" required />
+        <input type="text" name="padre" placeholder="¿Nombre del padre?" required />
         <button type="submit">Registrarse</button>
       </form>
     </div>
