@@ -59,6 +59,9 @@ Route::get('/categorias', function() {
 Route::resource('categorias', CategoriaController::class)->middleware('auth');
 Route::resource('subcategorias', SubcategoriaController::class)->middleware('auth');
 Route::get('categorias-listar', [App\Http\Controllers\CategoriaController::class, 'listar'])->middleware('auth');
+// Conteo de dependencias para validación antes de eliminar
+Route::get('/categorias/{id}/dependencias', [App\Http\Controllers\CategoriaController::class, 'dependencias'])->middleware('auth');
+Route::get('/subcategorias/{id}/dependencias', [App\Http\Controllers\SubcategoriaController::class, 'dependencias'])->middleware('auth');
 // Endpoint AJAX para subcategorías por categoría
 Route::get('/subcategorias/by-categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'subcategoriasPorCategoria'])->middleware('auth');
 // Ruta para actualizar subcategoría individualmente

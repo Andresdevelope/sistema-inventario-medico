@@ -105,7 +105,7 @@
                         <!-- Categoría Inventario eliminada -->
                         <th>Stock Total</th>
                         <th>Vencimiento más próximo</th>
-                        <th>Estado</th>
+                        <th>Estado</th> 
                         <th>Acciones</th>
                     </tr>
                 </thead>

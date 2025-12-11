@@ -96,11 +96,42 @@
 .list-group-item-action {cursor:pointer;}
 .list-group-item-action.active {background:#e8f2ff;color:#0d6efd;border-left:4px solid #0d6efd;font-weight:600;}
 .list-group-item-action .badge {float:right;}
-.subcat-row-actions button {border:none;background:transparent;color:#555;}
-.subcat-row-actions button:hover {color:#0d6efd;}
+.subcat-row-actions button {border:none;background:transparent;color:#ff9800 !important;}
+.subcat-row-actions button:hover {color:#fb8c00 !important;}
 .table-subcats tbody tr:hover {background:#fafbfd;}
 #detalle-categoria-container .card-header {background:#fff;border-bottom:1px solid #eef2f5;}
 .badge-soft {background:#eef7ff;color:#0d6efd;font-weight:500;border-radius:20px;padding:.3rem .65rem;font-size:.7rem;}
+/* ========================= ESTILOS NARANJA PARA CATEGORÍAS (SCOPED) ========================= */
+/* Nota: Se evita modificar .text-primary global. Solo se estiliza dentro del header y botones específicos. */
+.card-header h6,
+.mb-3 h3.text-primary,
+.card-header h5.text-primary { color: #ff9800 !important; }
+.card-header h5.text-primary i { color: inherit !important; }
+.btn-primary { background-color: #ff9800 !important; border-color: #ff9800 !important; color: #fff !important; }
+.list-group-item-action.active { background: #fff3e0 !important; color: #ff9800 !important; border-left: 4px solid #ff9800 !important; }
+.badge-soft { background: #fff3e0 !important; color: #ff9800 !important; }
+
+/* Botones del header de categoría: Editar y Subcategoría con fondo blanco y hover naranja */
+.modal-content #modal-titulo.text-primary { color: #ff9800 !important; }
+/* Título del modal Editar Subcategoría en naranja */
+#modalEditarSubcategoria .modal-content h5.text-primary { color: #ff9800 !important; }
+.card-header button[data-action="editar-categoria"],
+.card-header button[data-action="nueva-sub"] {
+    background-color: #ffffff !important;
+    border-color: #ff9800 !important;
+    color: #ff9800 !important;
+}
+.card-header button[data-action="editar-categoria"]:hover,
+.card-header button[data-action="nueva-sub"]:hover,
+.card-header button[data-action="editar-categoria"]:focus,
+.card-header button[data-action="nueva-sub"]:focus {
+    background-color: #ff9800 !important;
+    border-color: #ff9800 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+/* Mantener eliminar (danger) en rojo por semántica */
+.card-header .btn i { color: inherit !important; }
 </style>
 @endpush
 
@@ -129,7 +160,17 @@
 
     // ===================== UTILIDADES =====================
     function debounce(fn, delay=300){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), delay); }; }
-    function showToast(msg, tipo='success'){ const c=els.toastContainer(); if(!c) return; const d=document.createElement('div'); d.textContent=msg; d.setAttribute('role','alert'); d.style.cssText=`background:${tipo==='success'?'#2176ae':'#e74c3c'};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`; c.appendChild(d); requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateX(0)';}); setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400);},2700);}    
+    function showToast(msg, tipo='success'){
+        const c = els.toastContainer(); if(!c) return;
+        const d = document.createElement('div');
+        d.textContent = msg;
+        d.setAttribute('role','alert');
+        const bg = tipo==='success' ? '#ff9800' : '#e74c3c'; // naranja para éxito, rojo para error
+        d.style.cssText = `background:${bg};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
+        c.appendChild(d);
+        requestAnimationFrame(()=>{ d.style.opacity='1'; d.style.transform='translateX(0)'; });
+        setTimeout(()=>{ d.style.opacity='0'; d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400); },2700);
+    }
     function confirmar(mensaje, cb){ const modal=document.getElementById('modal-confirmar'); modal.style.display='flex'; document.getElementById('confirmar-mensaje').textContent=mensaje; const btnOk=document.getElementById('btn-aceptar-confirmar'); const btnNo=document.getElementById('btn-cancelar-confirmar'); const close=()=>{modal.style.display='none'; btnOk.removeEventListener('click',okH); btnNo.removeEventListener('click',noH);} ; const okH=()=>{cb&&cb(); close();}; const noH=()=>close(); btnOk.addEventListener('click',okH,{once:true}); btnNo.addEventListener('click',noH,{once:true}); }
     function csrf(){ const m=document.querySelector('meta[name="csrf-token"]'); return m?m.content:''; }
 
@@ -235,10 +276,10 @@
 
     // ===================== EVENTOS =====================
     document.addEventListener('click', (e)=>{ const btn = e.target.closest('[data-action]'); if(btn){ const action = btn.dataset.action; if(action==='editar-categoria'){ showCategoriaModal('editar', btn.dataset.id, btn.dataset.nombre); }
-            else if(action==='eliminar-categoria'){ confirmar(`¿Eliminar la categoría "${btn.dataset.nombre}"?`, ()=> eliminarCategoria(btn.dataset.id)); }
+            else if(action==='eliminar-categoria'){ validarYConfirmarEliminarCategoria(btn.dataset.id, btn.dataset.nombre); }
             else if(action==='nueva-sub'){ showCategoriaModal('sub', btn.dataset.id); }
             else if(action==='editar-sub'){ abrirModalEditarSubcategoria(btn.dataset.id, btn.dataset.nombre); }
-            else if(action==='eliminar-sub'){ confirmar(`¿Eliminar subcategoría "${btn.dataset.nombre}"?`, ()=> eliminarSubcategoria(btn.dataset.id)); }
+            else if(action==='eliminar-sub'){ validarYConfirmarEliminarSubcategoria(btn.dataset.id, btn.dataset.nombre); }
             else if(action==='reintentar-cargar'){ cargarCategorias(); }
         }
         const item = e.target.closest('#lista-categorias button.list-group-item'); if(item){ const id=parseInt(item.dataset.id); if(state.selectedCategoryId!==id){ state.selectedCategoryId=id; savePersisted(); renderLista(); renderDetalle(); } }
@@ -308,8 +349,36 @@
     window.cerrarModalEditarSubcategoria = function(){ els.modalEditarSub().style.display='none'; };
     window.guardarEdicionSubcategoria = async function(){ const id=document.getElementById('editSubId').value; const nombre=document.getElementById('editSubNombre').value.trim(); if(!nombre) return showToast('Nombre requerido','error'); try { await peticion(`/subcategorias/${id}`,'PUT',{ nombre }); showToast('Subcategoría actualizada'); cerrarModalEditarSubcategoria(); await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'Error','error'); } };
 
-    async function eliminarCategoria(id){ try{ await peticion(`/categorias/${id}`,'DELETE'); showToast('Categoría eliminada'); if(state.selectedCategoryId==id) state.selectedCategoryId=null; await cargarCategorias({silencioso:true}); } catch(e){ showToast('No se pudo eliminar','error'); } }
-    async function eliminarSubcategoria(id){ try{ await peticion(`/subcategorias/${id}`,'DELETE'); showToast('Subcategoría eliminada'); await cargarCategorias({silencioso:true}); } catch(e){ showToast('No se pudo eliminar','error'); } }
+    async function eliminarCategoria(id){ try{ await peticion(`/categorias/${id}`,'DELETE'); showToast('Categoría eliminada'); if(state.selectedCategoryId==id) state.selectedCategoryId=null; await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'No se pudo eliminar','error'); } }
+    async function eliminarSubcategoria(id){ try{ await peticion(`/subcategorias/${id}`,'DELETE'); showToast('Subcategoría eliminada'); await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'No se pudo eliminar','error'); } }
+
+    async function validarYConfirmarEliminarCategoria(id, nombre){
+        try {
+            const res = await fetch(`/categorias/${id}/dependencias`, { headers:{'Accept':'application/json'} });
+            const js = await res.json();
+            const deps = js.dependencias || {medicamentos:0, subcategorias:0};
+            if(deps.medicamentos>0 || deps.subcategorias>0){
+                const msg = `La categoría "${nombre}" tiene ${deps.medicamentos} medicamento(s) y ${deps.subcategorias} subcategoría(s) asociadas.\nNo se recomienda eliminarla. Reasigna los medicamentos y/o elimina las subcategorías primero.`;
+                confirmar(msg, ()=>{}); // solo mostrar advertencia, no eliminar
+            } else {
+                confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id));
+            }
+        } catch(e){ confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id)); }
+    }
+
+    async function validarYConfirmarEliminarSubcategoria(id, nombre){
+        try {
+            const res = await fetch(`/subcategorias/${id}/dependencias`, { headers:{'Accept':'application/json'} });
+            const js = await res.json();
+            const deps = js.dependencias || {medicamentos:0};
+            if(deps.medicamentos>0){
+                const msg = `La subcategoría "${nombre}" tiene ${deps.medicamentos} medicamento(s) asociados.\nNo se recomienda eliminarla. Reasigna los medicamentos primero.`;
+                confirmar(msg, ()=>{});
+            } else {
+                confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id));
+            }
+        } catch(e){ confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id)); }
+    }
 
     async function peticion(url, method='GET', data=null){ const opts={ method, headers:{ 'Accept':'application/json','X-CSRF-TOKEN':csrf() } }; if(data){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(data); } const res = await fetch(url, opts); let js; try { js = await res.json(); } catch { throw new Error('Respuesta no válida'); } if(!res.ok || js.success===false){ throw new Error(js.message || 'Error en servidor'); } return js; }
 

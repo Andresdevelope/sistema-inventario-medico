@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
+use App\Models\Producto;
 
 class CategoriaController extends Controller
 {
@@ -139,6 +140,16 @@ class CategoriaController extends Controller
     public function destroy($id)
     {
         $categoria = Categoria::findOrFail($id);
+        // Validar dependencias: productos y subcategorías
+        $productosCount = Producto::where('categoria_id', $categoria->id)->count();
+        $subcatsCount = Subcategoria::where('categoria_id', $categoria->id)->count();
+        if ($productosCount > 0 || $subcatsCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "No se puede eliminar. La categoría tiene {$productosCount} medicamento(s) y {$subcatsCount} subcategoría(s) asociadas.",
+                'dependencias' => ['medicamentos' => $productosCount, 'subcategorias' => $subcatsCount]
+            ], 422);
+        }
         $snapshot = ['id'=>$categoria->id,'nombre'=>$categoria->nombre];
         $categoria->delete();
         $this->logBitacora('categoria.eliminar', $snapshot);
@@ -152,5 +163,19 @@ class CategoriaController extends Controller
     {
         $categorias = Categoria::with('subcategorias')->get();
         return response()->json($categorias);
+    }
+
+    /**
+     * Endpoint AJAX: dependencias de una categoría (conteos)
+     */
+    public function dependencias($id)
+    {
+        $categoria = Categoria::findOrFail($id);
+        $medicamentos = Producto::where('categoria_id', $id)->count();
+        $subcategorias = Subcategoria::where('categoria_id', $id)->count();
+        return response()->json([
+            'success' => true,
+            'dependencias' => compact('medicamentos', 'subcategorias')
+        ]);
     }
 }
