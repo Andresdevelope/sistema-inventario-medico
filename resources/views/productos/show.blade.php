@@ -8,10 +8,17 @@
     <!-- Tarjeta visual para mostrar los datos -->
     <div class="card shadow-sm">
         <!-- Encabezado de la tarjeta con título y botón de volver -->
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        @php
+            // Determinar a dónde debe volver el usuario según desde dónde llegó
+            $from = request('from');
+            $backUrl = $from === 'inventario'
+                ? route('inventario.index')
+                : route('productos.index');
+        @endphp
+        <div class="card-header med-header text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-capsules me-2"></i>Detalle del Medicamento</h5>
-            <!-- Botón para regresar al listado de productos -->
-            <a href="{{ route('productos.index') }}" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left"></i> Volver</a>
+            <!-- Botón para regresar: si viene del inventario, vuelve al inventario; si no, al listado de medicamentos -->
+            <a href="{{ $backUrl }}" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left"></i> Volver</a>
         </div>
         <div class="card-body">
             <!-- Tabla con los campos principales del medicamento -->
@@ -108,3 +115,12 @@
 </div>
 <!-- Fin de la sección de detalles del medicamento -->
 @endsection
+
+@push('styles')
+<style>
+    .med-header {
+        background-color: #ff9800; /* naranja del sistema */
+    }
+</style>
+@endpush
+

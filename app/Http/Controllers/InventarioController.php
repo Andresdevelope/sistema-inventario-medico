@@ -67,14 +67,16 @@ class InventarioController extends Controller
             return $stockActual < $stockMin;
         })->count();
 
-        // Próximos a vencer (≤ 30 días) considerando inventarios con fecha de vencimiento y cantidad > 0
-        $hoy = Carbon::today();
-        $limite = Carbon::today()->addDays(30);
-        $proximosAVencer = Producto::whereHas('inventarios', function ($q) use ($hoy, $limite) {
-            $q->whereNotNull('fecha_vencimiento')
-              ->where('cantidad', '>', 0)
-              ->whereBetween('fecha_vencimiento', [$hoy, $limite]);
-        })->count();
+                // Próximos a vencer (≤ 30 días) considerando inventarios con fecha de vencimiento y cantidad > 0.
+                // Se compara solo por fecha (sin hora) para evitar problemas de zonas horarias.
+                $hoy = Carbon::today();
+                $limite = Carbon::today()->addDays(30);
+                $proximosAVencer = Producto::whereHas('inventarios', function ($q) use ($hoy, $limite) {
+                        $q->whereNotNull('fecha_vencimiento')
+                            ->where('cantidad', '>', 0)
+                            ->whereDate('fecha_vencimiento', '>=', $hoy)
+                            ->whereDate('fecha_vencimiento', '<=', $limite);
+                })->count();
 
         // Registrar acceso en bitácora (ingreso al módulo inventario)
         try {

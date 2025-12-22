@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="container-fluid px-2 px-md-4 mt-4">
-    
     @if(session('success'))
         <script>document.addEventListener('DOMContentLoaded',()=>{ window.showToast(@json(session('success')), 'success'); });</script>
     @endif
@@ -54,40 +53,11 @@
         </div>
     </form>
 
-    <!-- Toast container -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
-        <div id="flashToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body" id="flashToastMsg"><!-- mensaje dinámico --></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-            </div>
-        </div>
-    </div>
-
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Tooltips
         [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(el=> new bootstrap.Tooltip(el));
-
-        // Toasts from session
-        const toastEl = document.getElementById('flashToast');
-        const toastMsg = document.getElementById('flashToastMsg');
-        if (toastEl && toastMsg) {
-            @if(session('success'))
-                toastMsg.textContent = {!! json_encode(session('success')) !!};
-                toastEl.classList.remove('bg-danger','bg-success'); toastEl.classList.add('bg-warning');
-                toastEl.style.background = 'var(--accent)';
-                toastEl.style.color = '#fff';
-                new bootstrap.Toast(toastEl, { delay: 3500 }).show();
-            @elseif(session('error'))
-                toastMsg.textContent = {!! json_encode(session('error')) !!};
-                toastEl.classList.remove('bg-success','bg-warning'); toastEl.classList.add('bg-danger');
-                toastEl.style.background = 'var(--accent)';
-                toastEl.style.color = '#fff';
-                new bootstrap.Toast(toastEl, { delay: 3500 }).show();
-            @endif
-        }
 
         // Debounce helper
         function debounce(fn, wait){ let t; return function(...a){ clearTimeout(t); t = setTimeout(()=> fn.apply(this,a), wait); }; }

@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <div class="card-header med-header text-white d-flex justify-content-between align-items-center">
           <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Añadir Nuevo Medicamento</h4>
           <span class="small"><i class="fas fa-user me-1"></i>Será creado por: <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong></span>
         </div>
@@ -119,8 +119,8 @@
                     </div>
                   </div>
                   <div class="col-md-6 d-flex justify-content-end gap-2">
-                    <button type="submit" class="btn btn-success px-4"><i class="fas fa-save me-1"></i>Guardar</button>
-                    <a href="{{ route('productos.index') }}" class="btn btn-secondary px-4">Cancelar</a>
+                    <button type="submit" class="btn btn-med-primary px-4"><i class="fas fa-save me-1"></i>Guardar</button>
+                    <a href="{{ route('productos.index') }}" class="btn btn-med-outline px-4">Cancelar</a>
                   </div>
                 </div>
             </form>
@@ -153,6 +153,41 @@ document.addEventListener('DOMContentLoaded', function() {
 @endpush
 
 @endsection
+
+@push('styles')
+<style>
+  .med-header {
+    background-color: #ff9800; /* naranja principal del sistema */
+    border-color: #ff9800;
+  }
+
+  .btn-med-primary {
+    background-color: #ff9800;
+    border-color: #ff9800;
+    color: #ffffff;
+  }
+
+  .btn-med-primary:hover,
+  .btn-med-primary:focus {
+    background-color: #fb8c00;
+    border-color: #fb8c00;
+    color: #ffffff;
+  }
+
+  .btn-med-outline {
+    background-color: #ffffff;
+    border-color: #ff9800;
+    color: #ff9800;
+  }
+
+  .btn-med-outline:hover,
+  .btn-med-outline:focus {
+    background-color: #ff9800;
+    border-color: #ff9800;
+    color: #ffffff;
+  }
+</style>
+@endpush
 
 @push('scripts')
 <script>
