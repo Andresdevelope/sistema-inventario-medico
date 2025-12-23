@@ -25,4 +25,17 @@ class Inventario extends Model
     {
         return $this->belongsTo(Producto::class);
     }
+
+    /**
+     * Protege atributos críticos una vez creado el registro.
+     * Evita cambiar 'lote' y 'fecha_vencimiento' para preservar trazabilidad.
+     */
+    protected static function booted()
+    {
+        static::updating(function (Inventario $model) {
+            if ($model->isDirty('lote') || $model->isDirty('fecha_vencimiento')) {
+                throw new \InvalidArgumentException('No se puede modificar el lote o la fecha de vencimiento de un inventario existente. Cree un nuevo lote si es necesario.');
+            }
+        });
+    }
 }

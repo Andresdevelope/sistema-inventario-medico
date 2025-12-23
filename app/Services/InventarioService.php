@@ -13,6 +13,63 @@ use InvalidArgumentException;
 class InventarioService
 {
     /**
+     * Sincroniza el campo Producto.stock con la suma de inventarios cuando existan registros de inventario.
+     * Evita desajustes cuando el stock del producto ha sido editado manualmente.
+     */
+    private function syncProductoStock(Producto $producto): void
+    {
+        $inventariosCount = Inventario::where('producto_id', $producto->id)->count();
+        if ($inventariosCount > 0) {
+            $stockInventariosActual = Inventario::where('producto_id', $producto->id)->sum('cantidad');
+            if ((int)$producto->stock !== (int)$stockInventariosActual) {
+                $producto->stock = (int)$stockInventariosActual;
+                $producto->save();
+            }
+        }
+    }
+
+    /**
+     * Obtiene la lista de inventarios para consumo FEFO/FIFO.
+     * FEFO: fecha de vencimiento más próxima primero; NULL al final.
+     * FIFO: en empates por fecha, prioriza created_at asc.
+     */
+    private function getInventariosFefoFifo(Producto $producto)
+    {
+        return Inventario::where('producto_id', $producto->id)
+            ->where('cantidad', '>', 0)
+            ->orderByRaw('CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END ASC')
+            ->orderBy('fecha_vencimiento', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->lockForUpdate()
+            ->get();
+    }
+
+    /**
+     * Busca (con lock) o crea un inventario agrupado por lote + fecha_vencimiento.
+     */
+    private function findOrCreateInventario(Producto $producto, ?string $lote, ?string $fechaVencimiento): Inventario
+    {
+        $inv = Inventario::where('producto_id', $producto->id)
+            ->when($lote === null, fn($q)=>$q->whereNull('lote'))
+            ->when($lote !== null, fn($q)=>$q->where('lote', $lote))
+            ->when($fechaVencimiento === null, fn($q)=>$q->whereNull('fecha_vencimiento'))
+            ->when($fechaVencimiento !== null, fn($q)=>$q->whereDate('fecha_vencimiento', $fechaVencimiento))
+            ->lockForUpdate()
+            ->first();
+        if (!$inv) {
+            $inv = Inventario::create([
+                'producto_id' => $producto->id,
+                'lote' => $lote,
+                'cantidad' => 0,
+                'fecha_vencimiento' => $fechaVencimiento,
+                'stock_minimo' => $producto->stock_minimo,
+                'estado' => 'activo',
+            ]);
+        }
+        return $inv;
+    }
+
+    /**
      * Procesa un movimiento y actualiza inventario en una transacción.
      * $data keys: producto_id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), cantidad, fecha(optional),
      *  fecha_vencimiento(optional para ingreso/ajuste_pos), motivo, observaciones, usuario_id(optional), area(optional)
@@ -31,15 +88,8 @@ class InventarioService
         DB::transaction(function() use ($data, $tipo, $cantidad) {
             /** @var Producto $producto */
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
-            // Sincronizar stock del producto con la suma real de inventarios SI existen inventarios.
-            // Evitar el caso donde un egreso inicial sin registros de inventario borra el stock declarado del producto (lo deja en 0).
-            $stockInventariosActual = \App\Models\Inventario::where('producto_id', $producto->id)->sum('cantidad');
-            $inventariosCount = \App\Models\Inventario::where('producto_id', $producto->id)->count();
-            // Si existen registros de inventario (aunque sumen 0) forzar la sincronización para evitar desajustes.
-            if ($inventariosCount > 0 && (int)$producto->stock !== (int)$stockInventariosActual) {
-                $producto->stock = (int)$stockInventariosActual;
-                $producto->save();
-            }
+            // Sincronizar stock con inventarios cuando existan
+            $this->syncProductoStock($producto);
             $destinoId = $data['destino_id'] ?? null;
             $destino = null;
             if ($destinoId) {
@@ -54,22 +104,10 @@ class InventarioService
                 : Carbon::today()->toDateString();
 
             if (in_array($tipo, ['ingreso','ajuste_pos'])) {
-                // Si viene fecha de vencimiento, agrupar por esa fecha, si no, usar null
+                // Agrupar por lote + fecha de vencimiento
                 $fv = !empty($data['fecha_vencimiento']) ? Carbon::parse($data['fecha_vencimiento'])->toDateString() : null;
-                $inv = Inventario::where('producto_id', $producto->id)
-                    ->when($fv === null, fn($q)=>$q->whereNull('fecha_vencimiento'))
-                    ->when($fv !== null, fn($q)=>$q->whereDate('fecha_vencimiento', $fv))
-                    ->first();
-                if (!$inv) {
-                    $inv = Inventario::create([
-                        'producto_id' => $producto->id,
-                        'lote' => null,
-                        'cantidad' => 0,
-                        'fecha_vencimiento' => $fv,
-                        'stock_minimo' => $producto->stock_minimo,
-                        'estado' => 'activo',
-                    ]);
-                }
+                $lote = $data['lote'] ?? null;
+                $inv = $this->findOrCreateInventario($producto, $lote, $fv);
                 $inv->cantidad += $cantidad;
                 $inv->save();
 
@@ -92,6 +130,42 @@ class InventarioService
                 ]);
             }
             elseif ($tipo === 'egreso') {
+                // Si el usuario eligió un lote específico, consumir sólo de ese lote
+                $targetId = $data['inventario_objetivo_id'] ?? null;
+                if ($targetId) {
+                    $inv = Inventario::where('id', (int)$targetId)
+                        ->where('producto_id', $producto->id)
+                        ->lockForUpdate()
+                        ->first();
+                    if (!$inv) {
+                        throw new InvalidArgumentException('El lote seleccionado no existe para este producto');
+                    }
+                    if ((int)$inv->cantidad < $cantidad) {
+                        throw new InvalidArgumentException('La cantidad supera el saldo del lote seleccionado');
+                    }
+
+                    $inv->cantidad -= $cantidad;
+                    $inv->save();
+
+                    Movimiento::create([
+                        'producto_id' => $producto->id,
+                        'tipo' => 'egreso',
+                        'salida' => $area,
+                        'destino_id' => $destino?->id,
+                        'inventario_id' => $inv->id,
+                        'entrada' => null,
+                        'cantidad' => $cantidad,
+                        'motivo' => $motivo,
+                        'fecha' => $fecha,
+                        'usuario_id' => $usuarioId,
+                        'observaciones' => $observaciones,
+                    ]);
+
+                    $producto->stock -= $cantidad;
+                    if ($producto->stock < 0) { $producto->stock = 0; }
+                    $producto->save();
+                    return; // fin de egreso dirigido
+                }
                 // Auto-regularización: si no hay inventarios pero el producto tiene stock, crear uno inicial
                 $totalInv = Inventario::where('producto_id', $producto->id)->sum('cantidad');
                 if ($totalInv <= 0 && ($producto->stock ?? 0) > 0) {
@@ -108,12 +182,7 @@ class InventarioService
 
                 // Consumir por FEFO (fecha de vencimiento más próxima primero, null al final)
                 $porConsumir = $cantidad;
-                $inventarios = Inventario::where('producto_id', $producto->id)
-                    ->where('cantidad', '>', 0)
-                    ->orderByRaw('CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END ASC')
-                    ->orderBy('fecha_vencimiento', 'asc')
-                    ->lockForUpdate()
-                    ->get();
+                $inventarios = $this->getInventariosFefoFifo($producto);
 
                 $saldoTotal = $inventarios->sum('cantidad');
                 // Validar también contra stock agregado del producto por coherencia
@@ -150,14 +219,45 @@ class InventarioService
                 $producto->save();
             }
             elseif ($tipo === 'ajuste_neg') {
+                // Si el usuario eligió un lote específico, consumir sólo de ese lote
+                $targetId = $data['inventario_objetivo_id'] ?? null;
+                if ($targetId) {
+                    $inv = Inventario::where('id', (int)$targetId)
+                        ->where('producto_id', $producto->id)
+                        ->lockForUpdate()
+                        ->first();
+                    if (!$inv) {
+                        throw new InvalidArgumentException('El lote seleccionado no existe para este producto');
+                    }
+                    if ((int)$inv->cantidad < $cantidad) {
+                        throw new InvalidArgumentException('La cantidad supera el saldo del lote seleccionado');
+                    }
+
+                    $inv->cantidad -= $cantidad;
+                    $inv->save();
+
+                    Movimiento::create([
+                        'producto_id' => $producto->id,
+                        'tipo' => 'ajuste_neg',
+                        'salida' => $area,
+                        'destino_id' => $destino?->id,
+                        'inventario_id' => $inv->id,
+                        'entrada' => null,
+                        'cantidad' => $cantidad,
+                        'motivo' => $motivo ?? 'ajuste negativo',
+                        'fecha' => $fecha,
+                        'usuario_id' => $usuarioId,
+                        'observaciones' => $observaciones,
+                    ]);
+
+                    $producto->stock -= $cantidad;
+                    if ($producto->stock < 0) { $producto->stock = 0; }
+                    $producto->save();
+                    return; // fin de ajuste negativo dirigido
+                }
                 // Ajuste negativo: bajar de inventarios (FEFO) validando suficiente saldo
                 $porAjustar = $cantidad;
-                $inventarios = Inventario::where('producto_id', $producto->id)
-                    ->where('cantidad', '>', 0)
-                    ->orderByRaw('CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END ASC')
-                    ->orderBy('fecha_vencimiento', 'asc')
-                    ->lockForUpdate()
-                    ->get();
+                $inventarios = $this->getInventariosFefoFifo($producto);
 
                 $saldoTotal = $inventarios->sum('cantidad');
                 // Validar sólo contra inventarios

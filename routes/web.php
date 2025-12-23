@@ -79,6 +79,10 @@ Route::get('/inventario/export', [\App\Http\Controllers\InventarioController::cl
 // ================= MOVIMIENTOS (placeholder) =================
 Route::get('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'index'])->middleware('auth')->name('movimientos.index');
 Route::post('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'store'])->middleware('auth')->name('movimientos.store');
+// Inventarios por producto (AJAX) para asistir al usuario en selección de lote y revisar vencimientos
+Route::get('/movimientos/inventarios/{productoId}', [\App\Http\Controllers\MovimientosController::class, 'inventariosPorProducto'])
+    ->middleware('auth')
+    ->name('movimientos.inventarios');
 
 // ================= REPORTES (MVP) =================
 Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');

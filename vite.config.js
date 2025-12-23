@@ -9,7 +9,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js'
             ],
-            refresh: true,
+            refresh: true,   
         }),
         tailwindcss(),
     ],
