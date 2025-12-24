@@ -47,10 +47,12 @@ class MovimientosController extends Controller
             'tipo' => 'required|in:ingreso,egreso,ajuste_pos,ajuste_neg',
             'cantidad' => 'required|integer|min:1',
             'fecha' => 'nullable|date',
-            // Para ENTRADA y AJUSTE +, la fecha de vencimiento es obligatoria y futura
-            'fecha_vencimiento' => 'required_if:tipo,ingreso,ajuste_pos|date|after:today',
-            // Para ENTRADA y AJUSTE +, debe indicarse un número de lote (nuevo o existente)
-            'lote' => 'required_if:tipo,ingreso,ajuste_pos|string|max:50',
+            // Para ENTRADA y AJUSTE +, la fecha de vencimiento es obligatoria y futura.
+            // Para SALIDA y AJUSTE − se ignora (campo opcional y puede ir vacío).
+            'fecha_vencimiento' => 'nullable|required_if:tipo,ingreso,ajuste_pos|date|after:today',
+            // Para ENTRADA y AJUSTE +, debe indicarse un número de lote (nuevo o existente).
+            // En otros tipos se permite que quede vacío sin validar como string.
+            'lote' => 'nullable|required_if:tipo,ingreso,ajuste_pos|string|max:50',
             'destino_id' => 'required_if:tipo,egreso|nullable|exists:destinos,id',
             'inventario_objetivo_id' => 'nullable|exists:inventarios,id',
         ], [
