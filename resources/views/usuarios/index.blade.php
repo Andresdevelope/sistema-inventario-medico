@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center">
         <h2 class="mb-0">Gestión de Usuarios</h2>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <button class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;" data-bs-toggle="modal" data-bs-target="#createUserModal">
             <i class="fa fa-user-plus me-1"></i> Nuevo Usuario
         </button>
     </div>
@@ -17,10 +17,11 @@
             const d = document.createElement('div');
             d.textContent = msg;
             d.setAttribute('role', 'alert');
-            d.style.cssText = `background:${tipo==='success'?'#2176ae':'#e74c3c'};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
+            d.style.cssText = `background:${tipo==='success'?'var(--accent)':'#e74c3c'};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
             c.appendChild(d);
             requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateX(0)';});
-            setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400);},2700);
+            const duration = tipo === 'error' ? 5200 : 2700; // errores quedan un poco más tiempo para poder leerlos
+            setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400);}, duration);
         }
         // Mostrar notificaciones flash
         @if(session('success'))
@@ -56,7 +57,7 @@
                                         <td>{{ $user->email }}</td>
                                         <td><span class="badge {{ $user->role === 'admin' ? 'bg-dark' : 'bg-secondary' }}">{{ $user->role }}</span></td>
                                         <td>
-                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                            <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#editUserModal"
                                                         data-id="{{ $user->id }}"
                                                         data-name="{{ $user->name }}"
                                                         data-email="{{ $user->email }}"
@@ -77,59 +78,80 @@
 
         <!-- Modal Crear Usuario -->
         <div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content" style="max-height:calc(100vh - 130px);border-radius:12px;">
+                    <div class="modal-header text-white" style="background:var(--accent);">
                         <h5 class="modal-title">Crear Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form id="createUserForm" action="{{ route('usuarios.store') }}" method="POST" autocomplete="off">
                         @csrf
-                        <div class="modal-body">
+                        <div class="modal-body" style="padding-top:1rem;padding-bottom:0.75rem;">
                             <div id="createUserAlert" class="alert alert-danger d-none"></div>
-                            <div class="mb-3">
-                                <label class="form-label">Nombre de usuario</label>
-                                <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required>
-                                @error('name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required>
-                                @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label">Contraseña</label>
-                                <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" required>
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <div class="form-text">Mínimo 8 caracteres, debe incluir letras y números.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Confirmar contraseña</label>
-                                <input type="password" class="form-control" name="password_confirmation" required>
-                            </div>
-                            <div class="row g-3">
+                            <div class="row g-3 mb-2">
                                 <div class="col-md-6">
+                                    <label class="form-label">Nombre de usuario</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required>
+                                    @error('name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required>
+                                    @error('email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Contraseña</label>
+                                    <div class="position-relative">
+                                        <input type="password" id="createPassword" class="form-control pe-5 @error('password') is-invalid @enderror" name="password" required>
+                                        <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('createPassword', this)">
+                                            <i class="fa fa-eye text-secondary"></i>
+                                        </span>
+                                    </div>
+                                    @error('password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text">Mínimo 8 caracteres, debe incluir letras y números.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirmar contraseña</label>
+                                    <div class="position-relative">
+                                        <input type="password" id="createPasswordConfirm" class="form-control pe-5" name="password_confirmation" required>
+                                        <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('createPasswordConfirm', this)">
+                                            <i class="fa fa-eye text-secondary"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-4">
                                     <label class="form-label">¿Color favorito?</label>
                                     <input type="text" class="form-control @error('color') is-invalid @enderror" name="color" value="{{ old('color') }}" required>
                                     @error('color')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">¿Animal favorito?</label>
                                     <input type="text" class="form-control @error('animal') is-invalid @enderror" name="animal" value="{{ old('animal') }}" required>
                                     @error('animal')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">¿Nombre del padre?</label>
+                                    <input type="text" class="form-control @error('padre') is-invalid @enderror" name="padre" value="{{ old('padre') }}" required>
+                                    @error('padre')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
-                            <div class="mt-3">
+                            <div class="mt-2">
                                 <label class="form-label">Rol</label>
                                 <select class="form-select @error('role') is-invalid @enderror" name="role" required>
                                     <option value="operador" {{ old('role')==='operador' ? 'selected' : '' }}>operador</option>
@@ -140,9 +162,9 @@
                                 @enderror
                             </div>
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer" style="padding-top:0.5rem;">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-success">Crear usuario</button>
+                            <button type="submit" class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;">Crear usuario</button>
                         </div>
                     </form>
                 </div>
@@ -150,6 +172,18 @@
         </div>
 
         <script>
+        function togglePassword(id, el) {
+            var input = document.getElementById(id);
+            if (!input) return;
+            var icon = el.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+            } else {
+                input.type = 'password';
+                if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            }
+        }
         document.addEventListener('DOMContentLoaded', function(){
             const form = document.getElementById('createUserForm');
             const modalEl = document.getElementById('createUserModal');
@@ -240,32 +274,83 @@
 
         <!-- Modal Editar Usuario -->
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content" style="max-height:calc(100vh - 130px);border-radius:12px;">
+                    <div class="modal-header text-white" style="background:var(--accent);">
                         <h5 class="modal-title">Editar Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form id="editUserForm" method="POST">
                         @csrf
                         @method('PUT')
-                        <div class="modal-body">
+                        <div class="modal-body" style="padding-top:1rem;padding-bottom:0.75rem;">
                             <input type="hidden" id="editUserId">
-                            <div class="mb-3">
-                                <label class="form-label">Nombre</label>
-                                <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="editName" value="{{ old('name') }}" required>
-                                @error('name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="editName" value="{{ old('name') }}" required>
+                                    @error('name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" id="editEmail" value="{{ old('email') }}" required>
+                                    @error('email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" id="editEmail" value="{{ old('email') }}" required>
-                                @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <hr>
+                            <div class="mb-2 text-muted small">Seguridad</div>
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nueva contraseña (opcional)</label>
+                                    <div class="position-relative">
+                                        <input type="password" id="editPassword" class="form-control pe-5 @error('password') is-invalid @enderror" name="password" autocomplete="new-password" placeholder="Dejar en blanco para no cambiar">
+                                        <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('editPassword', this)">
+                                            <i class="fa fa-eye text-secondary"></i>
+                                        </span>
+                                    </div>
+                                    @error('password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text">Mínimo 8 caracteres, incluir letras y números.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirmar nueva contraseña</label>
+                                    <div class="position-relative">
+                                        <input type="password" id="editPasswordConfirm" class="form-control pe-5" name="password_confirmation" autocomplete="new-password" placeholder="Repite la contraseña si vas a cambiarla">
+                                        <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('editPasswordConfirm', this)">
+                                            <i class="fa fa-eye text-secondary"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">¿Color favorito?</label>
+                                    <input type="text" class="form-control @error('color_favorito') is-invalid @enderror" name="color_favorito" value="{{ old('color_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    @error('color_favorito')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">¿Animal favorito?</label>
+                                    <input type="text" class="form-control @error('animal_favorito') is-invalid @enderror" name="animal_favorito" value="{{ old('animal_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    @error('animal_favorito')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">¿Nombre del padre?</label>
+                                    <input type="text" class="form-control @error('padre_favorito') is-invalid @enderror" name="padre_favorito" value="{{ old('padre_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    @error('padre_favorito')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="mt-2">
                                 <label class="form-label">Rol</label>
                                 <select class="form-select @error('role') is-invalid @enderror" name="role" id="editRole" required>
                                     <option value="admin">admin</option>
@@ -275,39 +360,11 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <hr>
-                            <div class="mb-2 text-muted small">Seguridad</div>
-                            <div class="mb-2">
-                                <label class="form-label">Nueva contraseña (opcional)</label>
-                                <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" autocomplete="new-password" placeholder="Dejar en blanco para no cambiar">
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <div class="form-text">Mínimo 8 caracteres, incluir letras y números.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Confirmar nueva contraseña</label>
-                                <input type="password" class="form-control" name="password_confirmation" autocomplete="new-password" placeholder="Repite la contraseña si vas a cambiarla">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">¿Color favorito?</label>
-                                <input type="text" class="form-control @error('color_favorito') is-invalid @enderror" name="color_favorito" value="{{ old('color_favorito') }}" placeholder="Actualizar respuesta (opcional)">
-                                @error('color_favorito')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">¿Animal favorito?</label>
-                                <input type="text" class="form-control @error('animal_favorito') is-invalid @enderror" name="animal_favorito" value="{{ old('animal_favorito') }}" placeholder="Actualizar respuesta (opcional)">
-                                @error('animal_favorito')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
                             <div id="editAlert" class="d-none alert alert-warning small py-2"></div>
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer" style="padding-top:0.5rem;">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                            <button type="submit" class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;">Guardar cambios</button>
                         </div>
                     </form>
                 </div>

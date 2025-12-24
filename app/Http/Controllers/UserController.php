@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Movimiento;
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -117,6 +119,7 @@ class UserController extends Controller
             'password' => ['nullable','string','min:8','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color_favorito' => 'nullable|string|max:100',
             'animal_favorito' => 'nullable|string|max:100',
+            'padre_favorito' => 'nullable|string|max:100',
         ], [
             'password.min' => 'La nueva contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
@@ -156,6 +159,10 @@ class UserController extends Controller
             $user->security_animal_answer = Hash::make($request->input('animal_favorito'));
             $securityChanged = true;
         }
+        if ($request->filled('padre_favorito')) {
+            $user->security_padre_answer = Hash::make($request->input('padre_favorito'));
+            $securityChanged = true;
+        }
 
         $user->save();
 
@@ -176,6 +183,27 @@ class UserController extends Controller
         if (Auth::id() == $user->id) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propio usuario.');
         }
+
+        // Verificar dependencias antes de eliminar para no dejar datos huérfanos
+        $tieneMovimientos = Movimiento::where('usuario_id', $user->id)->exists();
+        $tieneProductos = Producto::where('created_by', $user->id)
+            ->orWhere('updated_by', $user->id)
+            ->exists();
+
+        if ($tieneMovimientos || $tieneProductos) {
+            $motivos = [];
+            if ($tieneMovimientos) {
+                $motivos[] = 'movimientos registrados en el sistema';
+            }
+            if ($tieneProductos) {
+                $motivos[] = 'medicamentos/productos asociados';
+            }
+            $detalle = implode(' y ', $motivos);
+            return redirect()
+                ->route('usuarios.index')
+                ->with('error', "No se puede eliminar este usuario porque tiene {$detalle}. Mantén el usuario o reasigna esos registros.");
+        }
+
         $snapshot = $user->only(['id','name','email','role']);
         $user->delete();
         $this->logBitacora('usuario.eliminar', $snapshot);

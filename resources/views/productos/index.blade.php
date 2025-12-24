@@ -128,6 +128,28 @@
                     .sp-dot-warn{ background:var(--accent); }
                     .sp-dot-danger{ background:#e74c3c; }
                     .sp-state-pill{ border-radius:999px; padding:.18rem .6rem; border:1px solid var(--slate-border); }
+
+                    /* Paginación de medicamentos en naranja del sistema */
+                    .pagination .page-link{
+                        color:var(--accent);
+                        border-color:var(--accent);
+                        background-color:#fff;
+                    }
+                    .pagination .page-link:hover{
+                        color:#fff;
+                        background-color:var(--accent-soft);
+                        border-color:var(--accent-soft);
+                    }
+                    .pagination .page-item.active .page-link{
+                        color:#fff;
+                        background-color:var(--accent);
+                        border-color:var(--accent);
+                    }
+                    .pagination .page-item.disabled .page-link{
+                        color:var(--txt-sec);
+                        background-color:#f0f0f0;
+                        border-color:var(--slate-border);
+                    }
                 </style>
                 <table class="table table-hover table-sm align-middle mb-0 text-nowrap sp-table">
                     <thead class="text-center align-middle sp-thead">

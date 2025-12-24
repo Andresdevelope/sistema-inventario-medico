@@ -258,7 +258,7 @@
             Mostrando <b>{{ $from }}</b> - <b>{{ $to }}</b> de <b>{{ $total }}</b> movimientos
           </div>
           <nav aria-label="Paginador movimientos">
-            <ul class="pagination pagination-lg mb-0">
+            <ul class="pagination mb-0">
               <!-- Primera página -->
               <li class="page-item {{ $ultimos->onFirstPage() ? 'disabled' : '' }}">
                 <a class="page-link" href="{{ $ultimos->url(1) }}" aria-label="Primera">
