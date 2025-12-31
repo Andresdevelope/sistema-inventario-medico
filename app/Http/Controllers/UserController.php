@@ -39,7 +39,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => ['required','string','min:8','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+            'password' => ['required','string','min:16','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color' => 'required|string|max:100',
             'animal' => 'required|string|max:100',
             'padre' => 'required|string|max:100',
@@ -53,7 +53,7 @@ class UserController extends Controller
             'email.unique' => 'El correo electrónico ya está registrado.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.string' => 'La contraseña debe ser un texto.',
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
             'password.confirmed' => 'La confirmación de la contraseña no coincide.',
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
             'color.required' => 'El color favorito es obligatorio.',
@@ -116,12 +116,12 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'role' => 'required|in:admin,operador',
-            'password' => ['nullable','string','min:8','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+            'password' => ['nullable','string','min:16','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color_favorito' => 'nullable|string|max:100',
             'animal_favorito' => 'nullable|string|max:100',
             'padre_favorito' => 'nullable|string|max:100',
         ], [
-            'password.min' => 'La nueva contraseña debe tener al menos 8 caracteres.',
+            'password.min' => 'La nueva contraseña debe tener al menos 16 caracteres.',
             'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
             'password.regex' => 'La nueva contraseña debe contener al menos una letra y un número.',
         ]);
@@ -177,11 +177,17 @@ class UserController extends Controller
     }
 
     // Eliminar usuario
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $user = User::findOrFail($id);
         if (Auth::id() == $user->id) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propio usuario.');
+        }
+
+        // Validar contraseña del admin actual (segunda capa)
+        $admin = Auth::user();
+        if (!$request->filled('admin_password') || !\Illuminate\Support\Facades\Hash::check($request->input('admin_password'), $admin->password)) {
+            return redirect()->route('usuarios.index')->with('error', 'Debes ingresar tu contraseña correctamente para eliminar un usuario.');
         }
 
         // Verificar dependencias antes de eliminar para no dejar datos huérfanos
@@ -208,5 +214,24 @@ class UserController extends Controller
         $user->delete();
         $this->logBitacora('usuario.eliminar', $snapshot);
         return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado correctamente.');
+    }
+
+    // Desbloquear usuario (solo admin, requiere contraseña)
+    public function unlock(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $admin = Auth::user();
+        if (!$request->filled('admin_password') || !Hash::check($request->input('admin_password'), $admin->password)) {
+            return redirect()->route('usuarios.index')->with('error', 'Debes ingresar tu contraseña correctamente para desbloquear un usuario.');
+        }
+        $user->locked_until = null;
+        $user->login_attempts = 0;
+        $user->save();
+        $this->logBitacora('usuario.desbloquear', [
+            'target_user_id' => $user->id,
+            'name' => $user->name,
+            'admin_id' => $admin->id,
+        ]);
+        return redirect()->route('usuarios.index')->with('success', 'Usuario desbloqueado correctamente.');
     }
 }

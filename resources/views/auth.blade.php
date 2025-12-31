@@ -248,7 +248,7 @@ input:focus{ outline:2px solid #2a9d8f66; box-shadow:0 0 0 3px #2a9d8f22; }
             if (remaining !== null && remaining >= 0){
               loginAlert.textContent = `Usuario bloqueado. Intenta en ${formatMMSS(remaining)}.`;
             } else {
-              loginAlert.textContent = 'Usuario bloqueado temporalmente. Intenta nuevamente en breve.';
+              loginAlert.textContent = 'Usuario bloqueado por intentos fallidos. Solo un administrador puede desbloquear tu cuenta para acceder al sistema.';
             }
           }
           renderLocked();

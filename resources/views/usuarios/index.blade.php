@@ -46,32 +46,86 @@
                 <th>Nombre</th>
                 <th>Email</th>
                 <th>Rol</th>
+                <th>Estado</th>
                 <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
                         @foreach($users as $user)
                                 <tr>
-                                        <td>{{ $user->id }}</td>
-                                        <td>{{ $user->name }}</td>
-                                        <td>{{ $user->email }}</td>
-                                        <td><span class="badge {{ $user->role === 'admin' ? 'bg-dark' : 'bg-secondary' }}">{{ $user->role }}</span></td>
-                                        <td>
-                                            <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#editUserModal"
-                                                        data-id="{{ $user->id }}"
-                                                        data-name="{{ $user->name }}"
-                                                        data-email="{{ $user->email }}"
-                                                        data-role="{{ $user->role }}">
-                                                        <i class="fa fa-edit"></i>
-                                                </button>
-                                                @if(auth()->id() !== $user->id)
-                                                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                                    <td>{{ $user->id }}</td>
+                                    <td>{{ $user->name }}</td>
+                                    <td>{{ $user->email }}</td>
+                                    <td><span class="badge {{ $user->role === 'admin' ? 'bg-dark' : 'bg-secondary' }}">{{ $user->role }}</span></td>
+                                    <td>
+                                        @if($user->locked_until)
+                                            <span class="badge bg-danger">Bloqueado</span>
+                                        @else
+                                            <span class="badge bg-success">Activo</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                                data-id="{{ $user->id }}"
+                                                data-name="{{ $user->name }}"
+                                                data-email="{{ $user->email }}"
+                                                data-role="{{ $user->role }}">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        @if(auth()->id() !== $user->id)
+                                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                                                    data-id="{{ $user->id }}" data-name="{{ $user->name }}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                            @if($user->locked_until)
+                                                <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#unlockUserModal"
                                                         data-id="{{ $user->id }}" data-name="{{ $user->name }}">
-                                                        <i class="fa fa-trash"></i>
+                                                    <i class="fa fa-unlock"></i> Desbloquear
                                                 </button>
-                                                @endif
-                                        </td>
+                                            @endif
+                                        @endif
+                                    </td>
                                 </tr>
+                            <!-- Modal Desbloquear Usuario -->
+                            <div class="modal fade" id="unlockUserModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header text-white" style="background:var(--accent);">
+                                            <h5 class="modal-title">Desbloquear usuario</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form id="unlockUserForm" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="modal-body">
+                                                <p>¿Seguro que deseas desbloquear al usuario <strong id="unlockUserName"></strong>?</p>
+                                                <div class="mb-2">
+                                                    <label class="form-label">Confirma tu contraseña para desbloquear</label>
+                                                    <input type="password" class="form-control" name="admin_password" required autocomplete="current-password">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;">Desbloquear</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <script>
+                        // Modal desbloqueo: setear nombre y acción
+                        const unlockModal = document.getElementById('unlockUserModal');
+                        if (unlockModal) {
+                            unlockModal.addEventListener('show.bs.modal', event => {
+                                const button = event.relatedTarget;
+                                const id = button.getAttribute('data-id');
+                                const name = button.getAttribute('data-name');
+                                document.getElementById('unlockUserName').innerText = name;
+                                const form = document.getElementById('unlockUserForm');
+                                form.setAttribute('action', `/usuarios/${id}/unlock`);
+                            });
+                        }
+                        </script>
                         @endforeach
         </tbody>
     </table>
@@ -116,7 +170,7 @@
                                     @error('password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text">Mínimo 8 caracteres, debe incluir letras y números.</div>
+                                    <div class="form-text">Mínimo 16 caracteres, debe incluir letras y números.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirmar contraseña</label>
@@ -315,7 +369,7 @@
                                     @error('password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text">Mínimo 8 caracteres, incluir letras y números.</div>
+                                    <div class="form-text">Mínimo 16 caracteres, incluir letras y números.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirmar nueva contraseña</label>
@@ -385,6 +439,11 @@
                         <div class="modal-body">
                             <p class="mb-1">Esta acción no se puede deshacer.</p>
                             <p>¿Eliminar al usuario <strong id="deleteUserName"></strong>?</p>
+                            <div class="mb-2">
+                                <label class="form-label">Confirma tu contraseña para eliminar</label>
+                                <input type="password" class="form-control" name="admin_password" required autocomplete="current-password">
+                            </div>
+                         
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

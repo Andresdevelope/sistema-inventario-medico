@@ -21,6 +21,7 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::get('/usuarios/{id}/edit', [UserController::class, 'edit'])->name('usuarios.edit');
     Route::put('/usuarios/{id}', [UserController::class, 'update'])->name('usuarios.update');
     Route::delete('/usuarios/{id}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+    Route::put('/usuarios/{id}/unlock', [UserController::class, 'unlock'])->name('usuarios.unlock');
     // Nueva ruta para AJAX
     Route::get('/usuarios-lista', [UserController::class, 'listaAjax'])->name('usuarios.listaAjax');
     // Bitácora

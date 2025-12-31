@@ -64,17 +64,14 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('name', $request->username)->first();
-        $now = now();
         if ($user) {
-            // Verificar si está bloqueado
-            if ($user->locked_until && $user->locked_until > $now) {
-                $minutos = $user->locked_until->diffInSeconds($now);
-                return response()->json(['success' => false, 'message' => 'Usuario bloqueado. Intenta en ' . $minutos . ' segundos.'], 403);
+            // Verificar si está bloqueado (locked_until no es null)
+            if ($user->locked_until !== null) {
+                return response()->json(['success' => false, 'message' => 'Usuario bloqueado por intentos fallidos. Solo un administrador puede desbloquear tu cuenta para acceder al sistema.'], 403);
             }
             // Verificar contraseña
             if (Hash::check($request->password, $user->password)) {
                 $user->login_attempts = 0;
-                $user->locked_until = null;
                 $user->save();
                 Auth::login($user);
                 $this->logBitacora('auth.login', ['user_id'=>$user->id,'name'=>$user->name]);
@@ -82,14 +79,12 @@ class AuthController extends Controller
             } else {
                 // Manejar intentos fallidos
                 $user->login_attempts++;
-                if ($user->login_attempts == 3) {
-                    $user->locked_until = $now->addMinute();
+                if ($user->login_attempts >= 3) {
+                    $user->locked_until = now(); // Bloqueo indefinido
                     $user->login_attempts = 0;
                     $user->save();
-                    // Recalcular el usuario para obtener el locked_until actualizado
-                    $user = User::where('name', $request->username)->first();
-                    $segundos = $user->locked_until ? $user->locked_until->diffInSeconds(now()) : 60;
-                    return response()->json(['success' => false, 'message' => 'Usuario bloqueado. Intenta en ' . $segundos . ' segundos.'], 403);
+                    $this->logBitacora('auth.bloqueo', ['user_id'=>$user->id,'name'=>$user->name]);
+                    return response()->json(['success' => false, 'message' => 'Usuario bloqueado por intentos fallidos. Solo un administrador puede desbloquear tu cuenta para acceder al sistema.'], 403);
                 }
                 $user->save();
                 $this->logBitacora('auth.login_fallido', ['username'=>$request->username]);
