@@ -2,17 +2,18 @@
 
 @push('styles')
 <style>
-/* Fuentes ahora cargadas localmente vía @fontsource en app.js */
-:root{ --bg:#181c24; --panel:#232a36; --input:#222e3c; --text:#ffffff; --muted:#b0b8c1; --accent:#8ecae6; --accentH:#219ebc; }
+/* Paleta clara + naranja, encapsulada solo para recuperación */
+.auth-page{ --bg:#ffffff; --panel:#ffffff; --input:#eef2f5; --text:#222831; --muted:#6c757d; --accent:#ff8c00; --accentH:#e67e00; }
 html, body{ height:100%; margin:0; }
+.auth-page, .auth-page *{ font-family:'Montserrat',sans-serif; box-sizing:border-box; }
 .auth-page{
-  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; font-family:'Montserrat',sans-serif;
-  min-height:100svh;
+  min-height:100vh; min-height:100svh; display:flex; align-items:center; justify-content:center; padding:24px;
   position:relative; overflow:hidden;
+  /* Fondo claro con acentos naranjas muy sutiles */
   background:
-    radial-gradient(1200px 800px at 10% -10%, #2a3a4a 0%, transparent 60%),
-    radial-gradient(900px 700px at 110% 20%, #1f2a38 0%, transparent 50%),
-    linear-gradient(180deg, #0f141b 0%, #181c24 60%, #121721 100%);
+    radial-gradient(900px 600px at 5% -10%, rgba(255,140,0,0.08) 0%, transparent 50%),
+    radial-gradient(700px 500px at 105% 10%, rgba(255,193,7,0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #ffffff 0%, #f7f9fb 55%, #f4f7f6 100%);
 }
 .auth-page::before,
 .auth-page::after{
@@ -22,24 +23,25 @@ html, body{ height:100%; margin:0; }
     radial-gradient(circle at 80% 60%, rgba(33,158,188,.12) 0%, transparent 45%);
   filter: blur(60px);
 }
-.panel{ background:var(--panel); border-radius:10px; box-shadow:0 14px 28px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.22); width:420px; max-width:calc(100vw - 32px); padding:32px 24px; text-align:center; position:relative; z-index:1; }
-h1{ color:var(--text); margin:0 0 16px; font-size:24px; }
+.panel{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); width:480px; max-width:calc(100vw - 32px); padding:36px 28px; text-align:center; position:relative; z-index:1; }
+h1{ color:var(--text); margin:0 0 16px; font-size:24px; font-weight:800; }
 p{ color:var(--muted); margin:0 0 24px; }
 input{
   background:var(--input);
-  border:none;
+  border:1px solid rgba(0,0,0,.06);
   color:var(--text);
   padding:12px 18px;
   margin:10px auto;
   width:100%;
-  max-width:340px;
+  max-width:360px;
   display:block;
-  border-radius:6px;
+  border-radius:8px;
   box-sizing:border-box;
 }
 input::placeholder{ color:var(--muted); }
-button{ border-radius:20px; border:1px solid var(--input); background:var(--input); color:var(--text); font-size:12px; font-weight:700; padding:12px 45px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
-button:hover{ background:#2a3a4a; }
+input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230,126,0,0.2); }
+button{ border-radius:20px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-size:12px; font-weight:700; padding:12px 45px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:transform 80ms ease-in, background .2s, color .2s; }
+button:hover{ background:var(--accentH); }
 .alert-box{ width:100%; margin:8px 0 0; padding:10px 12px; border-radius:8px; background:rgba(220,53,69,.08); border:1px solid rgba(220,53,69,.35); color:#ffb3b9; text-align:left; font-size:13px; display:none; }
 .alert-box.info{ background:rgba(33,158,188,.08); border-color:rgba(33,158,188,.35); color:#bfe7f4; }
 .alert-box.success{ background:rgba(40,167,69,.08); border-color:rgba(40,167,69,.35); color:#b7eac6; }
@@ -57,15 +59,17 @@ button:hover{ background:#2a3a4a; }
  }
  .modal .card {
    background: var(--panel);
-   padding: 24px;
-   border-radius: 10px;
-   width: 420px;
+   padding: 28px;
+   border-radius: 16px;
+   width: 480px;
    max-width: calc(100vw - 32px);
-   box-shadow: 0 14px 28px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.22);
+   box-shadow: 0 18px 40px rgba(0,0,0,.06);
    z-index: 10000;
  }
- .modal h3 { color: var(--text); margin: 0 0 12px; }
+ .modal h3 { color: var(--text); margin: 0 0 12px; font-weight:800; }
  .modal .actions { margin-top: 8px; display: flex; gap: 8px; justify-content: center; }
+ .modal .actions button:first-child { background: var(--accent); border:1px solid var(--accent); color:#fff; }
+ .modal .actions button:last-child { background: transparent; border:1px solid var(--accent); color: var(--accent); }
 .link{ color:var(--accent); text-decoration:none; }
 .link:hover{ color:var(--accentH); }
 </style>
@@ -73,6 +77,12 @@ button:hover{ background:#2a3a4a; }
 
 @section('content')
 <div class="auth-page">
+  <header class="auth-header" style="position:absolute;top:0;left:0;width:100%;padding:25px 50px;background:transparent;z-index:10;">
+    <div class="brand" style="display:flex;align-items:center;gap:12px;">
+      <div class="logo-placeholder" style="width:45px;height:45px;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);"></div>
+      <h1 style="font-size:22px;color:var(--text);margin:0;font-weight:600;">Sistema de Inventario</h1>
+    </div>
+  </header>
   <div class="panel">
     <h1>Recuperar contraseña</h1>
     <p>Ingresa tu correo registrado para continuar</p>
@@ -240,12 +250,12 @@ document.getElementById('change-password-form').addEventListener('submit', funct
       if (!successMsg) {
         successMsg = document.createElement('div');
         successMsg.id = 'recover-success-msg';
-        successMsg.innerHTML = `<div style="position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
-          <div style="background:var(--panel,#232a36);padding:36px 32px 28px 32px;border-radius:16px;box-shadow:0 8px 32px rgba(31,38,135,.37);text-align:center;max-width:90vw;min-width:320px;">
-            <div style='font-size:2.5rem;line-height:1;margin-bottom:12px;color:#8ecae6;'><i class='fa fa-check-circle'></i></div>
-            <h2 style='color:#b7eac6;margin:0 0 10px;font-size:1.4rem;'>¡Contraseña cambiada!</h2>
-            <div style='color:#b0b8c1;font-size:1.1rem;margin-bottom:10px;'>Ahora puedes iniciar sesión con tu nueva contraseña.</div>
-            <div style='color:#8ecae6;font-size:1rem;'>Redirigiendo al inicio de sesión…</div>
+        successMsg.innerHTML = `<div style="position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);">
+          <div style="background:var(--panel,#ffffff);padding:36px 32px 28px 32px;border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.06);text-align:center;max-width:90vw;min-width:320px;">
+            <div style='font-size:2.5rem;line-height:1;margin-bottom:12px;color:var(--accent,#ff8c00);'><i class='fa fa-check-circle'></i></div>
+            <h2 style='color:var(--text,#222831);margin:0 0 10px;font-size:1.4rem;'>¡Contraseña cambiada!</h2>
+            <div style='color:var(--muted,#6c757d);font-size:1.1rem;margin-bottom:10px;'>Ahora puedes iniciar sesión con tu nueva contraseña.</div>
+            <div style='color:var(--accent,#ff8c00);font-size:1rem;'>Redirigiendo al inicio de sesión…</div>
           </div>
         </div>`;
         document.body.appendChild(successMsg);
