@@ -117,7 +117,8 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <div id="register-alert" class="alert-box" role="alert"></div>
         <input type="text" name="username" placeholder="Usuario" required />
         <input type="email" name="email" placeholder="Correo" required />
-        <input type="password" name="password" placeholder="Contraseña" required />
+        <input type="password" name="password" placeholder="Contraseña (mínimo 16 caracteres)" required minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
+       
         <input type="text" name="color" placeholder="¿Color favorito?" required />
         <input type="text" name="animal" placeholder="¿Animal favorito?" required />
         <input type="text" name="padre" placeholder="¿Nombre del padre?" required />
@@ -168,11 +169,22 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 
   // Interceptar submit de registro para manejar respuesta JSON y redirigir
   const registerForm = document.getElementById('register-form');
+  // (Sin medidor en la página de autenticación para mantener diseño compacto)
   const registerAlert = document.getElementById('register-alert');
   if (registerForm) {
     registerForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (registerAlert) { registerAlert.style.display = 'none'; registerAlert.textContent = ''; registerAlert.className = 'alert-box'; }
+      // Validación previa de contraseña (UX)
+      const pwdInput = registerForm.querySelector('input[name="password"]');
+      const pwdVal = pwdInput?.value || '';
+      const strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
+      if (pwdVal.length < 16 || !strongRegex.test(pwdVal)){
+        registerAlert.textContent = 'La contraseña debe tener al menos 16 caracteres e incluir letras y números.';
+        registerAlert.style.display = 'block';
+        pwdInput?.focus();
+        return;
+      }
       const btn = registerForm.querySelector('button[type="submit"]');
       const originalText = btn?.textContent;
       if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
@@ -284,6 +296,29 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
                 renderLocked();
               }
             }, 1000);
+          }
+        } else if (res.status === 429) {
+          // Exceso de intentos: rate limiting del backend
+          const retryAfter = parseInt(res.headers.get('Retry-After') || '0', 10);
+          loginAlert.className = 'alert-box';
+          loginAlert.style.display = 'block';
+          if (!isNaN(retryAfter) && retryAfter > 0) {
+            let remaining = retryAfter;
+            loginAlert.textContent = `Demasiados intentos. Intenta en ${formatMMSS(remaining)}.`;
+            if (lockInterval) { clearInterval(lockInterval); }
+            lockInterval = setInterval(() => {
+              remaining -= 1;
+              if (remaining <= 0) {
+                clearInterval(lockInterval);
+                lockInterval = null;
+                loginAlert.className = 'alert-box info';
+                loginAlert.textContent = 'Ya puedes intentar nuevamente.';
+              } else {
+                loginAlert.textContent = `Demasiados intentos. Intenta en ${formatMMSS(remaining)}.`;
+              }
+            }, 1000);
+          } else {
+            loginAlert.textContent = data?.message || 'Demasiados intentos. Intenta nuevamente más tarde.';
           }
         } else {
           loginAlert.className = 'alert-box';

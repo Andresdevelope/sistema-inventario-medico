@@ -25,6 +25,8 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            // Reactivar protección CSRF para rutas web
+            \App\Http\Middleware\VerifyCsrfToken::class,
             // ...otros middleware web...
         ],
 
@@ -43,11 +45,15 @@ class Kernel extends HttpKernel
     protected $middlewareAliases = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        // Límite de peticiones por usuario/IP
+        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];
 
     // Para compatibilidad si alguna parte del código aún referencia routeMiddleware
     protected $routeMiddleware = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        // Alias adicional por compatibilidad con código que usa routeMiddleware
+        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];
 }

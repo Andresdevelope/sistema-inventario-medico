@@ -15,12 +15,12 @@ class AuthController extends Controller
         $request->validate([
             'username' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => ['required','string','min:8','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
+            'password' => ['required','string','min:16','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
             'color' => 'required|string',
             'animal' => 'required|string',
             'padre' => 'required|string',
         ], [
-            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
         ]);
 

@@ -12,6 +12,13 @@ class PerfilController extends Controller
      */
     public function validarSeguridad(Request $request)
     {
+        // Solo administradores pueden iniciar el flujo de cambio de contraseña desde perfil
+        if (!Auth::user() || (Auth::user()->role ?? null) !== 'admin') {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+            }
+            abort(403, 'No autorizado');
+        }
         $user = \App\Models\User::find(Auth::id());
         $colorCorrecto = \Illuminate\Support\Facades\Hash::check($request->input('color'), $user->security_color_answer);
         $animalCorrecto = \Illuminate\Support\Facades\Hash::check($request->input('animal'), $user->security_animal_answer);
@@ -33,6 +40,10 @@ class PerfilController extends Controller
      */
     public function cambiarContrasena(Request $request)
     {
+        // Solo administradores pueden cambiar contraseña desde perfil
+        if (!Auth::user() || (Auth::user()->role ?? null) !== 'admin') {
+            abort(403, 'No autorizado');
+        }
         $user = \App\Models\User::find(Auth::id());
         // Validar y cambiar contraseña (las preguntas de seguridad ya se validaron por AJAX)
         if ($request->has('actual') && $request->has('nueva') && $request->has('confirmar')) {
@@ -43,8 +54,9 @@ class PerfilController extends Controller
             // Validar nueva contraseña
             $nueva = $request->input('nueva');
             $confirmar = $request->input('confirmar');
-            if (strlen($nueva) < 8 || $nueva !== $confirmar) {
-                return back()->withErrors(['nueva' => 'La nueva contraseña debe tener al menos 8 caracteres y coincidir con la confirmación.'])->withInput();
+            $strongRegex = "/(?=.*[A-Za-z])(?=.*\\d).+/";
+            if (strlen($nueva) < 16 || $nueva !== $confirmar || !preg_match($strongRegex, $nueva)) {
+                return back()->withErrors(['nueva' => 'La nueva contraseña debe tener al menos 16 caracteres, incluir letras y números, y coincidir con la confirmación.'])->withInput();
             }
             // Guardar nueva contraseña
             $user->password = Hash::make($nueva);

@@ -84,7 +84,8 @@
               </div>
             </div>
 
-            {{-- Sección: Seguridad --}}
+            {{-- Sección: Seguridad (solo admin) --}}
+            @if(($user->role ?? '') === 'admin')
             <div class="mb-3 pb-2 border-bottom" style="border-color:var(--slate-border);">
               <span class="text-uppercase d-block mb-2" style="font-size:.7rem;color:var(--txt-dim);letter-spacing:.06em;">Seguridad</span>
               <div class="d-flex flex-wrap gap-2 mb-2" style="font-size:.75rem;">
@@ -109,6 +110,7 @@
                 <i class="fa fa-key me-1"></i> Cambiar contraseña
               </button>
             </div>
+            @endif
 
             {{-- Sección: Actividad reciente --}}
             <div>
@@ -144,7 +146,8 @@
   </div>
 </div>
 
-<!-- Modal Cambiar Contraseña -->
+@if(($user->role ?? '') === 'admin')
+<!-- Modal Cambiar Contraseña (solo admin) -->
 <div class="modal fade" id="modalCambiarContrasena" tabindex="-1" aria-labelledby="modalCambiarContrasenaLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="background:var(--slate-surface);border-radius:1rem;">
@@ -170,29 +173,37 @@
           @csrf
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Contraseña actual</label>
-            <input type="password" class="form-control pe-5" name="actual" required minlength="8" maxlength="50" id="actualContrasena">
+            <input type="password" class="form-control pe-5" name="actual" required minlength="16" maxlength="200" id="actualContrasena">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('actualContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
           </div>
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Nueva contraseña</label>
-            <input type="password" class="form-control pe-5" name="nueva" required minlength="8" maxlength="50" id="nuevaContrasena">
+            <input type="password" class="form-control pe-5" name="nueva" required minlength="16" maxlength="200" id="nuevaContrasena" pattern="(?=.*[A-Za-z])(?=.*\d).+">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('nuevaContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
+            <div id="perfil-pwd-meter" style="width:100%;margin-top:6px;">
+              <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
+                <div id="perfil-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
+              </div>
+              <div id="perfil-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
+            </div>
           </div>
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Confirmar nueva contraseña</label>
-            <input type="password" class="form-control pe-5" name="confirmar" required minlength="8" maxlength="50" id="confirmarContrasena">
+            <input type="password" class="form-control pe-5" name="confirmar" required minlength="16" maxlength="200" id="confirmarContrasena">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('confirmarContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
           </div>
-          <div id="errorContrasena" class="text-danger mb-2 d-none">Las contraseñas no coinciden o son menores a 8 caracteres.</div>
+          <div id="errorContrasena" class="text-danger mb-2 d-none">Las contraseñas no coinciden o son menores a 16 caracteres, y deben incluir letras y números.</div>
           <button type="submit" class="btn w-100" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;">Cambiar contraseña</button>
         </form>
       </div>
     </div>
   </div>
 </div>
+@endif
 
 <script>
-document.getElementById('btnValidarSeguridad').onclick = function() {
+var btnValidar = document.getElementById('btnValidarSeguridad');
+if (btnValidar) btnValidar.onclick = function() {
   var color = document.getElementById('inputColor').value.trim();
   var animal = document.getElementById('inputAnimal').value.trim();
   var errorDiv = document.getElementById('errorSeguridad');
@@ -226,17 +237,49 @@ document.getElementById('btnValidarSeguridad').onclick = function() {
     errorDiv.classList.remove('d-none');
   });
 };
-document.getElementById('formContrasena').onsubmit = function(e) {
-    var nueva = document.getElementById('nuevaContrasena').value;
-    var confirmar = document.getElementById('confirmarContrasena').value;
-    var error = document.getElementById('errorContrasena');
-    if (nueva.length < 8 || confirmar.length < 8 || nueva !== confirmar) {
-        error.classList.remove('d-none');
-        e.preventDefault();
-    } else {
-        error.classList.add('d-none');
-    }
+var formContrasena = document.getElementById('formContrasena');
+if (formContrasena) formContrasena.onsubmit = function(e) {
+  var nueva = document.getElementById('nuevaContrasena').value || '';
+  var confirmar = document.getElementById('confirmarContrasena').value || '';
+  var error = document.getElementById('errorContrasena');
+  var strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
+    // Actualizar medidor visual
+    (function(){
+      var fill = document.getElementById('perfil-pwd-fill');
+      var hint = document.getElementById('perfil-pwd-hint');
+      function score(p){ if(!p) return 0; let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6); }
+      var sc = score(nueva);
+      var pct = Math.round((sc/6)*100);
+      var label='Débil', color='#dc3545';
+      if(nueva.length>=16){ label='Fuerte'; color='#28a745'; pct = 100; }
+      if(sc===6){ label='Excelente'; color='#20c997'; pct = 100; }
+      if (fill) fill.style.width = pct+'%';
+      if (fill) fill.style.background=color;
+      if (hint) hint.textContent='Fortaleza: '+label;
+    })();
+  if (nueva.length < 16 || confirmar.length < 16 || nueva !== confirmar || !strongRegex.test(nueva)) {
+    error.classList.remove('d-none');
+    e.preventDefault();
+  } else {
+    error.classList.add('d-none');
+  }
 };
+// Medidor en tiempo real
+var nuevaInput = document.getElementById('nuevaContrasena');
+if (nuevaInput) nuevaInput.addEventListener('input', function(){
+  var p = this.value || '';
+  var fill = document.getElementById('perfil-pwd-fill');
+  var hint = document.getElementById('perfil-pwd-hint');
+  function score(p){ if(!p) return 0; let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6); }
+  var sc = score(p);
+  var pct = Math.round((sc/6)*100);
+  var label='Débil', color='#dc3545';
+  if (p.length >= 16) { label='Fuerte'; color='#28a745'; pct = 100; }
+  if (sc === 6) { label='Excelente'; color='#20c997'; pct = 100; }
+  if (fill) fill.style.width = pct+'%';
+  if (fill) fill.style.background=color;
+  if (hint) hint.textContent='Fortaleza: '+label;
+});
 function togglePassword(id, el) {
   var input = document.getElementById(id);
   var icon = el.querySelector('i');

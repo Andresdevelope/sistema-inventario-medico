@@ -162,7 +162,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Contraseña</label>
                                     <div class="position-relative">
-                                        <input type="password" id="createPassword" class="form-control pe-5 @error('password') is-invalid @enderror" name="password" required>
+                                                                                <input type="password" id="createPassword" class="form-control pe-5 @error('password') is-invalid @enderror" name="password" required minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+">
                                         <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('createPassword', this)">
                                             <i class="fa fa-eye text-secondary"></i>
                                         </span>
@@ -170,12 +170,18 @@
                                     @error('password')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text">Mínimo 16 caracteres, debe incluir letras y números.</div>
+                                                                        <div class="form-text">Mínimo 16 caracteres, debe incluir letras y números.</div>
+                                                                        <div id="create-pwd-meter" style="width:100%;margin-top:6px;">
+                                                                            <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
+                                                                                <div id="create-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
+                                                                            </div>
+                                                                            <div id="create-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
+                                                                        </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirmar contraseña</label>
                                     <div class="position-relative">
-                                        <input type="password" id="createPasswordConfirm" class="form-control pe-5" name="password_confirmation" required>
+                                        <input type="password" id="createPasswordConfirm" class="form-control pe-5" name="password_confirmation" required minlength="16">
                                         <span class="position-absolute d-flex align-items-center" style="height:100%; right:12px; top:0; cursor:pointer;" onclick="togglePassword('createPasswordConfirm', this)">
                                             <i class="fa fa-eye text-secondary"></i>
                                         </span>
@@ -239,6 +245,31 @@
             }
         }
         document.addEventListener('DOMContentLoaded', function(){
+            // Medidor de fortaleza en tiempo real (Crear Usuario)
+            const passEl = document.getElementById('createPassword');
+            const fill = document.getElementById('create-pwd-fill');
+            const hint = document.getElementById('create-pwd-hint');
+            function score(p){
+                if(!p) return 0;
+                let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6);
+            }
+            function render(p){
+                const sc = score(p||'');
+                let pct = Math.round((sc/6)*100);
+                let label='Débil', color='#dc3545';
+                // Verde cuando alcance 16 caracteres, independientemente del resto, y llenar 100%
+                if ((p||'').length >= 16) { label='Fuerte'; color='#28a745'; pct = 100; }
+                // Excelente si además cumple alta complejidad
+                if(sc===6){ label='Excelente'; color='#20c997'; pct = 100; }
+                if (fill) fill.style.width = pct+'%';
+                if (fill) fill.style.background=color;
+                if (hint) hint.textContent='Fortaleza: '+label;
+            }
+            passEl?.addEventListener('input', ()=> render(passEl.value));
+            render(passEl?.value || '');
+            // Al abrir el modal, re-render para el estado actual
+            const createModalEl = document.getElementById('createUserModal');
+            createModalEl?.addEventListener('shown.bs.modal', ()=> render(passEl?.value || ''));
             const form = document.getElementById('createUserForm');
             const modalEl = document.getElementById('createUserModal');
             const alertBox = document.getElementById('createUserAlert');
@@ -249,6 +280,44 @@
                     alertBox.innerHTML = '';
                     // Limpiar errores previos
                     form.querySelectorAll('.is-invalid').forEach(el=>el.classList.remove('is-invalid'));
+                                        // Actualizar medidor visual
+                                        (function(){
+                                            const passEl = document.getElementById('createPassword');
+                                            const fill = document.getElementById('create-pwd-fill');
+                                            const hint = document.getElementById('create-pwd-hint');
+                                            function score(p){
+                                                if(!p) return 0;
+                                                let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6);
+                                            }
+                                            const val = passEl?.value||'';
+                                            const sc = score(val);
+                                            let pct = Math.round((sc/6)*100);
+                                            let label='Débil', color='#dc3545';
+                                            if(val.length>=16){ label='Fuerte'; color='#28a745'; pct = 100; }
+                                            if(sc===6){ label='Excelente'; color='#20c997'; pct = 100; }
+                                            if (fill) fill.style.width = pct+'%';
+                                            if (fill) fill.style.background=color;
+                                            if (hint) hint.textContent='Fortaleza: '+label;
+                                        })();
+                    // Validación previa de contraseña (UX)
+                    const pass = document.getElementById('createPassword');
+                    const pass2 = document.getElementById('createPasswordConfirm');
+                    const strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
+                    if (!pass || !pass2) return;
+                    if ((pass.value||'').length < 16 || !strongRegex.test(pass.value||'')){
+                        pass.classList.add('is-invalid');
+                        alertBox.textContent = 'La contraseña debe tener al menos 16 caracteres e incluir letras y números.';
+                        alertBox.classList.remove('d-none');
+                        pass.focus();
+                        return;
+                    }
+                    if ((pass2.value||'') !== (pass.value||'')){
+                        pass2.classList.add('is-invalid');
+                        alertBox.textContent = 'Las contraseñas no coinciden.';
+                        alertBox.classList.remove('d-none');
+                        pass2.focus();
+                        return;
+                    }
                     const fd = new FormData(form);
                     fetch(form.action, {
                         method: 'POST',
@@ -370,6 +439,12 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                     <div class="form-text">Mínimo 16 caracteres, incluir letras y números.</div>
+                                    <div id="edit-pwd-meter" style="width:100%;margin-top:6px;">
+                                        <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
+                                            <div id="edit-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
+                                        </div>
+                                        <div id="edit-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirmar nueva contraseña</label>
@@ -636,6 +711,35 @@
                 const form = document.getElementById('deleteUserForm');
                 form.setAttribute('action', `/usuarios/${id}`);
         });
+
+        // Medidor de fortaleza en tiempo real (Editar Usuario)
+        (function(){
+            const passEl = document.getElementById('editPassword');
+            const fill = document.getElementById('edit-pwd-fill');
+            const hint = document.getElementById('edit-pwd-hint');
+            function score(p){
+                if(!p) return 0;
+                let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6);
+            }
+            function render(p){
+                const sc = score(p||'');
+                let pct = Math.round((sc/6)*100);
+                let label='Débil', color='#dc3545';
+                // Verde y 100% cuando alcance 16 caracteres
+                if ((p||'').length >= 16) { label='Fuerte'; color='#28a745'; pct = 100; }
+                // Excelente: máxima complejidad, también 100%
+                if (sc === 6) { label='Excelente'; color='#20c997'; pct = 100; }
+                if (fill) fill.style.width = pct+'%';
+                if (fill) fill.style.background = color;
+                if (hint) hint.textContent = 'Fortaleza: ' + label;
+            }
+            // Render inicial
+            render(passEl?.value || '');
+            // En tiempo real
+            passEl?.addEventListener('input', ()=> render(passEl.value));
+            // Al mostrar el modal, re-render para estado actual
+            editModal?.addEventListener('shown.bs.modal', ()=> render(passEl?.value || ''));
+        })();
         </script>
 </div>
 @endsection

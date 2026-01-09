@@ -116,8 +116,14 @@ button:hover{ background:var(--accentH); }
     <div class="card">
       <h3>Cambiar contraseña</h3>
       <form id="change-password-form">
-  <input type="password" name="new_password" placeholder="Nueva contraseña" required autocomplete="new-password" />
-  <input type="password" name="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" />
+  <input type="password" name="new_password" placeholder="Nueva contraseña (mínimo 16 caracteres)" required autocomplete="new-password" minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
+  <div id="recover-pwd-meter" style="width:100%;margin-top:6px;">
+    <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
+      <div id="recover-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
+    </div>
+    <div id="recover-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
+  </div>
+  <input type="password" name="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" />
         <div class="actions">
           <button type="submit">Cambiar</button>
           <button type="button" id="cancel-change">Cancelar</button>
@@ -235,6 +241,23 @@ document.getElementById('change-password-form').addEventListener('submit', funct
   e.preventDefault();
   const newPassword = this.new_password.value;
   const confirmPassword = this.confirm_password.value;
+  const strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
+  // Medidor visual
+  (function(){
+    const fill = document.getElementById('recover-pwd-fill');
+    const hint = document.getElementById('recover-pwd-hint');
+    function score(p){ if(!p) return 0; let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6); }
+    const sc = score(newPassword||''); let pct = Math.round((sc/6)*100);
+    let label='Débil', color='#dc3545';
+    if ((newPassword||'').length >= 16) { label='Fuerte'; color='#28a745'; pct = 100; }
+    if(sc===6){ label='Excelente'; color:'#20c997'; pct = 100; }
+    if (fill) fill.style.width = pct+'%';
+    if (fill) fill.style.background=color; if (hint) hint.textContent='Fortaleza: '+label;
+  })();
+  if ((newPassword||'').length < 16 || !strongRegex.test(newPassword||'')){
+    alert('La contraseña debe tener al menos 16 caracteres e incluir letras y números.');
+    return;
+  }
   if (newPassword !== confirmPassword){
     alert('Las contraseñas no coinciden');
     return;
@@ -274,6 +297,19 @@ document.getElementById('cancel-security').addEventListener('click', ()=>{
 });
 document.getElementById('cancel-change').addEventListener('click', ()=>{
   document.getElementById('change-password-modal').style.display = 'none';
+});
+// Medidor en tiempo real para recuperación
+document.querySelector('#change-password-form input[name="new_password"]').addEventListener('input', function(){
+  const p = this.value||'';
+  const fill = document.getElementById('recover-pwd-fill');
+  const hint = document.getElementById('recover-pwd-hint');
+  function score(p){ if(!p) return 0; let s=0; if(p.length>=16) s+=2; else if(p.length>=12) s+=1; if(/[a-z]/.test(p)) s+=1; if(/[A-Z]/.test(p)) s+=1; if(/\d/.test(p)) s+=1; if(/[^A-Za-z0-9]/.test(p)) s+=1; return Math.min(s,6); }
+  const sc = score(p); let pct = Math.round((sc/6)*100);
+  let label='Débil', color='#dc3545';
+  if (p.length >= 16) { label='Fuerte'; color:'#28a745'; pct = 100; }
+  if(sc===6){label='Excelente';color:'#20c997'; pct = 100; }
+  if (fill) fill.style.width = pct+'%';
+  if (fill) fill.style.background=color; if (hint) hint.textContent='Fortaleza: '+label;
 });
 </script>
 @endpush

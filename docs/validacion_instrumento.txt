@@ -1,0 +1,107 @@
+============================================================
+INSTRUMENTO DE EVALUACIÓN DE SISTEMAS — TRAYECTO III
+============================================================
+
+Título: Sistema de Inventario Médico UPTAG
+Autores: Andres Rivero, Joswar Colina, Angel Diaz, Jesus Morillo (2026) — PSI-2026
+
+Leyenda de estado:
+  [Si] Cumple completamente   [Med] Cumple medianamente   [No] No cumple
+
+Resumen de puntuación:
+	Total ponderado: 30 / 40
+	Valoración actual: Con correcciones (29–34)
+	Nota: Aún hay mejoras pendientes para alcanzar “Aprobado” (35–40)
+
+------------------------------------------------------------
+Categoría: Requerimiento de validación
+------------------------------------------------------------
+01. [Med] (P=1) Los requerimientos han sido recolectados, analizados e implementados correctamente.
+	Observaciones: Documentos parciales en docs/ (casos_de_uso.md, diagramas). Faltan validaciones formales y trazabilidad completa.
+02. [Med] (P=1) El diseño del sistema debe ser sencillo, básico y robusto.
+	Observaciones: UI limpia en login/dashboard; continuar simplificando flujos y reforzar validaciones/errores.
+
+------------------------------------------------------------
+Categoría: UI
+------------------------------------------------------------
+03. [Si]  (P=1) El estilo visual de la web es homogéneo.
+	Observaciones: Paleta y componentes consistentes en login/dashboard.
+04. [Med] (P=1) Performance óptimo (Lighthouse > 90, LCP ≤ 7s).
+	Observaciones: Aún sin mediciones; pendiente ejecutar Lighthouse y optimizar LCP.
+05. [Med] (P=2) Adaptable a dispositivos sin afectar legibilidad, navegación ni interacción.
+	Observaciones: Login con @media; revisar responsividad del dashboard en móviles.
+06. [Med] (P=1) Cumplimiento de estándares W3C.
+	Observaciones: Verificación parcial; mejorar semántica y atributos ARIA.
+07. [Si]  (P=2) Mensajes de ayuda al usuario.
+	Observaciones: Mensajes claros en login/recuperación, feedback de éxito y error.
+
+------------------------------------------------------------
+Categoría: Eficiencia y funcionalidad
+------------------------------------------------------------
+08. [Med] (P=2) Tiempo de respuesta del servidor óptimo.
+	Observaciones: Sin métricas; pendiente profiling, índices y cacheo selectivo.
+09. [No]  (P=1) Hardware adecuado para cargas de trabajo.
+	Observaciones: Infraestructura no documentada; definir entorno productivo.
+10. [Med] (P=2) Aplicación mantenible, escalable, observable y testeable.
+	Observaciones: Estructura y pruebas básicas presentes; falta CI, monitoreo y métricas.
+
+------------------------------------------------------------
+Categoría: Usabilidad
+------------------------------------------------------------
+11. [Med] (P=1) Interfaz facilita comprensión de funciones.
+	Observaciones: Comprensión general buena; simplificar textos y flujos.
+12. [Med] (P=1) Considera capacidades y limitaciones de usuarios.
+	Observaciones: Accesibilidad parcial; mejorar contraste, teclado y ARIA.
+13. [Si]  (P=2) Mecanismos de validación para proteger datos y prevenir errores.
+	Observaciones: CSRF, rate limiting, validaciones server-side, hashing y preguntas de seguridad.
+14. [Si]  (P=1) Mantiene el flujo de navegación.
+	Observaciones: Redirecciones claras, menús y rutas consistentes.
+
+------------------------------------------------------------
+Categoría: Seguridad
+------------------------------------------------------------
+15. [Med] (P=1) Autenticación con varias capas de seguridad.
+	Observaciones: Auth + CSRF + rate limit + bloqueo; evaluar 2FA para fortalecer.
+16. [Med] (P=2) Protección de integridad de los datos.
+	Observaciones: Roles, bitácora y validaciones; añadir constraints y backups.
+17. [Si]  (P=2) Bloqueo al usuario tras tres intentos erróneos.
+	Observaciones: Implementado en AuthController::login.
+18. [Si]  (P=1) Bloqueo/desbloqueo solo por operador con privilegio.
+	Observaciones: Desbloqueo por admin con contraseña (UserController::unlock).
+19. [Si]  (P=2) Eliminación de usuario exige autenticación del operador.
+	Observaciones: Requiere contraseña del admin (UserController::destroy).
+20. [Si]  (P=2) Autorización determinada por RBAC/ReBAC/ABAC/MAC.
+	Observaciones: RBAC por roles (admin/operador) y middleware is_admin.
+21. [Si]  (P=1) Deniega accesos no autorizados.
+	Observaciones: Middleware auth/is_admin en rutas y vistas.
+22. [Si]  (P=2) Contraseñas hasheadas con algoritmo de una vía robusto.
+	Observaciones: Bcrypt (one-way), BCRYPT_ROUNDS=12 en .env.
+23. [Si]  (P=2) Longitud mínima de contraseñas ≥ 16, sin máximo.
+	Observaciones: Política actualizada: mínimo 16 caracteres en registro y cambio de contraseña; sin máximo de almacenamiento.
+24. [Si]  (P=1) Mecanismo de recuperación de contraseña.
+	Observaciones: Preguntas de seguridad y cambio de contraseña.
+25. [Med] (P=2) Información confidencial no accesible a terceros.
+	Observaciones: Datos sensibles en .env/BD; verificar no exposición pública y manejo seguro.
+26. [Si]  (P=2) Bitácora de acciones/transacciones por usuario.
+	Observaciones: Modelo Bitacora registra login, logout y eventos de usuario.
+27. [Med] (P=1) Servidor protegido contra ataques (CSRF, CORS, TLS, HttpOnly, Secure).
+	Observaciones: CSRF reactivado; cookies HttpOnly/Secure configurables; verificar TLS/CORS en producción.
+
+------------------------------------------------------------
+Observaciones generales y tareas sugeridas
+------------------------------------------------------------
+- Medir performance (Lighthouse/Web Vitals) y optimizar LCP (imágenes, CSS crítico, caching).
+- Elevar longitud mínima de contraseñas a ≥16 y reforzar política (sin máximo de almacenamiento).
+- Mejorar accesibilidad (contraste, navegación por teclado, etiquetas ARIA) y validar HTML con W3C.
+- Documentar infraestructura/hardware, políticas de respaldo/recuperación y monitoreo.
+- Activar HTTPS/TLS en producción y revisar CORS.
+- Evaluar 2FA (TOTP/email) para autenticación multinivel.
+- Añadir pruebas y CI para mantenibilidad y cobertura.
+
+------------------------------------------------------------
+Datos del validador
+------------------------------------------------------------
+Nombre y apellido:
+Cédula:
+Firma:
+Fecha:

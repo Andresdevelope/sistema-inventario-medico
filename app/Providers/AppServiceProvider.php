@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use App\Models\Categoria;
 use App\Models\Producto;
 
@@ -22,6 +25,35 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // ================= Rate limiting (login y recuperación) =================
+        RateLimiter::for('login', function (Request $request) {
+            $username = (string) ($request->input('username') ?? $request->input('email') ?? '');
+            $key = strtolower($username).'|'.$request->ip();
+            return [
+                Limit::perMinute(5)->by($key)
+                    ->response(function () {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Demasiados intentos de inicio de sesión. Intenta nuevamente en un minuto.'
+                        ], 429);
+                    })
+            ];
+        });
+
+        RateLimiter::for('recover', function (Request $request) {
+            $emailOrUser = (string) ($request->input('email') ?? $request->input('username') ?? '');
+            $key = strtolower($emailOrUser).'|'.$request->ip().'|'.($request->path() ?? 'recover');
+            return [
+                Limit::perMinute(10)->by($key)
+                    ->response(function () {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Demasiadas solicitudes de recuperación. Intenta nuevamente en breve.'
+                        ], 429);
+                    })
+            ];
+        });
+
         // Composer para la vista dashboard: comparte contadores siempre que se renderiza
         View::composer('dashboard', function ($view) {
             try {

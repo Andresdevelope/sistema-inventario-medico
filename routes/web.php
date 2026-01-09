@@ -33,7 +33,9 @@ Route::get('/', function () {
     return view('auth');
 });
 Route::post('/register', [App\Http\Controllers\AuthController::class, 'register'])->name('register');
-Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])
+    ->middleware('throttle:login')
+    ->name('login.post');
 Route::get('/login', function () {
     return view('auth');
 })->name('login');
@@ -49,9 +51,9 @@ Route::post('/perfil/cambiar-contrasena', [App\Http\Controllers\PerfilController
 Route::get('/recover', function () {
     return view('recover');
 });
-Route::post('/recover/check-email', [App\Http\Controllers\RecoverController::class, 'checkEmail']);
-Route::post('/recover/check-security', [App\Http\Controllers\RecoverController::class, 'checkSecurity']);
-Route::post('/recover/change-password', [App\Http\Controllers\RecoverController::class, 'changePassword']);
+Route::post('/recover/check-email', [App\Http\Controllers\RecoverController::class, 'checkEmail'])->middleware('throttle:recover');
+Route::post('/recover/check-security', [App\Http\Controllers\RecoverController::class, 'checkSecurity'])->middleware('throttle:recover');
+Route::post('/recover/change-password', [App\Http\Controllers\RecoverController::class, 'changePassword'])->middleware('throttle:recover');
 
 // ================= CATEGORÍAS Y SUBCATEGORÍAS =================
 Route::get('/categorias', function() {
@@ -106,7 +108,4 @@ Route::post('/logout', function () {
     Auth::logout();
     return redirect('/login')->with('success', 'Sesión cerrada correctamente');
 })->name('logout');
-// Redirección amigable si alguien accede por GET a /logout
-Route::get('/logout', function () {
-    return redirect('/login');
-});
+// El logout debe realizarse únicamente por POST, protegido con CSRF

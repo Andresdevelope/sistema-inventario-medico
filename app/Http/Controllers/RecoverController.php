@@ -18,7 +18,11 @@ class RecoverController extends Controller
         if ($user) {
             return response()->json(['success' => true, 'user_id' => $user->id]);
         }
-        return response()->json(['success' => false]);
+        // Mensaje claro si no existe el correo
+        return response()->json([
+            'success' => false,
+            'message' => 'No se encontró ningún usuario con ese correo electrónico.'
+        ]);
     }
 
     /**
@@ -43,7 +47,10 @@ class RecoverController extends Controller
 
         $user = User::find($request->user_id);
         if (!$user) {
-            return response()->json(['success' => false, 'error' => 'Usuario no encontrado']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado.'
+            ]);
         }
 
         // Helper de normalización para comparar cadenas de manera robusta
@@ -76,7 +83,10 @@ class RecoverController extends Controller
         }
 
         if ($colorOk && $animalOk) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Respuestas correctas. Puedes continuar.'
+            ]);
         }
 
         // Si falta o falla alguna de las primeras dos, exigir la tercera
@@ -111,7 +121,10 @@ class RecoverController extends Controller
                 $padreOk = Hash::check(trim($request->padre), $user->security_padre_answer);
             }
             if ($padreOk) {
-                return response()->json(['success' => true]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Respuestas correctas. Puedes continuar.'
+                ]);
             }
 
             // Falla completa: reportar qué preguntas fallaron
@@ -122,12 +135,15 @@ class RecoverController extends Controller
             return response()->json([
                 'success' => false,
                 'incorrect' => $incorrect,
-                'message' => 'Respuestas incorrectas',
+                'message' => 'Respuestas incorrectas. Intenta nuevamente o contacta a soporte si no recuerdas tus respuestas.',
             ]);
         }
 
         // Caso residual (no debería ocurrir):
-        return response()->json(['success' => false, 'message' => 'Verificación fallida']);
+        return response()->json([
+            'success' => false,
+            'message' => 'Verificación fallida. Intenta nuevamente.'
+        ]);
     }
 
     // Cambia la contraseña del usuario
@@ -135,14 +151,20 @@ class RecoverController extends Controller
     {
         $request->validate([
             'user_id' => 'required|integer',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:16',
         ]);
         $user = User::find($request->user_id);
         if ($user) {
             $user->password = Hash::make($request->password);
             $user->save();
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Contraseña cambiada correctamente. Ya puedes iniciar sesión.'
+            ]);
         }
-        return response()->json(['success' => false]);
+        return response()->json([
+            'success' => false,
+            'message' => 'No se pudo cambiar la contraseña. Usuario no encontrado.'
+        ]);
     }
 }
