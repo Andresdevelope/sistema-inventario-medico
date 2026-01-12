@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
-Fecha: 23/10/2025
+Fecha: 12/01/2026
 Autor: Equipo Servicios Médicos
 
 OBJETIVO
@@ -25,7 +25,7 @@ SUPUESTOS Y CONTEXTO TÉCNICO
 - Inventario por lotes: los movimientos referencian inventario_id para trazabilidad.
 - Validaciones con feedback visual tipo toast.
 - Exportación CSV de inventario disponible.
-- Seguridad reforzada: CSRF activo, autorización por rol, sanitización de input, control de intentos de login y bloqueo temporal.
+- Seguridad reforzada: CSRF activo, autorización por rol, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en login y recuperación, y reCAPTCHA v2 opcional en login/registro si está configurado en .env.
 
 VOCABULARIO
 - Producto/Medicamento: ítem almacenable con stock mínimo.
@@ -41,28 +41,29 @@ REGLAS DE NEGOCIO CLAVE
 5. Integridad referencial: claves foráneas entre movimientos, productos, inventarios y usuarios.
 6. Exportaciones: CSV respeta filtros y no expone datos sensibles.
 7. Auditoría: cambios críticos (usuarios, stock, ajustes) se registran en bitácora.
-8. Seguridad: protección CSRF en formularios, autorización por rol en cada módulo, sanitización de datos de entrada, control de intentos de acceso y bloqueo temporal tras múltiples fallos.
+8. Seguridad: protección CSRF en formularios, autorización por rol en cada módulo (middleware auth e is_admin), sanitización de datos de entrada, control de intentos de acceso y bloqueo temporal tras 3 fallos (desbloqueo sólo por admin con contraseña), rate limiting en endpoints de login y recuperación, y reCAPTCHA v2 cuando está activo.
 
 CASOS DE USO PRINCIPALES
 
 CU-01 Autenticación de usuario
 - Actor: Administrador u Operador
 - Precondición: Usuario registrado
-- Flujo: Ingresa email/contraseña, valida, redirige a dashboard. Si falla, muestra error.
+- Flujo: Ingresa usuario/contraseña, valida (reCAPTCHA si activo), redirige a dashboard. Si falla, muestra error. Tras 3 fallos se bloquea el usuario (locked_until) y sólo un admin puede desbloquearlo.
 - Poscondición: Sesión iniciada, login registrado en bitácora.
 
 CU-02 Ver Dashboard y KPIs
 - Actor: Operador/Administrador
 - Flujo: Muestra KPIs, permite ir a filtros/consultas.
+ - Detalle: Tema claro/oscuro con persistencia en localStorage; panel de notificaciones (campana) con conteo y listado; toasts globales.
 
 CU-03 Gestión de categorías y subcategorías
 - Actor: Operador/Administrador
 - Flujo: Crear/editar/eliminar categoría y subcategoría, listar y filtrar.
-- Reglas: nombres únicos, subcategoría requiere categoría válida.
+- Reglas: nombres únicos (case-insensitive), subcategoría requiere categoría válida; endpoints AJAX para listar y verificar dependencias antes de eliminar.
 
 CU-04 Gestión de proveedores
 - Actor: Operador/Administrador
-- Flujo: Alta/edición/baja de proveedor, búsqueda y selección en formularios.
+- Flujo: Alta/edición/baja de proveedor (AJAX desde modales), búsqueda y selección en formularios.
 - Reglas: datos básicos requeridos y unicidad razonable.
 
 CU-05 Gestión de productos/medicamentos
@@ -72,38 +73,51 @@ CU-05 Gestión de productos/medicamentos
 
 CU-06 Consultar inventario por lotes
 - Flujo: Accede a inventario, filtra, visualiza stock y alertas, abre detalle de lotes.
+ - Detalle: Cálculo de stock total desde inventarios asociados; barras de stock con estados (verde/amarillo/rojo); badge de vencimiento más próximo; exportación CSV con filtros aplicados.
 
 CU-07 Registrar entrada por lote
 - Actor: Operador/Administrador
 - Flujo: Selecciona producto, ingresa datos de entrada, crea/incrementa lote, registra movimiento.
-- Validaciones: datos completos, stock incrementado.
+- Validaciones: datos completos, stock incrementado, fecha de vencimiento obligatoria y futura; número de lote requerido (nuevo o existente).
 
 CU-08 Registrar salida por lote y área
 - Actor: Operador/Administrador
-- Flujo: Selecciona producto y lote, elige área, ingresa cantidad y motivo, valida y descuenta stock, registra movimiento.
+- Flujo: Selecciona producto y lote, elige destino (normalizado), ingresa cantidad y motivo, valida y descuenta stock, registra movimiento.
 - Validaciones: stock suficiente, área válida.
 
 CU-09 Registrar ajuste de stock
 - Actor: Administrador (o autorizado)
 - Flujo: Selecciona producto y lote, ingresa cantidad y motivo, aplica ajuste y registra movimiento.
-- Validaciones: ajuste no deja stock < 0, auditoría.
+- Validaciones: ajuste no deja stock < 0; para ajuste negativo se puede seleccionar lote específico; auditoría en bitácora.
 
 CU-10 Consultar movimientos
 - Actor: Todos
 - Flujo: Filtrar por fechas, producto, tipo, área y lote; ver detalle; exportar CSV.
+ - Detalle: Panel auxiliar de lotes/vencimientos ordenado FEFO/FIFO; validaciones front antes de enviar.
 
 CU-11 Generar reportes
 - Actor: Todos
 - Flujo: Selecciona reporte, aplica filtros, visualiza/descarga.
+ - Detalle: Resumen con top destinos y medicamentos, unidades egresadas/ingresadas, stock bajo y caducidad próxima; detalle por producto; exportación CSV.
 
 CU-12 Gestión de usuarios y roles (solo admin)
 - Actor: Administrador
 - Flujo: Crear/editar/eliminar usuarios, asignar rol.
-- Reglas: solo admin, no auto-deshabilitar único admin.
+- Reglas: sólo admin; eliminación y desbloqueo requieren contraseña del admin actual; no auto-deshabilitar único admin.
 
 CU-13 Bitácora y auditoría
 - Actor: Administrador/Auditor
 - Flujo: Consultar acciones por usuario/rango de fechas.
+ - Detalle: Registra login/logout, bloqueos, creación/edición/eliminación de entidades, exportaciones y consultas clave.
+CU-15 Recuperación de contraseña con preguntas de seguridad
+- Actor: Usuario
+- Flujo: Proporciona correo (con reCAPTCHA si activo), responde dos preguntas (color/animal); si falla alguna, se exige tercera (padre). Si pasa validación, se permite cambio de contraseña.
+- Reglas: Normalización de respuestas para comparación robusta; longitud mínima de contraseña 16, letras y números.
+
+CU-16 Notificaciones de movimientos (campana)
+- Actor: Usuario autenticado
+- Flujo: Consulta conteo y lista de movimientos recientes; puede marcar todas como leídas.
+- Reglas: Throttle en peticiones para evitar ráfagas; lecturas por usuario en tabla pivot.
 
 CU-14 Configuración de stock mínimo
 - Actor: Operador/Administrador
@@ -112,12 +126,14 @@ CU-14 Configuración de stock mínimo
 MODELO DE DATOS (RESUMEN)
 - productos: id, nombre, categoria_id, subcategoria_id, proveedor_id, stock_mínimo, ...
 - inventarios: id, producto_id, stock, metadatos del lote, timestamps.
-- movimientos: id, producto_id, inventario_id, tipo, cantidad, motivo, fecha, usuario_id, observaciones, área, origen, timestamps.
+- movimientos: id, producto_id, inventario_id, tipo, cantidad, motivo, fecha, usuario_id, observaciones, área/salida, destino_id, origen/entrada, timestamps.
 - reportes, categorias, subcategorias, proveedores, users, bitácora.
+ - destinos: id, codigo, nombre, activo, tipo.
+ - movimiento_user_reads (pivot): movimiento_id, user_id, read_at, timestamps.
 
 CONSIDERACIONES NO FUNCIONALES
 - Rendimiento: índices en claves foráneas (producto_id, inventario_id, usuario_id, fecha, tipo); paginación en listados.
-- Seguridad: autenticación obligatoria, autorización por rol, CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal.
+- Seguridad: autenticación obligatoria, autorización por rol (RBAC), CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en endpoints sensibles, reCAPTCHA opcional.
 - Usabilidad: feedback visual (toasts), formularios con old() y mensajes claros, exportación optimizada.
 
 CRITERIOS DE ACEPTACIÓN
@@ -127,4 +143,6 @@ CRITERIOS DE ACEPTACIÓN
 
 NOTAS
 - Áreas de salida: principal, acinf, agroalimentacion, odontologia.
-- Selección de lotes prioriza stock > 0; se recomienda FEFO si hay vencimiento por lote.
+- Selección de lotes prioriza stock > 0; se usa FEFO (fecha próxima primero) y FIFO como desempate.
+ - CSV de inventario incluye vencimiento más próximo y estado de stock bajo/OK.
+ - UI con tema claro/oscuro persistente y panel de notificaciones.

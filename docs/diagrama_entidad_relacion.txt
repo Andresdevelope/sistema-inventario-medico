@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA ENTIDAD-RELACIÓN (ER)
-Fecha: 23/10/2025
+Fecha: 12/01/2026
 
 Este diagrama conceptual refleja las entidades principales del dominio, sus atributos y relaciones. Está alineado con las migraciones actuales y la trazabilidad por lote.
 
@@ -7,6 +7,8 @@ RESUMEN DE ENTIDADES Y RELACIONES
 - Un PRODUCTO puede tener muchos LOTES (INVENTARIO_LOTE).
 - Un LOTE puede tener muchos MOVIMIENTOS (entradas, salidas, ajustes).
 - Un USUARIO puede registrar muchos MOVIMIENTOS.
+ - Un DESTINO normaliza salidas y puede tener muchos MOVIMIENTOS.
+ - Un MOVIMIENTO puede estar “leído” por muchos USUARIOS (pivot de lecturas para notificaciones).
 
 RELACIONES PRINCIPALES
 - CATEGORIA tiene muchas SUBCATEGORIAS y PRODUCTOS.
@@ -15,6 +17,8 @@ RELACIONES PRINCIPALES
 - PRODUCTO se divide en LOTES y participa en MOVIMIENTOS.
 - LOTE se afecta por MOVIMIENTOS.
 - USUARIO registra MOVIMIENTOS, genera REPORTES y realiza acciones en BITÁCORA.
+ - DESTINO agrupa salidas (egresos) por área/unidad.
+ - MOVIMIENTO <-> USUARIO (N:N) a través de movimiento_user_reads para marcar notificaciones leídas.
 
 ATRIBUTOS CLAVE POR ENTIDAD
 - CATEGORIA: id, nombre
@@ -22,10 +26,12 @@ ATRIBUTOS CLAVE POR ENTIDAD
 - PROVEEDOR: id, nombre, contacto, teléfono, dirección, email
 - PRODUCTO: id, nombre, código, presentación, unidad_medida, stock_mínimo
 - INVENTARIO_LOTE: id, lote, cantidad, fecha_vencimiento, estado
-- MOVIMIENTO: id, tipo (entrada, salida, ajuste), cantidad, fecha, área, origen, motivo, observaciones
+- MOVIMIENTO: id, tipo (ingreso, egreso, ajuste_pos, ajuste_neg), cantidad, fecha, área/salida, destino_id, origen/entrada, motivo, observaciones
 - USUARIO: id, nombre, email, rol
 - REPORTE: id, nombre, tipo
 - BITÁCORA: id, acción, fecha_hora
+ - DESTINO: id, codigo, nombre, activo, tipo
+ - MOVIMIENTO_USER_READS (pivot): movimiento_id, user_id, read_at
 
 CARDINALIDADES
 - Un Producto puede tener 0..N Lotes.
@@ -39,6 +45,7 @@ NOTAS
 - Se recomienda mantener la relación Movimiento → Lote obligatoria para maximizar la trazabilidad.
 - Si se maneja vencimiento por lote, usar fecha_vencimiento para priorizar salidas (FEFO).
 - El sistema implementa seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada y control de intentos de acceso.
+ - Seguridad reforzada adicional: rate limiting en login y recuperación, reCAPTCHA v2 opcional en login/registro, bloqueo por intentos fallidos con desbloqueo por admin.
 - Los movimientos y acciones relevantes quedan registrados en bitácora para auditoría.
 
 EJEMPLO VISUAL (MERMAID)
@@ -46,6 +53,9 @@ EJEMPLO VISUAL (MERMAID)
 PRODUCTO ||--o{ INVENTARIO_LOTE : tiene
 INVENTARIO_LOTE ||--o{ MOVIMIENTO : se_afecta_por
 USUARIO ||--o{ MOVIMIENTO : registra
+DESTINO ||--o{ MOVIMIENTO : agrupa
+MOVIMIENTO ||--o{ MOVIMIENTO_USER_READS : tiene
+USUARIO ||--o{ MOVIMIENTO_USER_READS : marca
 
 CATEGORIA ||--o{ SUBCATEGORIA : tiene
 CATEGORIA ||--o{ PRODUCTO : clasifica
