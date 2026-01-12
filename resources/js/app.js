@@ -22,12 +22,57 @@ document.addEventListener('DOMContentLoaded', () => {
 	const markAllBtn = document.getElementById('notifMarkAll');
 	let panelOpen = false;
 
-		async function fetchNotifs(showPanel = false) {
+	// ====== Gestión de ciclo de vida del polling ======
+	let pollTimer = null;
+	let baseIntervalMs = 60000; // 60s por defecto
+	let maxIntervalMs = 300000; // 5 min máximo cuando no hay cambios
+	let currentIntervalMs = baseIntervalMs;
+	let consecutiveNoUpdates = 0;
+	let isPaused = false; // por visibilidad o inactividad
+
+	// Detección de inactividad (idle): pausa después de 5 min sin interacción
+	const idleThresholdMs = 5 * 60 * 1000;
+	let lastActivityTs = Date.now();
+	function markActivity(){ lastActivityTs = Date.now(); if(isPaused){ resumePolling(); } }
+	['mousemove','keydown','click','scroll','touchstart'].forEach(evt=>document.addEventListener(evt, markActivity, {passive:true}));
+
+	function checkIdle(){
+		const idle = (Date.now() - lastActivityTs) >= idleThresholdMs;
+		if (idle && !isPaused){ pausePolling('idle'); }
+		else if (!idle && isPaused){ resumePolling(); }
+	}
+	setInterval(checkIdle, 15000); // comprobar cada 15s
+
+	// Pausar cuando la pestaña esté oculta; reanudar al volver visible
+	document.addEventListener('visibilitychange', () => {
+		if (document.hidden) pausePolling('hidden'); else resumePolling();
+	});
+
+	function pausePolling(reason='manual'){
+		isPaused = true;
+		if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+		// Opcional: feedback en consola
+		console.debug('[Polling] Pausado por:', reason);
+	}
+	function resumePolling(){
+		if (!isPaused) return;
+		isPaused = false;
+		scheduleNext(1000); // reanudar rápido con un segundo
+		console.debug('[Polling] Reanudado');
+	}
+	function scheduleNext(delayMs = currentIntervalMs){
+		if (pollTimer){ clearTimeout(pollTimer); }
+		pollTimer = setTimeout(() => { if(!isPaused) fetchNotifs(false, true); }, delayMs);
+	}
+
+		async function fetchNotifs(showPanel = false, fromTimer = false) {
 		try {
 			const url = '/notificaciones/movimientos' + (showPanel ? '?panel=1' : '');
 			const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
 			if (!r.ok) {
 				console.warn('Notificaciones: respuesta no OK', r.status);
+				// Si el servidor indica no autorizado o CSRF expirado, detener el ciclo
+				if (r.status === 401 || r.status === 403 || r.status === 419){ pausePolling('unauthorized'); }
 				return;
 			}
 			let data;
@@ -47,9 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
 				countSpan.style.display = 'inline';
 				countSpan.textContent = unread > 99 ? '99+' : unread;
 				bell.classList.add('pulse-bell');
+				// Ajuste de backoff: si hay novedades, volver a intervalo base
+				consecutiveNoUpdates = 0;
+				currentIntervalMs = baseIntervalMs;
 			} else {
 				countSpan.style.display = 'none';
 				bell.classList.remove('pulse-bell');
+				// Incrementar intervalo gradualmente hasta el máximo
+				consecutiveNoUpdates++;
+				const step = Math.min(consecutiveNoUpdates, 5); // limitar pasos
+				currentIntervalMs = Math.min(baseIntervalMs + step * 30000, maxIntervalMs); // +30s por paso
 			}
 			itemsContainer.innerHTML = '';
 			const items = data.items || [];
@@ -74,8 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
 				});
 			}
 			if (showPanel) openPanel();
+
+			// Si vino del temporizador, programar la siguiente ejecución con el backoff actual
+			if (fromTimer && !isPaused){ scheduleNext(currentIntervalMs); }
 		} catch (e) {
 			console.error('Error notificaciones', e);
+			// En caso de error de red, aumentar ligeramente el intervalo para evitar ciclados
+			currentIntervalMs = Math.min(currentIntervalMs + 30000, maxIntervalMs);
+			if (!isPaused){ scheduleNext(currentIntervalMs); }
 		}
 	}
 
@@ -118,10 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	// Poll cada 60s para actualizar contador silencioso
-	setInterval(() => fetchNotifs(false), 60000);
-	// Carga inicial del contador
+	// Detener polling al hacer logout (ambos formularios en layout)
+	document.querySelectorAll('form[action$="/logout"]').forEach(f => {
+		f.addEventListener('submit', () => pausePolling('logout'));
+	});
+
+	// Arranque: primera carga y programación siguiente
 	fetchNotifs(false);
+	scheduleNext(currentIntervalMs);
 });
 
 // Animación campana (CSS inline injection si no existe)

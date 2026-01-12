@@ -1,0 +1,35 @@
+SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA RELACIONAL
+Fecha: 23/10/2025
+
+Este diagrama refleja las tablas y relaciones actuales según las migraciones del proyecto (MySQL/XAMPP). Incluye trazabilidad por lote en movimientos (inventario_id) y áreas de salida/entrada.
+
+TABLAS PRINCIPALES Y CAMPOS CLAVE
+- CATEGORIAS: id (PK), nombre (único), created_at, updated_at
+- SUBCATEGORIAS: id (PK), nombre, categoria_id (FK), created_at, updated_at
+- PROVEEDORES: id (PK), nombre, contacto, teléfono, dirección, email, created_at, updated_at
+- PRODUCTOS: id (PK), nombre, código (único), descripción, categoria_id (FK), subcategoria_id (FK), presentación, unidad_medida, categoria_inventario, stock, stock_mínimo, proveedor_id, fecha_ingreso, fecha_vencimiento, created_by, updated_by, created_at, updated_at
+- INVENTARIOS: id (PK), producto_id (FK), lote, cantidad, fecha_vencimiento, stock_mínimo, estado, created_at, updated_at
+- MOVIMIENTOS: id (PK), producto_id (FK), tipo, salida, inventario_id (FK, NULL), entrada, cantidad, motivo, fecha, usuario_id (FK, NULL), observaciones, created_at, updated_at
+- USERS: id (PK), name, email (único), email_verified_at, password, security_color_answer, security_animal_answer, login_attempts, locked_until, role, remember_token, created_at, updated_at
+- BITACORA: id (PK), user_id (FK), acción, detalles, fecha_hora
+- REPORTES: id (PK), nombre, tipo, parámetros, usuario_id (FK, NULL), created_at, updated_at
+
+RELACIONES PRINCIPALES
+- CATEGORIAS contiene SUBCATEGORIAS y clasifica PRODUCTOS.
+- SUBCATEGORIAS agrupa PRODUCTOS.
+- PROVEEDORES provee PRODUCTOS.
+- PRODUCTOS tiene INVENTARIOS y afecta MOVIMIENTOS.
+- INVENTARIOS registra MOVIMIENTOS.
+- USERS realiza MOVIMIENTOS, genera REPORTES y registra BITÁCORA.
+
+
+NOTAS
+- MOVIMIENTOS.inventario_id es NULLABLE para cubrir excepciones, pero se recomienda asociarlo siempre al lote para trazabilidad.
+- PROVEEDORES no tiene FK forzada en migración de PRODUCTOS, pero la relación existe lógicamente.
+- Áreas de salida controladas: principal, acinf, agroalimentacion, odontologia.
+- Índices recomendados: producto_id, inventario_id, usuario_id, fecha, tipo, categoria_id, subcategoria_id.
+- Seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada y control de intentos de acceso.
+- Bitácora de auditoría para registrar acciones críticas y movimientos.
+
+CONCLUSIÓN
+El diagrama relacional es técnico y sirve para implementar y optimizar la base de datos. Muestra tablas, columnas, claves foráneas y restricciones.

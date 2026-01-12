@@ -74,7 +74,7 @@ Categoría: Seguridad
 	Observaciones: RBAC por roles (admin/operador) y middleware is_admin.
 21. [Si]  (P=1) Deniega accesos no autorizados.
 	Observaciones: Middleware auth/is_admin en rutas y vistas.
-22. [Si]  (P=2) Contraseñas hasheadas con algoritmo de una vía robusto.
+22. [Si]  (P=2) Contraseñas hasheadas con algorit mo de una vía robusto.
 	Observaciones: Bcrypt (one-way), BCRYPT_ROUNDS=12 en .env.
 23. [Si]  (P=2) Longitud mínima de contraseñas ≥ 16, sin máximo.
 	Observaciones: Política actualizada: mínimo 16 caracteres en registro y cambio de contraseña; sin máximo de almacenamiento.

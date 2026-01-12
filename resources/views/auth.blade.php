@@ -71,20 +71,30 @@ button:active{ transform:scale(0.95); }
 button:focus{ outline:none; }
 button.ghost{ background:transparent; border-color:var(--panel); color:var(--panel); }
 form{
-  background:var(--panel); display:flex; align-items:center; justify-content:center; flex-direction:column;
-  padding:0 50px; height:100%; text-align:center; border-radius:10px;
+  background:var(--panel);
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  padding:24px 36px 20px;
+  height:100%;
+  text-align:center;
+  border-radius:10px;
 }
 input{ background:var(--input); border:1px solid rgba(0,0,0,.06); color:var(--text); padding:12px 15px; margin:8px 0; width:100%; border-radius:8px; }
 input::placeholder{ color:var(--muted); }
 input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 126, 0, 0.2); }
+.input-with-eye{ position:relative; width:100%; max-width:360px; margin:0 auto 10px auto; }
+.input-with-eye input{ padding-right:40px; }
+.input-with-eye .toggle-pwd{ position:absolute; top:50%; right:12px; transform:translateY(-50%); cursor:pointer; }
 .alert-box{ width:100%; margin:8px 0 0; padding:10px 12px; border-radius:8px; background:rgba(220,53,69,.08); border:1px solid rgba(220,53,69,.35); color:#dc3545; text-align:left; font-size:13px; display:none; }
 .alert-box.info{ background:rgba(33,158,188,.08); border-color:rgba(33,158,188,.35); color:#219ebc; }
 .alert-box.success{ background:rgba(40,167,69,.08); border-color:rgba(40,167,69,.35); color:#28a745; }
-.container{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); position:relative; z-index:1; overflow:hidden; width:768px; max-width:100%; min-height:520px; }
-.form-container{ position:absolute; top:0; height:100%; transition:all .3s ease-in-out; }
-.sign-in-container{ left:0; width:50%; z-index:2; }
+.container{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); position:relative; z-index:1; overflow:hidden; width:768px; max-width:100%; min-height:650px; }
+.form-container{ position:absolute; top:0; height:100%; width:50%; transition:all .3s ease-in-out; overflow:hidden; }
+.sign-in-container{ left:0; z-index:2; }
 .container.right-panel-active .sign-in-container{ transform:translateX(100%); }
-.sign-up-container{ left:0; width:50%; opacity:0; z-index:1; }
+.sign-up-container{ left:0; opacity:0; z-index:1; }
 .container.right-panel-active .sign-up-container{ transform:translateX(100%); opacity:1; z-index:5; animation:show .3s; }
 @keyframes show{ 0%,49.99%{opacity:0;z-index:1;} 50%,100%{opacity:1;z-index:5;} }
 .overlay-container{ position:absolute; top:0; left:50%; width:50%; height:100%; overflow:hidden; transition:transform .3s ease-in-out; z-index:100; }
@@ -97,7 +107,10 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 .container.right-panel-active .overlay-left{ transform:translateX(0); }
 .overlay-right{ right:0; transform:translateX(0); }
 .container.right-panel-active .overlay-right{ transform:translateX(20%); }
-@media (max-width: 768px){ .container{ min-height:560px; } }
+@media (max-width: 768px){
+  .container{ min-height:560px; }
+  .form-container{ width:100%; }
+}
 </style>
 @endpush
 
@@ -105,7 +118,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 <div class="auth-page">
   <header class="auth-header">
     <div class="brand">
-      <div class="logo-placeholder"></div>
+      <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG" style="width:45px;height:45px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);object-fit:cover;background:#fff;" />
       <h1>Sistema de Inventario</h1>
     </div>
   </header>
@@ -117,11 +130,19 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <div id="register-alert" class="alert-box" role="alert"></div>
         <input type="text" name="username" placeholder="Usuario" required />
         <input type="email" name="email" placeholder="Correo" required />
-        <input type="password" name="password" placeholder="Contraseña (mínimo 16 caracteres)" required minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
-       
+        <div class="input-with-eye">
+          <input type="password" name="password" id="register_password" placeholder="Contraseña (mínimo 16 caracteres)" required minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
+          <span class="toggle-pwd" data-target="register_password">
+            <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
         <input type="text" name="color" placeholder="¿Color favorito?" required />
         <input type="text" name="animal" placeholder="¿Animal favorito?" required />
         <input type="text" name="padre" placeholder="¿Nombre del padre?" required />
+        {{-- reCAPTCHA v2 para registro --}}
+        @if(config('services.recaptcha.site_key'))
+          <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
+        @endif
         <button type="submit">Registrarse</button>
       </form>
     </div>
@@ -131,7 +152,17 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <h1>Iniciar Sesión</h1>
         <div id="login-alert" class="alert-box" role="alert"></div>
         <input type="text" name="username" placeholder="Usuario" required />
-        <input type="password" name="password" placeholder="Contraseña" required />
+        <!-- Campo contraseña con ojito -->
+        <div class="input-with-eye">
+          <input type="password" name="password" id="login_password" placeholder="Contraseña" required />
+          <span class="toggle-pwd" data-target="login_password">
+            <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+        {{-- reCAPTCHA v2 checkbox --}} 
+        @if(config('services.recaptcha.site_key'))
+          <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
+        @endif
         <a href="{{ url('/recover') }}">¿Olvidaste tu contraseña?</a>
         <button type="submit">Entrar</button>
       </form>
@@ -155,10 +186,29 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 @endsection
 
 @push('scripts')
+{{-- Carga del script de reCAPTCHA v2 --}}
+@if(config('services.recaptcha.site_key'))
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
 <script>
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
   const container = document.getElementById('container');
   const signUpButton = document.getElementById('signUp');
   const signInButton = document.getElementById('signIn');
+  let recaptchaLoginIndex = null;
+  let recaptchaRegisterIndex = null;
+
+  function detectRecaptchaIndexes(){
+    if (!window.grecaptcha) return;
+    const widgets = document.querySelectorAll('.g-recaptcha');
+    widgets.forEach((el, idx) => {
+      if (el.closest('#username-login-form')) recaptchaLoginIndex = idx;
+      if (el.closest('#register-form')) recaptchaRegisterIndex = idx;
+    });
+  }
+  // Intento inicial de detección; si el script de reCAPTCHA tarda, el usuario
+  // al primer submit forzará la creación del widget y luego se detectará.
+  setTimeout(detectRecaptchaIndexes, 600);
   // Transición de paneles
   signUpButton?.addEventListener('click', () => {
     container.classList.add('right-panel-active');
@@ -185,6 +235,24 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         pwdInput?.focus();
         return;
       }
+      // Validación reCAPTCHA para registro (si está activo)
+      try {
+        if (window.grecaptcha && typeof grecaptcha.getResponse === 'function'){
+          // Asegurar que tengamos índices mapeados
+          if (recaptchaRegisterIndex === null) detectRecaptchaIndexes();
+          let token = null;
+          if (typeof recaptchaRegisterIndex === 'number') {
+            token = grecaptcha.getResponse(recaptchaRegisterIndex);
+          } else {
+            token = grecaptcha.getResponse();
+          }
+          if (!token){
+            registerAlert.textContent = 'Por favor completa el reCAPTCHA.';
+            registerAlert.style.display = 'block';
+            return;
+          }
+        }
+      } catch(_){}
       const btn = registerForm.querySelector('button[type="submit"]');
       const originalText = btn?.textContent;
       if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
@@ -232,7 +300,6 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
     });
   }
   const loginForm = document.getElementById('username-login-form');
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
   const loginAlert = document.getElementById('login-alert');
   let lockInterval = null;
   const formatMMSS = (total) => {
@@ -245,6 +312,26 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   }
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    // Enforce reCAPTCHA resuelto cuando esté activo
+    try {
+      if (window.grecaptcha && typeof grecaptcha.getResponse === 'function'){
+        if (recaptchaLoginIndex === null) detectRecaptchaIndexes();
+        let token = null;
+        if (typeof recaptchaLoginIndex === 'number') {
+          token = grecaptcha.getResponse(recaptchaLoginIndex);
+        } else {
+          token = grecaptcha.getResponse();
+        }
+        if (!token){
+          if (loginAlert){
+            loginAlert.className = 'alert-box';
+            loginAlert.style.display = 'block';
+            loginAlert.textContent = 'Por favor completa el reCAPTCHA.';
+          }
+          return;
+        }
+      }
+    } catch(_){}
     // Ocultar aviso anterior y limpiar contador
     if (lockInterval) { clearInterval(lockInterval); lockInterval = null; }
     if (loginAlert){
@@ -334,5 +421,25 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
     }
   });
+
+  // Mostrar/ocultar contraseña en login y registro
+  if (window.addEventListener) {
+    window.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.toggle-pwd').forEach(function(eye){
+        eye.addEventListener('click', function(){
+          const targetId = eye.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          if (!input) return;
+          if (input.type === 'password') {
+            input.type = 'text';
+            eye.querySelector('svg').style.stroke = '#ff8c00';
+          } else {
+            input.type = 'password';
+            eye.querySelector('svg').style.stroke = '#6c757d';
+          }
+        });
+      });
+    });
+  }
 </script>
 @endpush

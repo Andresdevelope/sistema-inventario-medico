@@ -89,6 +89,10 @@ button:hover{ background:var(--accentH); }
     <form id="recover-email-form">
       @csrf
   <input type="email" id="recover-email" placeholder="Correo registrado" required autocomplete="username" />
+      {{-- reCAPTCHA v2 para recuperación (paso de correo) --}}
+      @if(config('services.recaptcha.site_key'))
+        <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px auto 14px;display:inline-block;"></div>
+      @endif
       <button type="submit">Continuar</button>
     </form>
     <div id="recover-alert" class="alert-box" role="alert"></div>
@@ -116,14 +120,26 @@ button:hover{ background:var(--accentH); }
     <div class="card">
       <h3>Cambiar contraseña</h3>
       <form id="change-password-form">
-  <input type="password" name="new_password" placeholder="Nueva contraseña (mínimo 16 caracteres)" required autocomplete="new-password" minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
-  <div id="recover-pwd-meter" style="width:100%;margin-top:6px;">
-    <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
-      <div id="recover-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
-    </div>
-    <div id="recover-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
-  </div>
-  <input type="password" name="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" />
+        <!-- Campo nueva contraseña con ojito -->
+        <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
+          <input type="password" name="new_password" id="new_password" placeholder="Nueva contraseña (mínimo 16 caracteres)" required autocomplete="new-password" minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" style="padding-right:40px;" />
+          <span class="toggle-pwd" data-target="new_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
+            <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+        <div id="recover-pwd-meter" style="width:100%;margin-top:6px;">
+          <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
+            <div id="recover-pwd-fill" style="height:100%;width:0%;background:#dc3545;transition:width .2s ease, background .2s ease;"></div>
+          </div>
+          <div id="recover-pwd-hint" style="font-size:12px;color:#6c757d;margin-top:4px;">Fortaleza: Débil</div>
+        </div>
+        <!-- Campo confirmar contraseña con ojito -->
+        <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
+          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" style="padding-right:40px;" />
+          <span class="toggle-pwd" data-target="confirm_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
+            <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
         <div class="actions">
           <button type="submit">Cambiar</button>
           <button type="button" id="cancel-change">Cancelar</button>
@@ -135,6 +151,9 @@ button:hover{ background:var(--accentH); }
 @endsection
 
 @push('scripts')
+@if(config('services.recaptcha.site_key'))
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
 <script>
 let recoverUserId = null;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -160,23 +179,49 @@ document.getElementById('recover-email-form').addEventListener('submit', functio
   e.preventDefault();
   const email = document.getElementById('recover-email').value.trim();
   if (recoverAlert){ recoverAlert.style.display='none'; recoverAlert.textContent=''; recoverAlert.className='alert-box'; }
+  // Validación reCAPTCHA para el paso de correo (si está activo)
+  let captchaToken = null;
+  try {
+    if (window.grecaptcha && typeof grecaptcha.getResponse === 'function'){
+      captchaToken = grecaptcha.getResponse();
+      if (!captchaToken){
+        if (recoverAlert){
+          recoverAlert.textContent = 'Por favor completa el reCAPTCHA.';
+          recoverAlert.style.display = 'block';
+        }
+        return;
+      }
+    }
+  } catch(_){}
   const btn = this.querySelector('button[type="submit"]');
   const prev = btn?.textContent;
   if (btn){ btn.disabled = true; btn.textContent = 'Verificando…'; }
   fetch(routeCheckEmail, {
     method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, 'g-recaptcha-response': captchaToken })
   }).then(async r => {
   const data = await r.json().catch(() => null);
     if (data && data.success){
       recoverUserId = data.user_id;
       document.getElementById('security-recover-modal').style.display = 'flex';
     } else {
-      if (recoverAlert){ recoverAlert.textContent = 'Correo no encontrado'; recoverAlert.style.display = 'block'; }
+      if (recoverAlert){
+        const msg = (data && data.message) ? data.message : 'Correo no encontrado';
+        recoverAlert.textContent = msg;
+        recoverAlert.style.display = 'block';
+      }
     }
   }).catch((err) => {
     if (recoverAlert){ recoverAlert.textContent = 'No se pudo contactar al servidor. Asegúrate de abrir la app en http://localhost (Laravel), no en el puerto de Vite.'; recoverAlert.style.display = 'block'; }
-  }).finally(() => { if (btn){ btn.disabled = false; btn.textContent = prev; } });
+  }).finally(() => {
+    if (btn){ btn.disabled = false; btn.textContent = prev; }
+    // Resetear reCAPTCHA para permitir nuevos intentos
+    try {
+      if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
+        grecaptcha.reset();
+      }
+    } catch(_){ }
+  });
 });
 
 document.getElementById('security-recover-form').addEventListener('submit', function(e){
@@ -311,5 +356,24 @@ document.querySelector('#change-password-form input[name="new_password"]').addEv
   if (fill) fill.style.width = pct+'%';
   if (fill) fill.style.background=color; if (hint) hint.textContent='Fortaleza: '+label;
 });
+// Mostrar/ocultar contraseña
+if (window.addEventListener) {
+  window.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-pwd').forEach(function(eye){
+      eye.addEventListener('click', function(){
+        const targetId = eye.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        if (input.type === 'password') {
+          input.type = 'text';
+          eye.querySelector('svg').style.stroke = '#ff8c00';
+        } else {
+          input.type = 'password';
+          eye.querySelector('svg').style.stroke = '#6c757d';
+        }
+      });
+    });
+  });
+}
 </script>
 @endpush

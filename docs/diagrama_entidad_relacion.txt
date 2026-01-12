@@ -1,0 +1,62 @@
+SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA ENTIDAD-RELACIÓN (ER)
+Fecha: 23/10/2025
+
+Este diagrama conceptual refleja las entidades principales del dominio, sus atributos y relaciones. Está alineado con las migraciones actuales y la trazabilidad por lote.
+
+RESUMEN DE ENTIDADES Y RELACIONES
+- Un PRODUCTO puede tener muchos LOTES (INVENTARIO_LOTE).
+- Un LOTE puede tener muchos MOVIMIENTOS (entradas, salidas, ajustes).
+- Un USUARIO puede registrar muchos MOVIMIENTOS.
+
+RELACIONES PRINCIPALES
+- CATEGORIA tiene muchas SUBCATEGORIAS y PRODUCTOS.
+- SUBCATEGORIA agrupa PRODUCTOS.
+- PROVEEDOR provee PRODUCTOS.
+- PRODUCTO se divide en LOTES y participa en MOVIMIENTOS.
+- LOTE se afecta por MOVIMIENTOS.
+- USUARIO registra MOVIMIENTOS, genera REPORTES y realiza acciones en BITÁCORA.
+
+ATRIBUTOS CLAVE POR ENTIDAD
+- CATEGORIA: id, nombre
+- SUBCATEGORIA: id, nombre
+- PROVEEDOR: id, nombre, contacto, teléfono, dirección, email
+- PRODUCTO: id, nombre, código, presentación, unidad_medida, stock_mínimo
+- INVENTARIO_LOTE: id, lote, cantidad, fecha_vencimiento, estado
+- MOVIMIENTO: id, tipo (entrada, salida, ajuste), cantidad, fecha, área, origen, motivo, observaciones
+- USUARIO: id, nombre, email, rol
+- REPORTE: id, nombre, tipo
+- BITÁCORA: id, acción, fecha_hora
+
+CARDINALIDADES
+- Un Producto puede tener 0..N Lotes.
+- Un Movimiento afecta 1 Producto y 1 Lote (trazabilidad).
+- Un Usuario registra 0..N Movimientos, genera 0..N Reportes y tiene 0..N registros en Bitácora.
+- Un Proveedor suministra 0..N Productos.
+
+
+NOTAS
+- El ER es conceptual: ayuda a entender el negocio y las relaciones.
+- Se recomienda mantener la relación Movimiento → Lote obligatoria para maximizar la trazabilidad.
+- Si se maneja vencimiento por lote, usar fecha_vencimiento para priorizar salidas (FEFO).
+- El sistema implementa seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada y control de intentos de acceso.
+- Los movimientos y acciones relevantes quedan registrados en bitácora para auditoría.
+
+EJEMPLO VISUAL (MERMAID)
+
+PRODUCTO ||--o{ INVENTARIO_LOTE : tiene
+INVENTARIO_LOTE ||--o{ MOVIMIENTO : se_afecta_por
+USUARIO ||--o{ MOVIMIENTO : registra
+
+CATEGORIA ||--o{ SUBCATEGORIA : tiene
+CATEGORIA ||--o{ PRODUCTO : clasifica
+SUBCATEGORIA ||--o{ PRODUCTO : agrupa
+PROVEEDOR ||--o{ PRODUCTO : provee
+PRODUCTO ||--o{ INVENTARIO_LOTE : se_divide_en
+PRODUCTO ||--o{ MOVIMIENTO : participa
+INVENTARIO_LOTE ||--o{ MOVIMIENTO : se_afecta_por
+USUARIO ||--o{ MOVIMIENTO : registra
+USUARIO ||--o{ REPORTE : genera
+USUARIO ||--o{ BITACORA : realiza
+
+CONCLUSIÓN
+El diagrama ER conceptual es útil para analistas, usuarios y desarrolladores para comprender el dominio antes de implementar la base de datos relacional.

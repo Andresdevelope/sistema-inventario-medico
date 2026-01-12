@@ -1,0 +1,130 @@
+SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
+Fecha: 23/10/2025
+Autor: Equipo Servicios Médicos
+
+OBJETIVO
+Documentar de forma completa los actores, reglas de negocio y casos de uso del sistema de Inventario Médico, incluyendo trazabilidad por lote, áreas de salida/entrada, KPIs de inventario y exportaciones, diferenciando responsabilidades de Administrador y Operador.
+
+ALCANCE
+- Gestión de catálogo: categorías, subcategorías, productos y proveedores.
+- Gestión de inventario por lotes y movimientos.
+- Registro de entradas, salidas por área y ajustes.
+- Consultas, KPIs, filtros y exportación CSV.
+- Reportes operativos y administración de usuarios, roles y bitácora de auditoría.
+
+ACTORES
+- Administrador: acceso total, gestiona usuarios, roles, reglas, ajustes críticos, bitácora y reportes.
+- Operador/Almacén: opera catálogo, inventario y movimientos; consulta reportes.
+- Auditor/Visor: solo lectura a inventario, movimientos y reportes.
+- Sistema externo (futuro): integraciones para import/export.
+
+SUPUESTOS Y CONTEXTO TÉCNICO
+- Laravel 10+, Blade + Bootstrap, MySQL (XAMPP).
+- Migraciones activas y versionadas.
+- Autenticación por usuario/contraseña. Roles: admin, operador, auditor.
+- Inventario por lotes: los movimientos referencian inventario_id para trazabilidad.
+- Validaciones con feedback visual tipo toast.
+- Exportación CSV de inventario disponible.
+- Seguridad reforzada: CSRF activo, autorización por rol, sanitización de input, control de intentos de login y bloqueo temporal.
+
+VOCABULARIO
+- Producto/Medicamento: ítem almacenable con stock mínimo.
+- Lote: registro en inventarios (por producto), con stock y metadatos.
+- Movimiento: registro que afecta stock del lote con tipo (entrada, salida, ajuste), área, cantidad, motivo, fecha, usuario y observaciones.
+- Bitácora: acciones relevantes por usuario.
+
+REGLAS DE NEGOCIO CLAVE
+1. Stock no negativo: salidas requieren disponibilidad suficiente en el lote.
+2. Stock mínimo: alertas visuales cuando stock_actual < stock_mínimo.
+3. Trazabilidad por lote: todo movimiento guarda inventario_id y usuario_id.
+4. Áreas de salida/entrada controladas.
+5. Integridad referencial: claves foráneas entre movimientos, productos, inventarios y usuarios.
+6. Exportaciones: CSV respeta filtros y no expone datos sensibles.
+7. Auditoría: cambios críticos (usuarios, stock, ajustes) se registran en bitácora.
+8. Seguridad: protección CSRF en formularios, autorización por rol en cada módulo, sanitización de datos de entrada, control de intentos de acceso y bloqueo temporal tras múltiples fallos.
+
+CASOS DE USO PRINCIPALES
+
+CU-01 Autenticación de usuario
+- Actor: Administrador u Operador
+- Precondición: Usuario registrado
+- Flujo: Ingresa email/contraseña, valida, redirige a dashboard. Si falla, muestra error.
+- Poscondición: Sesión iniciada, login registrado en bitácora.
+
+CU-02 Ver Dashboard y KPIs
+- Actor: Operador/Administrador
+- Flujo: Muestra KPIs, permite ir a filtros/consultas.
+
+CU-03 Gestión de categorías y subcategorías
+- Actor: Operador/Administrador
+- Flujo: Crear/editar/eliminar categoría y subcategoría, listar y filtrar.
+- Reglas: nombres únicos, subcategoría requiere categoría válida.
+
+CU-04 Gestión de proveedores
+- Actor: Operador/Administrador
+- Flujo: Alta/edición/baja de proveedor, búsqueda y selección en formularios.
+- Reglas: datos básicos requeridos y unicidad razonable.
+
+CU-05 Gestión de productos/medicamentos
+- Actor: Operador/Administrador
+- Flujo: Crear producto con datos, listar, buscar, filtrar, editar y eliminar.
+- Reglas: código/nombre no duplicado, stock_mínimo >= 0.
+
+CU-06 Consultar inventario por lotes
+- Flujo: Accede a inventario, filtra, visualiza stock y alertas, abre detalle de lotes.
+
+CU-07 Registrar entrada por lote
+- Actor: Operador/Administrador
+- Flujo: Selecciona producto, ingresa datos de entrada, crea/incrementa lote, registra movimiento.
+- Validaciones: datos completos, stock incrementado.
+
+CU-08 Registrar salida por lote y área
+- Actor: Operador/Administrador
+- Flujo: Selecciona producto y lote, elige área, ingresa cantidad y motivo, valida y descuenta stock, registra movimiento.
+- Validaciones: stock suficiente, área válida.
+
+CU-09 Registrar ajuste de stock
+- Actor: Administrador (o autorizado)
+- Flujo: Selecciona producto y lote, ingresa cantidad y motivo, aplica ajuste y registra movimiento.
+- Validaciones: ajuste no deja stock < 0, auditoría.
+
+CU-10 Consultar movimientos
+- Actor: Todos
+- Flujo: Filtrar por fechas, producto, tipo, área y lote; ver detalle; exportar CSV.
+
+CU-11 Generar reportes
+- Actor: Todos
+- Flujo: Selecciona reporte, aplica filtros, visualiza/descarga.
+
+CU-12 Gestión de usuarios y roles (solo admin)
+- Actor: Administrador
+- Flujo: Crear/editar/eliminar usuarios, asignar rol.
+- Reglas: solo admin, no auto-deshabilitar único admin.
+
+CU-13 Bitácora y auditoría
+- Actor: Administrador/Auditor
+- Flujo: Consultar acciones por usuario/rango de fechas.
+
+CU-14 Configuración de stock mínimo
+- Actor: Operador/Administrador
+- Flujo: Definir/editar stock_mínimo por producto, ver alertas.
+
+MODELO DE DATOS (RESUMEN)
+- productos: id, nombre, categoria_id, subcategoria_id, proveedor_id, stock_mínimo, ...
+- inventarios: id, producto_id, stock, metadatos del lote, timestamps.
+- movimientos: id, producto_id, inventario_id, tipo, cantidad, motivo, fecha, usuario_id, observaciones, área, origen, timestamps.
+- reportes, categorias, subcategorias, proveedores, users, bitácora.
+
+CONSIDERACIONES NO FUNCIONALES
+- Rendimiento: índices en claves foráneas (producto_id, inventario_id, usuario_id, fecha, tipo); paginación en listados.
+- Seguridad: autenticación obligatoria, autorización por rol, CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal.
+- Usabilidad: feedback visual (toasts), formularios con old() y mensajes claros, exportación optimizada.
+
+CRITERIOS DE ACEPTACIÓN
+- Los flujos de entrada, salida y ajuste actualizan stock y registran movimientos con inventario_id y usuario_id.
+- Inventario muestra alertas y permite exportar CSV.
+- Solo Administrador gestiona usuarios y ajustes críticos.
+
+NOTAS
+- Áreas de salida: principal, acinf, agroalimentacion, odontologia.
+- Selección de lotes prioriza stock > 0; se recomienda FEFO si hay vencimiento por lote.

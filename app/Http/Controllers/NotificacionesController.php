@@ -18,29 +18,37 @@ class NotificacionesController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
         $isPanel = $request->boolean('panel');
-        // Movimientos recientes (últimos 15) y marcar si están leídos
-        $movimientos = Movimiento::with(['producto'])
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->limit(15)
-            ->get()
-            ->map(function($m) use ($user) {
-                $leido = $m->lecturas()->where('user_id', $user->id)->whereNotNull('read_at')->exists();
-                return [
-                    'id' => $m->id,
-                    'producto' => $m->producto?->nombre ?? 'N/A',
-                    'tipo' => $m->tipo,
-                    'cantidad' => $m->cantidad,
-                    'motivo' => $m->motivo,
-                    'fecha' => $m->fecha?->format('Y-m-d'),
-                    'leido' => $leido,
-                ];
-            });
-        // Contador no leídos (movimientos sin read_at para este usuario)
-        $unreadCount = Movimiento::whereDoesntHave('lecturas', function($q) use ($user) {
-                $q->where('user_id', $user->id)->whereNotNull('read_at');
-            })
-            ->count();
+
+        // Contador no leídos (con pequeña caché para aliviar carga en polling)
+        $cacheCountKey = 'notif_unread_user_'.$user->id;
+        $unreadCount = cache()->remember($cacheCountKey, 30, function() use ($user) {
+            return Movimiento::whereDoesntHave('lecturas', function($q) use ($user) {
+                    $q->where('user_id', $user->id)->whereNotNull('read_at');
+                })
+                ->count();
+        });
+
+        // Solo cargar items completos cuando el panel se abre (panel=1)
+        $movimientos = collect();
+        if ($isPanel) {
+            $movimientos = Movimiento::with(['producto'])
+                ->orderByDesc('fecha')
+                ->orderByDesc('id')
+                ->limit(15)
+                ->get()
+                ->map(function($m) use ($user) {
+                    $leido = $m->lecturas()->where('user_id', $user->id)->whereNotNull('read_at')->exists();
+                    return [
+                        'id' => $m->id,
+                        'producto' => $m->producto?->nombre ?? 'N/A',
+                        'tipo' => $m->tipo,
+                        'cantidad' => $m->cantidad,
+                        'motivo' => $m->motivo,
+                        'fecha' => $m->fecha?->format('Y-m-d'),
+                        'leido' => $leido,
+                    ];
+                });
+        }
         // Bitácora: solo si cambia unread o si es apertura del panel
         try {
             $cacheKey = 'notif_last_unread_user_'.$user->id;

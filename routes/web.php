@@ -92,8 +92,13 @@ Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index
 Route::get('/reportes/export-csv', [\App\Http\Controllers\ReportesController::class, 'exportCsv'])->middleware('auth')->name('reportes.export.csv');
 
 // ================= NOTIFICACIONES (campana) =================
-Route::get('/notificaciones/movimientos', [\App\Http\Controllers\NotificacionesController::class, 'movimientos'])->middleware('auth')->name('notificaciones.movimientos');
-Route::post('/notificaciones/movimientos/leer', [\App\Http\Controllers\NotificacionesController::class, 'leerMovimientos'])->middleware('auth')->name('notificaciones.movimientos.leer');
+// Throttle para evitar consultas excesivas y proteger backend ante ráfagas
+Route::get('/notificaciones/movimientos', [\App\Http\Controllers\NotificacionesController::class, 'movimientos'])
+    ->middleware(['auth','throttle:20,1'])
+    ->name('notificaciones.movimientos');
+Route::post('/notificaciones/movimientos/leer', [\App\Http\Controllers\NotificacionesController::class, 'leerMovimientos'])
+    ->middleware(['auth','throttle:20,1'])
+    ->name('notificaciones.movimientos.leer');
 
 // ================= PROVEEDORES (AJAX) =================
 Route::prefix('proveedores/ajax')->name('proveedores.ajax')->group(function() {

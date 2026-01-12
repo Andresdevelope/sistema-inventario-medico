@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -23,6 +24,29 @@ class AuthController extends Controller
             'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
         ]);
+
+        // reCAPTCHA v2 para registro (si está configurado)
+        $siteKey = config('services.recaptcha.site_key');
+        $secret = config('services.recaptcha.secret');
+        if ($siteKey && $secret) {
+            $captchaResponse = $request->input('g-recaptcha-response');
+            if (!$captchaResponse) {
+                return response()->json(['success' => false, 'message' => 'Por favor completa el reCAPTCHA.'], 422);
+            }
+            try {
+                $verify = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret' => $secret,
+                    'response' => $captchaResponse,
+                    'remoteip' => $request->ip(),
+                ]);
+                $result = $verify->json();
+                if (!$verify->ok() || empty($result['success'])) {
+                    return response()->json(['success' => false, 'message' => 'Verificación reCAPTCHA falló. Intenta nuevamente.'], 422);
+                }
+            } catch (\Throwable $e) {
+                return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+            }
+        }
 
 
         // Asignar rol: el primer usuario será admin, los demás operador
@@ -62,6 +86,29 @@ class AuthController extends Controller
             'username' => 'required|string',
             'password' => 'required|string',
         ]);
+
+        // Validación reCAPTCHA v2 (si está configurado)
+        $siteKey = config('services.recaptcha.site_key');
+        $secret = config('services.recaptcha.secret');
+        if ($siteKey && $secret) {
+            $captchaResponse = $request->input('g-recaptcha-response');
+            if (!$captchaResponse) {
+                return response()->json(['success' => false, 'message' => 'Por favor completa el reCAPTCHA.'], 422);
+            }
+            try {
+                $verify = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret' => $secret,
+                    'response' => $captchaResponse,
+                    'remoteip' => $request->ip(),
+                ]);
+                $result = $verify->json();
+                if (!$verify->ok() || empty($result['success'])) {
+                    return response()->json(['success' => false, 'message' => 'Verificación reCAPTCHA falló. Intenta nuevamente.'], 422);
+                }
+            } catch (\Throwable $e) {
+                return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+            }
+        }
 
         $user = User::where('name', $request->username)->first();
         if ($user) {
