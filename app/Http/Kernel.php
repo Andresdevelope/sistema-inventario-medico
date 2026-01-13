@@ -12,6 +12,8 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
+        // Confianza en proxies (X-Forwarded-*) para despliegues detrás de balanceadores
+        \App\Http\Middleware\TrustProxies::class,
         // ...middleware globales...
     ];
 
