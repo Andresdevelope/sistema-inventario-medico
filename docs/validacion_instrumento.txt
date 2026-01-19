@@ -95,6 +95,8 @@ Observaciones generales y tareas sugeridas
 - Mejorar accesibilidad (contraste, navegación por teclado, etiquetas ARIA) y validar HTML con W3C.
 - Documentar infraestructura/hardware, políticas de respaldo/recuperación y monitoreo.
 - Activar HTTPS/TLS en producción y revisar CORS.
+ - Activar HTTPS/TLS en producción y revisar CORS.
+	 (Aplicado: URLs forzadas a HTTPS en producción, TrustProxies registrado y CORS configurable vía .env/config/cors.php; ajustar APP_URL y CORS_ALLOWED_ORIGINS en despliegue.)
 - Evaluar 2FA (TOTP/email) para autenticación multinivel.
 - Añadir pruebas y CI para mantenibilidad y cobertura.
  - Configurar reCAPTCHA v2 en producción (services.recaptcha) y validar claves.

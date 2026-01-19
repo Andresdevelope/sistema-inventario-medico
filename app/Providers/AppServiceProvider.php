@@ -9,6 +9,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use App\Models\Categoria;
 use App\Models\Producto;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Forzar HTTPS en producción para URLs generadas por el framework
+        try {
+            if (config('app.env') === 'production') {
+                URL::forceScheme('https');
+            }
+        } catch (\Throwable $e) {}
         // ================= Rate limiting (login y recuperación) =================
         RateLimiter::for('login', function (Request $request) {
             $username = (string) ($request->input('username') ?? $request->input('email') ?? '');

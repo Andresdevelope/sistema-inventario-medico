@@ -111,6 +111,14 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   .container{ min-height:560px; }
   .form-container{ width:100%; }
 }
+/* Modal de éxito (registro) - diseño profesional y responsive */
+.success-modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:10001; padding:16px; }
+.success-modal-card{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); width:min(520px,92vw); max-width:92vw; padding:28px 24px; text-align:center; animation:modalIn .28s ease-out; }
+@keyframes modalIn{ from{ transform:translateY(12px) scale(.98); opacity:0; } to{ transform:none; opacity:1; } }
+.success-modal-icon{ width:64px; height:64px; margin:0 auto 12px; display:grid; place-items:center; border-radius:50%; background:linear-gradient(135deg, var(--accentH) 0%, var(--accent) 70%, #ff9f1c 100%); color:#fff; box-shadow:0 10px 24px rgba(255,140,0,.25); }
+.success-modal-title{ font-size:clamp(20px,2.4vw,24px); font-weight:800; color:var(--text); margin:0 0 8px; }
+.success-modal-text{ color:var(--muted); font-size:clamp(14px,2.1vw,16px); margin-bottom:10px; }
+.success-modal-subtext{ color:var(--accent); font-weight:600; }
 </style>
 @endpush
 
@@ -265,24 +273,34 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         });
         const data = await res.json();
         if (data?.success) {
-          // Mensaje bonito y redirección
+          // Modal de bienvenida con paleta naranja consistente
           let successMsg = document.getElementById('register-success-msg');
           if (!successMsg) {
             successMsg = document.createElement('div');
             successMsg.id = 'register-success-msg';
-            successMsg.innerHTML = `<div style="position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);">
-              <div style='background:var(--panel,#232a36);padding:36px 32px 28px 32px;border-radius:16px;box-shadow:0 8px 32px rgba(31,38,135,.37);text-align:center;max-width:90vw;min-width:320px;'>
-                <div style='font-size:2.5rem;line-height:1;margin-bottom:12px;color:#8ecae6;'><i class='fa fa-user-plus'></i></div>
-                <h2 style='color:#b7eac6;margin:0 0 10px;font-size:1.4rem;'>¡Registro exitoso!</h2>
-                <div style='color:#b0b8c1;font-size:1.1rem;margin-bottom:10px;'>Tu cuenta fue creada correctamente.</div>
-                <div style='color:#8ecae6;font-size:1rem;'>Redirigiendo al inicio de sesión…</div>
+            successMsg.innerHTML = `<div class="success-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="register-success-title">
+              <div class="success-modal-card">
+                <div class="success-modal-icon">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <h2 id="register-success-title" class="success-modal-title">¡Bienvenido al sistema!</h2>
+                <div class="success-modal-text">Tu cuenta fue creada correctamente.</div>
+                <div class="success-modal-subtext">Redirigiendo al inicio de sesión…</div>
               </div>
             </div>`;
             document.body.appendChild(successMsg);
           } else {
             successMsg.style.display = 'flex';
           }
-          setTimeout(() => { window.location.href = '{{ url('/login') }}'; }, 2200);
+          // Resetear el reCAPTCHA de registro para evitar tokens expirados si el usuario regresa
+          try {
+            if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
+              if (typeof recaptchaRegisterIndex === 'number') grecaptcha.reset(recaptchaRegisterIndex); else grecaptcha.reset();
+            }
+          } catch(_){}
+          setTimeout(() => { window.location.href = '{{ url('/login') }}'; }, 1800);
         } else {
           if (registerAlert) {
             registerAlert.textContent = data?.message || 'Error al registrar usuario.';
@@ -296,6 +314,12 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         }
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = originalText; }
+        // Resetear reCAPTCHA tras intento (éxito o fallo) para asegurar nuevo desafío
+        try {
+          if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
+            if (typeof recaptchaRegisterIndex === 'number') grecaptcha.reset(recaptchaRegisterIndex); else grecaptcha.reset();
+          }
+        } catch(_){}
       }
     });
   }
@@ -412,11 +436,25 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
           loginAlert.style.display = 'block';
           loginAlert.textContent = data?.message || 'Credenciales incorrectas';
         }
+        // Tras cualquier fallo de login, forzar refresh del reCAPTCHA
+        try {
+          if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
+            if (recaptchaLoginIndex === null) detectRecaptchaIndexes();
+            if (typeof recaptchaLoginIndex === 'number') grecaptcha.reset(recaptchaLoginIndex); else grecaptcha.reset();
+          }
+        } catch(_){}
       }
     } catch (err) {
       loginAlert.className = 'alert-box';
       loginAlert.style.display = 'block';
       loginAlert.textContent = 'Error de red: intenta nuevamente.';
+      // Reset también ante errores de red
+      try {
+        if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
+          if (recaptchaLoginIndex === null) detectRecaptchaIndexes();
+          if (typeof recaptchaLoginIndex === 'number') grecaptcha.reset(recaptchaLoginIndex); else grecaptcha.reset();
+        }
+      } catch(_){}
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
     }
