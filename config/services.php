@@ -36,6 +36,8 @@ return [
     ],
 
     'recaptcha' => [
+        // Habilita/deshabilita reCAPTCHA vía .env (RECAPTCHA_ENABLED=true/false)
+        'enabled' => env('RECAPTCHA_ENABLED', false),
         'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret' => env('RECAPTCHA_SECRET'),
     ],

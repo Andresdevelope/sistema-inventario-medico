@@ -89,8 +89,8 @@ button:hover{ background:var(--accentH); }
     <form id="recover-email-form">
       @csrf
   <input type="email" id="recover-email" placeholder="Correo registrado" required autocomplete="username" />
-      {{-- reCAPTCHA v2 para recuperación (paso de correo) --}}
-      @if(config('services.recaptcha.site_key'))
+      {{-- reCAPTCHA v2 para recuperación (paso de correo, solo si está habilitado) --}}
+      @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
         <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px auto 14px;display:inline-block;"></div>
       @endif
       <button type="submit">Continuar</button>
@@ -151,7 +151,7 @@ button:hover{ background:var(--accentH); }
 @endsection
 
 @push('scripts')
-@if(config('services.recaptcha.site_key'))
+@if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endif
 <script>

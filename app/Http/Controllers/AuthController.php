@@ -25,10 +25,11 @@ class AuthController extends Controller
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
         ]);
 
-        // reCAPTCHA v2 para registro (si está configurado)
+        // reCAPTCHA v2 para registro (si está habilitado y configurado)
+        $enabled = (bool) config('services.recaptcha.enabled');
         $siteKey = config('services.recaptcha.site_key');
         $secret = config('services.recaptcha.secret');
-        if ($siteKey && $secret) {
+        if ($enabled && $siteKey && $secret) {
             $captchaResponse = $request->input('g-recaptcha-response');
             if (!$captchaResponse) {
                 return response()->json(['success' => false, 'message' => 'Por favor completa el reCAPTCHA.'], 422);
@@ -44,7 +45,12 @@ class AuthController extends Controller
                     return response()->json(['success' => false, 'message' => 'Verificación reCAPTCHA falló. Intenta nuevamente.'], 422);
                 }
             } catch (\Throwable $e) {
-                return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+                // En desarrollo/testing, permitir continuar si la red falla (por ejemplo sin internet)
+                if (!app()->environment('production')) {
+                    // Log opcional: \Log::warning('reCAPTCHA no disponible: '.$e->getMessage());
+                } else {
+                    return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+                }
             }
         }
 
@@ -87,10 +93,11 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Validación reCAPTCHA v2 (si está configurado)
+        // Validación reCAPTCHA v2 (si está habilitado y configurado)
+        $enabled = (bool) config('services.recaptcha.enabled');
         $siteKey = config('services.recaptcha.site_key');
         $secret = config('services.recaptcha.secret');
-        if ($siteKey && $secret) {
+        if ($enabled && $siteKey && $secret) {
             $captchaResponse = $request->input('g-recaptcha-response');
             if (!$captchaResponse) {
                 return response()->json(['success' => false, 'message' => 'Por favor completa el reCAPTCHA.'], 422);
@@ -106,7 +113,12 @@ class AuthController extends Controller
                     return response()->json(['success' => false, 'message' => 'Verificación reCAPTCHA falló. Intenta nuevamente.'], 422);
                 }
             } catch (\Throwable $e) {
-                return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+                // En desarrollo/testing, permitir continuar si la red falla (por ejemplo sin internet)
+                if (!app()->environment('production')) {
+                    // Log opcional: \Log::warning('reCAPTCHA no disponible: '.$e->getMessage());
+                } else {
+                    return response()->json(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'], 500);
+                }
             }
         }
 

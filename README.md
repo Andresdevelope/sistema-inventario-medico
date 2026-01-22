@@ -29,6 +29,31 @@ Este sistema está preparado para funcionar completamente sin conexión a intern
 - Los avatares de usuario se generan localmente con iniciales, sin llamadas externas.
 
 Si ves algún parpadeo de diseño, asegúrate de haber ejecutado el build y limpiado cachés.
+
+## reCAPTCHA v2 (opcional)
+
+Este proyecto integra reCAPTCHA v2 en login/registro/recuperación, pero puedes activarlo o desactivarlo según tengas conexión a internet:
+
+- Activarlo (con internet):
+	1. En `.env`, establece `RECAPTCHA_ENABLED=true`.
+	2. Define tus claves: `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET`.
+	3. Limpia la caché de configuración:
+		 ```powershell
+		 php artisan config:clear
+		 ```
+	4. Refresca la página. Verás el widget y el backend validará el token.
+
+- Desactivarlo (sin internet):
+	1. En `.env`, establece `RECAPTCHA_ENABLED=false`.
+	2. Limpia la caché de configuración:
+		 ```powershell
+		 php artisan config:clear
+		 ```
+	3. Refresca la página. No se cargará el widget y el backend no exigirá token.
+
+Notas:
+- En entornos no producción (local/testing), si reCAPTCHA está habilitado pero la red falla, el sistema permite continuar para no bloquear el desarrollo.
+- En producción, si falla la verificación por red, se retornará error para mantener seguridad.
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

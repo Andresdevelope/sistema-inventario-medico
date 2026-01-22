@@ -27,6 +27,17 @@ SUPUESTOS Y CONTEXTO TÉCNICO
 - Exportación CSV de inventario disponible.
 - Seguridad reforzada: CSRF activo, autorización por rol, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en login y recuperación, y reCAPTCHA v2 opcional en login/registro si está configurado en .env.
 
+RECAPTCHA v2 — Activación/Desactivación (según internet)
+- Con internet (activar):
+	1) En `.env` establece `RECAPTCHA_ENABLED=true`.
+	2) Define tus claves: `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET`.
+	3) Limpia la caché de configuración: `php artisan config:clear`.
+	Resultado: se muestra el widget en login/registro/recuperación y el backend valida el token contra Google.
+- Sin internet (desactivar):
+	1) En `.env` establece `RECAPTCHA_ENABLED=false`.
+	2) Limpia la caché de configuración: `php artisan config:clear`.
+	Resultado: no se carga el widget ni se exige token en el backend. En entornos no producción, si está activado pero falla la red, el flujo no se bloquea.
+
 VOCABULARIO
 - Producto/Medicamento: ítem almacenable con stock mínimo.
 - Lote: registro en inventarios (por producto), con stock y metadatos.

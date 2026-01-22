@@ -147,8 +147,8 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <input type="text" name="color" placeholder="¿Color favorito?" required />
         <input type="text" name="animal" placeholder="¿Animal favorito?" required />
         <input type="text" name="padre" placeholder="¿Nombre del padre?" required />
-        {{-- reCAPTCHA v2 para registro --}}
-        @if(config('services.recaptcha.site_key'))
+        {{-- reCAPTCHA v2 para registro (solo si está habilitado) --}}
+        @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
           <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
         @endif
         <button type="submit">Registrarse</button>
@@ -167,8 +167,8 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
-        {{-- reCAPTCHA v2 checkbox --}} 
-        @if(config('services.recaptcha.site_key'))
+        {{-- reCAPTCHA v2 checkbox (solo si está habilitado) --}} 
+        @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
           <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
         @endif
         <a href="{{ url('/recover') }}">¿Olvidaste tu contraseña?</a>
@@ -194,8 +194,8 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 @endsection
 
 @push('scripts')
-{{-- Carga del script de reCAPTCHA v2 --}}
-@if(config('services.recaptcha.site_key'))
+{{-- Carga del script de reCAPTCHA v2 (solo si está habilitado) --}}
+@if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endif
 <script>

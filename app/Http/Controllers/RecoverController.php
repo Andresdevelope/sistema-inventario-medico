@@ -16,10 +16,11 @@ class RecoverController extends Controller
             'email' => 'required|email',
         ]);
 
-        // reCAPTCHA v2 para recuperación (si está configurado)
+        // reCAPTCHA v2 para recuperación (si está habilitado y configurado)
+        $enabled = (bool) config('services.recaptcha.enabled');
         $siteKey = config('services.recaptcha.site_key');
         $secret = config('services.recaptcha.secret');
-        if ($siteKey && $secret) {
+        if ($enabled && $siteKey && $secret) {
             $captchaResponse = $request->input('g-recaptcha-response');
             if (!$captchaResponse) {
                 return response()->json([
@@ -41,10 +42,15 @@ class RecoverController extends Controller
                     ], 422);
                 }
             } catch (\Throwable $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'
-                ], 500);
+                // En desarrollo/testing, permitir continuar si la red falla (por ejemplo sin internet)
+                if (!app()->environment('production')) {
+                    // Log opcional: \Log::warning('reCAPTCHA no disponible: '.$e->getMessage());
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se pudo verificar reCAPTCHA. Intenta más tarde.'
+                    ], 500);
+                }
             }
         }
 

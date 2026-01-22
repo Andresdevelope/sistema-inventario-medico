@@ -102,6 +102,10 @@ Observaciones generales y tareas sugeridas
  - Configurar reCAPTCHA v2 en producción (services.recaptcha) y validar claves.
  - Mantener índices en tablas de alto tráfico (movimientos, inventarios) y revisar consultas.
 
+Nota de operación con/sin internet (reCAPTCHA)
+- Para activar reCAPTCHA (con internet): establece `RECAPTCHA_ENABLED=true` en `.env`, configura `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET`, y ejecuta `php artisan config:clear`.
+- Para desactivarlo (sin internet): establece `RECAPTCHA_ENABLED=false` en `.env` y ejecuta `php artisan config:clear`. El widget no se carga y el backend no exige token. En entornos no producción, si reCAPTCHA estuviera activo pero la red falla, el sistema permite continuar para no bloquear desarrollo.
+
 ------------------------------------------------------------
 Datos del validador
 ------------------------------------------------------------
