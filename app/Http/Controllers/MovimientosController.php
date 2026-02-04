@@ -54,12 +54,20 @@ class MovimientosController extends Controller
             // En otros tipos se permite que quede vacío sin validar como string.
             'lote' => 'nullable|required_if:tipo,ingreso,ajuste_pos|string|max:50',
             'destino_id' => 'required_if:tipo,egreso|nullable|exists:destinos,id',
+            // Modalidad requerida en egresos: distribucion o consumo
+            'modalidad' => 'nullable|required_if:tipo,egreso|in:distribucion,consumo',
+            // Datos mínimos de beneficiario cuando modalidad = consumo
+            'tipo_identificacion' => 'nullable|required_if:modalidad,consumo|in:estudiante,trabajador,profesor,comunidad',
+            'sexo' => 'nullable|required_if:modalidad,consumo|in:F,M,otro',
             'inventario_objetivo_id' => 'nullable|exists:inventarios,id',
         ], [
             'fecha_vencimiento.required_if' => 'Debe ingresar la fecha de vencimiento para entradas y ajustes positivos',
             'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy',
             'lote.required_if' => 'Debe ingresar el número de lote o seleccionar uno de la tabla para entradas y ajustes positivos',
             'destino_id.required_if' => 'Debe seleccionar un destino para egresos',
+            'modalidad.required_if' => 'Para egresos indique si es distribución o consumo',
+            'tipo_identificacion.required_if' => 'Para consumo debe indicar el tipo de beneficiario',
+            'sexo.required_if' => 'Para consumo debe indicar el sexo del beneficiario',
         ]);
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -81,6 +89,9 @@ class MovimientosController extends Controller
                 'entrada' => $data['entrada'] ?? null,
                 'destino_id' => $data['tipo']==='egreso' ? ($data['destino_id'] ?? null) : null,
                 'inventario_objetivo_id' => in_array($data['tipo'], ['egreso','ajuste_neg']) ? ($data['inventario_objetivo_id'] ?? null) : null,
+                'modalidad' => $data['tipo']==='egreso' ? ($data['modalidad'] ?? null) : null,
+                'tipo_identificacion' => $data['tipo']==='egreso' ? ($data['tipo_identificacion'] ?? null) : null,
+                'sexo' => $data['tipo']==='egreso' ? ($data['sexo'] ?? null) : null,
             ]);
             // Bitácora: movimiento creado
             try {
@@ -98,6 +109,9 @@ class MovimientosController extends Controller
                             'motivo' => $data['motivo'] ?? null,
                             'area' => $data['area'] ?? null,
                             'destino_id' => $data['tipo']==='egreso' ? ($data['destino_id'] ?? null) : null,
+                            'modalidad' => $data['tipo']==='egreso' ? ($data['modalidad'] ?? null) : null,
+                            'tipo_identificacion' => $data['tipo']==='egreso' ? ($data['tipo_identificacion'] ?? null) : null,
+                            'sexo' => $data['tipo']==='egreso' ? ($data['sexo'] ?? null) : null,
                         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'fecha_hora' => now(),
                     ]);
@@ -142,5 +156,59 @@ class MovimientosController extends Controller
             'producto_id' => $productoId,
             'inventarios' => $inventarios,
         ]);
+    }
+
+    /**
+     * Historial de Consumo: lista de movimientos tipo egreso con modalidad consumo,
+     * con filtros por periodo, destino, producto, sexo y tipo_identificacion.
+     */
+    public function historialConsumo(Request $request)
+    {
+        $query = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,lote,fecha_vencimiento', 'destino:id,nombre'])
+            ->where('tipo', 'egreso')
+            ->where('modalidad', 'consumo');
+
+        // Filtros
+        if ($request->filled('destino_id')) {
+            $query->where('destino_id', (int)$request->input('destino_id'));
+        }
+        if ($request->filled('producto_id')) {
+            $query->where('producto_id', (int)$request->input('producto_id'));
+        }
+        if ($request->filled('sexo')) {
+            $query->where('sexo', $request->input('sexo'));
+        }
+        if ($request->filled('tipo_identificacion')) {
+            $query->where('tipo_identificacion', $request->input('tipo_identificacion'));
+        }
+        if ($request->filled('desde')) {
+            $query->whereDate('fecha', '>=', $request->input('desde'));
+        }
+        if ($request->filled('hasta')) {
+            $query->whereDate('fecha', '<=', $request->input('hasta'));
+        }
+
+        $perPage = (int)$request->input('per_page', 20);
+        $consumos = $query->orderByDesc('fecha')->orderByDesc('id')->paginate($perPage)->appends($request->query());
+
+        // Datos para filtros
+        $destinos = \App\Models\Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre']);
+        $productos = Producto::orderBy('nombre')->get(['id','nombre','codigo']);
+
+        // Bitácora: ingreso a historial de consumo
+        try {
+            if (Auth::check()) {
+                Bitacora::create([
+                    'user_id' => Auth::id(),
+                    'accion' => 'consumo.historial',
+                    'detalles' => json_encode([
+                        'filtros' => $request->except(['_token'])
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'fecha_hora' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
+        return view('movimientos.historial_consumo', compact('consumos','destinos','productos'));
     }
 }

@@ -47,6 +47,13 @@
               <label for="unidad_medida"><i class="fas fa-ruler me-2"></i> Unidad de Medida</label>
             </div>
             <div class="form-floating mb-3 position-relative">
+              <select name="tipo_producto" id="tipo_producto" class="form-select ps-5" required>
+                <option value="medicamento" {{ old('tipo_producto', 'medicamento') == 'medicamento' ? 'selected' : '' }}>Medicamento</option>
+                <option value="insumo" {{ old('tipo_producto') == 'insumo' ? 'selected' : '' }}>Insumo</option>
+              </select>
+              <label for="tipo_producto"><i class="fas fa-tags me-2"></i> Tipo de Producto</label>
+            </div>
+            <div class="form-floating mb-3 position-relative">
               <select name="categoria_inventario" id="categoria_inventario" class="form-select ps-5" required>
                 <option value="general" {{ old('categoria_inventario', 'general') == 'general' ? 'selected' : '' }}>Inventario General</option>
                 <option value="odontologia" {{ old('categoria_inventario') == 'odontologia' ? 'selected' : '' }}>Odontología</option>

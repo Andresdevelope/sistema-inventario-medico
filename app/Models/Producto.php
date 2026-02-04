@@ -20,6 +20,7 @@ class Producto extends Model
         'subcategoria_id',
         'presentacion',
         'unidad_medida',
+        'tipo_producto',
         'categoria_inventario',
         'stock',
         'stock_minimo',

@@ -1,40 +1,48 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA RELACIONAL
-Fecha: 12/01/2026
+Fecha: 31/01/2026
 
-Este diagrama refleja las tablas y relaciones actuales según las migraciones del proyecto (MySQL/XAMPP). Incluye trazabilidad por lote en movimientos (inventario_id) y áreas de salida/entrada.
+Este diagrama refleja las tablas y relaciones actuales según las migraciones del proyecto (MySQL/XAMPP), e incorpora la política “solo blíster” para sólidos y el reporte de salidas (Farmacia Interna). Mantiene trazabilidad por lote en movimientos (inventario_id) y control por destinos.
 
 TABLAS PRINCIPALES Y CAMPOS CLAVE
 - CATEGORIAS: id (PK), nombre (único), created_at, updated_at
 - SUBCATEGORIAS: id (PK), nombre, categoria_id (FK), created_at, updated_at
 - PROVEEDORES: id (PK), nombre, contacto, teléfono, dirección, email, created_at, updated_at
-- PRODUCTOS: id (PK), nombre, código (único), descripción, categoria_id (FK), subcategoria_id (FK), presentación, unidad_medida, categoria_inventario, stock, stock_mínimo, proveedor_id, fecha_ingreso, fecha_vencimiento, created_by, updated_by, created_at, updated_at
-- INVENTARIOS: id (PK), producto_id (FK), lote, cantidad, fecha_vencimiento, stock_mínimo, estado, created_at, updated_at
-- MOVIMIENTOS: id (PK), producto_id (FK), tipo (ingreso, egreso, ajuste_pos, ajuste_neg), salida (área), destino_id (FK, NULL), inventario_id (FK, NULL), entrada (origen), cantidad, motivo, fecha, usuario_id (FK, NULL), observaciones, created_at, updated_at
+- PRODUCTOS: id (PK), nombre, código (único), descripción, categoria_id (FK), subcategoria_id (FK), presentación, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario (segmento: general|odontologia), stock, stock_mínimo, proveedor_id, fecha_ingreso, fecha_vencimiento, created_by, updated_by, created_at, updated_at
+  (Nota catálogo: cada forma farmacéutica y UM es un producto distinto; no mezclar jarabe/crema/blíster bajo el mismo producto.)
+- INVENTARIOS (por lote): id (PK), producto_id (FK), lote, cantidad (operativa), fecha_vencimiento, stock_mínimo, estado, created_at, updated_at
+  (Política operativa: para sólidos, cantidad se registra en blíster. Propuesto: campos adicionales por lote: unidades_por_blister (int), cantidad_blister (int).)
+ - MOVIMIENTOS: id (PK), producto_id (FK), tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), salida (área), destino_id (FK, NULL), inventario_id (FK, NULL), entrada (origen), cantidad (operativa), motivo, fecha, usuario_id (FK, NULL), observaciones, tipo_identificacion (enum: estudiante|trabajador|profesor|comunidad), sexo (enum: F|M|otro), created_at, updated_at
+  (Interpretación: cantidad = blíster para medicamentos sólidos; = unidad para insumos.)
 - USERS: id (PK), name, email (único), email_verified_at, password, security_color_answer, security_animal_answer, security_padre_answer, login_attempts, locked_until, role, remember_token, created_at, updated_at
 - BITACORA: id (PK), user_id (FK), acción, detalles, fecha_hora
-- REPORTES: id (PK), nombre, tipo, parámetros, usuario_id (FK, NULL), created_at, updated_at
- - DESTINOS: id (PK), codigo (único), nombre, activo, tipo, created_at, updated_at
- - MOVIMIENTO_USER_READS (pivot): id (PK), movimiento_id (FK), user_id (FK), read_at, created_at, updated_at
+- REPORTES: id (PK), nombre, tipo (inventario_periodico|salidas_farmacia_interna|...), parámetros, usuario_id (FK, NULL), created_at, updated_at
+- DESTINOS: id (PK), codigo (único), nombre, activo, tipo, created_at, updated_at
+- MOVIMIENTO_USER_READS (pivot): id (PK), movimiento_id (FK), user_id (FK), read_at, created_at, updated_at
 
 RELACIONES PRINCIPALES
 - CATEGORIAS contiene SUBCATEGORIAS y clasifica PRODUCTOS.
 - SUBCATEGORIAS agrupa PRODUCTOS.
 - PROVEEDORES provee PRODUCTOS.
-- PRODUCTOS tiene INVENTARIOS y afecta MOVIMIENTOS.
-- INVENTARIOS registra MOVIMIENTOS.
+- PRODUCTOS tiene INVENTARIOS (por lote) y afecta MOVIMIENTOS.
+- INVENTARIOS registra MOVIMIENTOS (trazabilidad por inventario_id/lote).
 - USERS realiza MOVIMIENTOS, genera REPORTES y registra BITÁCORA.
- - DESTINOS agrupa salidas (egresos) y se relaciona 1..N con MOVIMIENTOS.
- - MOVIMIENTOS tiene lecturas N..N con USERS vía MOVIMIENTO_USER_READS.
-
+- DESTINOS agrupa salidas (egresos) y se relaciona 1..N con MOVIMIENTOS.
+- MOVIMIENTOS tiene lecturas N..N con USERS vía MOVIMIENTO_USER_READS.
 
 NOTAS
-- MOVIMIENTOS.inventario_id es NULLABLE para cubrir excepciones, pero se recomienda asociarlo siempre al lote para trazabilidad.
-- PROVEEDORES no tiene FK forzada en migración de PRODUCTOS, pero la relación existe lógicamente.
-- Áreas de salida controladas: principal, acinf, agroalimentacion, odontologia.
-- Índices recomendados: producto_id, inventario_id, usuario_id, fecha, tipo, categoria_id, subcategoria_id.
-- Seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada, control de intentos de acceso y bloqueo, rate limiting en login/recuperación, reCAPTCHA v2 opcional.
+- Política “solo blíster”: el sistema opera en blíster para sólidos; no registra ni descuenta pastillas individuales. Insumos operan en UM “unidad”.
+- MOVIMIENTOS.inventario_id es NULLABLE para cubrir excepciones, pero se recomienda asociarlo siempre al lote para trazabilidad (FEFO en consumo).
+- Odontología: solo insumos. Validar por `productos.tipo_producto`; transacciones que intenten medicamentos → rechazadas (consumo y distribución).
+- Áreas/destinos controlados: principal/ppal, aci, agroalimentacion/agro, odontologia. Se recomienda normalizar códigos en `DESTINOS` y permitir alias visibles en reportes (p. ej. “BÁSICO”, “ÁREA”, “E. BRACHO”).
+- Índices recomendados: producto_id, inventario_id, destino_id, usuario_id, fecha, tipo, modalidad, tipo_identificacion, sexo, categoria_id, subcategoria_id.
+- Seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF, sanitización de entrada, control de intentos y bloqueo, rate limiting, reCAPTCHA v2 opcional.
 - Bitácora de auditoría para registrar acciones críticas y movimientos.
- - Migraciones recientes: índice único en subcategorías por categoría (consistencia); tabla pivot de lecturas de movimientos; campos de seguridad en usuarios.
+- Migraciones propuestas: agregar en MOVIMIENTOS los campos `tipo_identificacion` y `sexo`; en INVENTARIOS por lote `unidades_por_blister` y `cantidad_blister`.
+
+REPORTES (vista lógica)
+- Inventario periódico (matriz por destino): título “INVENTARIO DE MEDICAMENTOS E INSUMOS”, periodo (mensual/trimestral/semestral/anual), columnas por destino con fecha de corte; UM respetada (blíster/unidad); total global.
+- Salidas — FARMACIA INTERNA: filas por destino (p. ej. BÁSICO/PPAL, ÁREA, E. BRACHO, TOTAL); columnas: Medicamentos entregados (blíster), Beneficiarios (entregas), F, M, EST, TRAB, COM; columna opcional “Insumos entregados (unidades)”. Odontología = 0 en medicamentos; insumos se reportan en sus plantillas (Insumos varios, Inyectadoras, Guantes).
+ - Exportaciones: 10.1 en PDF (A4 landscape); detalle de consumo en CSV. Filtros por tipo/categoría/subcategoría y selección de periodo.
 
 CONCLUSIÓN
-El diagrama relacional es técnico y sirve para implementar y optimizar la base de datos. Muestra tablas, columnas, claves foráneas y restricciones.
+El diagrama relacional incorpora la operación por blíster y los campos mínimos para reportar salidas sin datos personales. Se mantiene la trazabilidad por lote (inventario_id) y el control por destinos, con restricciones específicas para Odontología. Los reportes definidos (inventario periódico y salidas) se calculan directamente desde MOVIMIENTOS con UM consistente por producto.

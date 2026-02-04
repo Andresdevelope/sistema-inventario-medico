@@ -19,7 +19,110 @@
 <div class="container mt-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="m-0">Registrar Movimiento</h2>
-    <a href="{{ route('inventario.index') }}" class="btn btn-outline-secondary">Ver Inventario</a>
+    <div class="d-flex gap-2">
+      <a href="{{ route('inventario.index') }}" class="btn btn-orange">Ver Inventario <span class="btn-badge ms-1">INV</span></a>
+    </div>
+  </div>
+
+  @php
+    $oldTipo = old('tipo', 'ingreso');
+    $oldModalidad = old('modalidad');
+    $isEntrada = $oldTipo === 'ingreso';
+    $isDistribucion = ($oldTipo === 'egreso' && $oldModalidad === 'distribucion');
+    $isConsumo = ($oldTipo === 'egreso' && $oldModalidad === 'consumo');
+    $isAjustePos = $oldTipo === 'ajuste_pos';
+    $isAjusteNeg = $oldTipo === 'ajuste_neg';
+  @endphp
+
+  <ul class="nav nav-tabs mb-3" id="tabs-mov" role="tablist" aria-label="Seleccionar tipo de movimiento">
+    <li class="nav-item"><a href="#" class="nav-link {{ $isEntrada ? 'active' : '' }}" role="tab" aria-selected="{{ $isEntrada ? 'true' : 'false' }}" tabindex="0" data-tab="entrada"><i class="fa fa-plus me-1"></i>Entrada</a></li>
+    <li class="nav-item"><a href="#" class="nav-link {{ $isDistribucion ? 'active' : '' }}" role="tab" aria-selected="{{ $isDistribucion ? 'true' : 'false' }}" tabindex="0" data-tab="distribucion"><i class="fa fa-share me-1"></i>Distribución <span class="badge tab-badge ms-1">DESTINOS</span></a></li>
+    <li class="nav-item"><a href="#" class="nav-link {{ $isConsumo ? 'active' : '' }}" role="tab" aria-selected="{{ $isConsumo ? 'true' : 'false' }}" tabindex="0" data-tab="consumo"><i class="fa fa-user me-1"></i>Consumo <span class="badge tab-badge ms-1">BENEFICIARIOS</span></a></li>
+    <li class="nav-item"><a href="#" class="nav-link {{ $isAjustePos ? 'active' : '' }}" role="tab" aria-selected="{{ $isAjustePos ? 'true' : 'false' }}" tabindex="0" data-tab="ajuste_pos"><i class="fa fa-plus-circle me-1"></i>Ajuste +</a></li>
+    <li class="nav-item"><a href="#" class="nav-link {{ $isAjusteNeg ? 'active' : '' }}" role="tab" aria-selected="{{ $isAjusteNeg ? 'true' : 'false' }}" tabindex="0" data-tab="ajuste_neg"><i class="fa fa-minus-circle me-1"></i>Ajuste -</a></li>
+  </ul>
+  <!-- Indicador persistente de sección actual para orientación del usuario -->
+  <div class="d-flex align-items-center mb-3" id="section-indicator-wrap">
+    <span id="section-indicator" class="section-indicator" aria-live="polite">Sección actual: {{ $isEntrada ? 'Entrada' : ($isDistribucion ? 'Distribución' : ($isConsumo ? 'Consumo' : ($isAjustePos ? 'Ajuste +' : 'Ajuste -'))) }}</span>
+    <span id="section-indicator-live" class="visually-hidden" aria-live="polite"></span>
+  </div>
+  <style>
+    /* Botones de tabs usando paleta del sistema (orange) con fallback */
+    #tabs-mov .nav-link {
+      background-color: var(--color-orange-500, #FF8A00);
+      color: #fff;
+      border-radius: .5rem;
+      margin-right: .25rem;
+      border: 1px solid rgba(0,0,0,.05);
+    }
+    #tabs-mov .nav-link.active {
+      background-color: var(--color-orange-600, #FF7300);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    #tabs-mov .nav-link:hover { background-color: var(--color-orange-400, #FF9E33); color: #fff; }
+    #tabs-mov { border-bottom: none; }
+    /* Badges dentro de tabs: pill translúcido sobre fondo naranja */
+    #tabs-mov .tab-badge {
+      background-color: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    /* Botón naranja del sistema reutilizable */
+    .btn-orange {
+      background-color: var(--color-orange-600, #FF7300);
+      color: #fff !important;
+      border: 1px solid var(--color-orange-700, #E56200);
+      transition: background-color .2s ease, box-shadow .2s ease, transform .05s ease;
+    }
+    .btn-orange:hover {
+      background-color: var(--color-orange-500, #FF8A00);
+      color: #fff !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+    }
+    .btn-orange:active { transform: translateY(1px); }
+    /* Badge decorativo dentro del botón (similar a tabs) */
+    .btn-badge {
+      display: inline-block;
+      background-color: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+      color: #fff;
+      font-size: .75rem;
+      padding: .1rem .35rem;
+      border-radius: .5rem;
+      vertical-align: middle;
+    }
+    /* Indicador visible y accesible de la sección actual */
+    .section-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: linear-gradient(90deg, var(--color-orange-600, #FF7300), var(--color-orange-500, #FF8A00));
+      color: #fff;
+      padding: .35rem .6rem;
+      border-radius: .5rem;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    /* Utilidad de accesibilidad para contenido sólo para lectores de pantalla */
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap; /* avoid text wrapping */
+      border: 0;
+    }
+  </style>
+
+  {{-- Enlace al Historial de Consumo: visible solo cuando la pestaña Consumo está activa --}}
+  <div class="text-end mb-2" id="consumo-hist-link" style="display:none;">
+    <a href="{{ route('consumo.historial') }}" class="btn btn-sm btn-orange"><i class="fa fa-list me-1"></i> Historial de Consumo</a>
   </div>
 
   @php
@@ -68,6 +171,8 @@
       {{-- Formulario principal de registro de movimientos --}}
       <form method="POST" action="{{ route('movimientos.store') }}" class="row g-3">
         @csrf
+        <input type="hidden" name="modalidad" id="modalidad" value="{{ old('modalidad') }}">
+        <input type="hidden" name="tipo" id="tipo" value="{{ $oldTipo }}">
         <div class="col-md-5">
           <label class="form-label">Medicamento</label>
           <div class="position-relative">
@@ -82,29 +187,39 @@
           </select>
           <small class="text-muted">Escribe para buscar, selecciona una sugerencia o usa el listado.</small>
         </div>
-        <div class="col-md-3">
-          <label class="form-label">Tipo</label>
-          <select name="tipo" id="tipo" class="form-select" required>
-            <option value="ingreso" @selected(old('tipo')==='ingreso')>Entrada</option>
-            <option value="egreso" @selected(old('tipo')==='egreso')>Salida</option>
-            <option value="ajuste_pos" @selected(old('tipo')==='ajuste_pos')>Ajuste +</option>
-            <option value="ajuste_neg" @selected(old('tipo')==='ajuste_neg')>Ajuste -</option>
-          </select>
-        </div>
-        <div class="col-md-4" id="destino-wrapper" style="{{ old('tipo','ingreso')==='egreso' ? '' : 'display:none;' }}">
-          <label class="form-label">Destino (solo SALIDA)</label>
+        {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
+        <div class="col-md-4" id="destino-wrapper" style="{{ $oldTipo==='egreso' ? '' : 'display:none;' }}">
+          <label class="form-label" id="destino-label">Destino</label>
           @php $hayDestinos = isset($destinos) && count($destinos)>0; @endphp
           <select name="destino_id" id="destino_id" class="form-select">
             <option value="">Seleccione destino...</option>
             @if($hayDestinos)
               @foreach($destinos as $d)
-                <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }} ({{ $d->codigo }})</option>
+                <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }}</option>
               @endforeach
             @endif
           </select>
           @if(!$hayDestinos)
             <div class="alert alert-warning mt-2 p-2 small mb-0">No hay destinos cargados. Ejecute migraciones y seeders (php artisan migrate --seed) o verifique la tabla <code>destinos</code>.</div>
           @endif
+        </div>
+        <div class="col-md-4" id="beneficiario-wrapper" style="display:none;">
+          <label class="form-label">Datos del beneficiario (Consumo)</label>
+          <div class="d-flex gap-2">
+            <select name="tipo_identificacion" id="tipo_identificacion" class="form-select">
+              <option value="">Tipo de identificación...</option>
+              @foreach(['estudiante','trabajador','profesor','comunidad'] as $ti)
+                <option value="{{ $ti }}" @selected(old('tipo_identificacion')===$ti)>{{ strtoupper($ti) }}</option>
+              @endforeach
+            </select>
+            <select name="sexo" id="sexo" class="form-select" style="max-width: 140px;">
+              <option value="">Sexo...</option>
+              @foreach(['F','M','otro'] as $sx)
+                <option value="{{ $sx }}" @selected(old('sexo')===$sx)>{{ strtoupper($sx) }}</option>
+              @endforeach
+            </select>
+          </div>
+          <small class="text-muted">Se registran solo métricas, sin datos personales.</small>
         </div>
         <div class="col-md-2">
           <label class="form-label">Cantidad</label>
@@ -116,7 +231,7 @@
         </div>
 
         <div class="col-md-3" id="fv-wrapper">
-          <label class="form-label">Fecha de vencimiento (ENTRADA y AJUSTE +)</label>
+          <label class="form-label">Fecha de vencimiento </label>
           <input type="date" class="form-control" name="fecha_vencimiento" value="{{ old('fecha_vencimiento') }}">
         </div>
         <div class="col-md-3" id="lote-wrapper">
@@ -124,6 +239,9 @@
           <input type="text" class="form-control" maxlength="50" name="lote" value="{{ old('lote') }}" placeholder="Ej: L-2025-AX13">
           <div class="form-text mt-1">Sugerencia: usa la tabla inferior para elegir un lote con los botones “+” o “Elegir lote”, o escribe uno nuevo.</div>
           <div id="lote-advice" class="small mt-1 text-muted"></div>
+        </div>
+        <div class="col-12" id="banner-blister" style="display:none;">
+          <div class="alert alert-info py-2 mb-0"><strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.</div>
         </div>
         <div class="col-md-3">
           <label class="form-label">Motivo</label>
@@ -135,7 +253,7 @@
         </div>
 
         <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="submit" class="btn btn-orange">Registrar movimiento <span class="btn-badge ms-1">MOV</span></button>
         </div>
       </form>
     </div>
@@ -311,6 +429,9 @@
   const fvWrap = document.getElementById('fv-wrapper');
   const loteWrap = document.getElementById('lote-wrapper');
   const destinoWrap = document.getElementById('destino-wrapper');
+  const beneficiarioWrap = document.getElementById('beneficiario-wrapper');
+  const modalidadInput = document.getElementById('modalidad');
+  const bannerBlister = document.getElementById('banner-blister');
   const productoSel = document.querySelector('select[name="producto_id"]');
   const productoBuscar = document.getElementById('producto_buscar');
   const productoSugerencias = document.getElementById('producto_sugerencias');
@@ -603,6 +724,18 @@
     fvWrap.style.display = esIngresoOPos ? 'block' : 'none';
     loteWrap.style.display = esIngresoOPos ? 'block' : 'none';
     destinoWrap.style.display = (tipoSel.value === 'egreso') ? 'block' : 'none';
+    const esConsumo = (tipoSel.value === 'egreso' && (modalidadInput.value || '') === 'consumo');
+    beneficiarioWrap.style.display = esConsumo ? 'block' : 'none';
+    // Banner blíster visible en Entrada y Consumo
+    bannerBlister.style.display = (esIngresoOPos || esConsumo) ? 'block' : 'none';
+    // Enlace a Historial de Consumo sólo cuando está activa la pestaña Consumo
+    const consumoHistLink = document.getElementById('consumo-hist-link');
+    if (consumoHistLink) consumoHistLink.style.display = esConsumo ? 'block' : 'none';
+    // Cambiar etiqueta de destino: "Distribución" cuando modalidad es distribucion
+    const destLabel = document.getElementById('destino-label');
+    if (tipoSel.value === 'egreso') {
+      destLabel.textContent = (modalidadInput.value === 'distribucion') ? 'Distribución' : 'Destino';
+    }
     // Limpiar selección de lote objetivo si el tipo no lo usa
     if (!(tipoSel.value === 'ajuste_neg')) {
       hiddenTarget.value = '';
@@ -619,9 +752,87 @@
     renderInventariosTable();
     reapplyHighlights();
     updateClearButtonVisibility();
+    // Sincronizar el estado visual del tab y el indicador cuando el cambio no proviene de un click de tab
+    updateTabActiveFromState();
+    updateSectionIndicatorFromCurrent();
   }
   document.addEventListener('DOMContentLoaded', toggleExtras);
-  tipoSel.addEventListener('change', toggleExtras);
+  // tipoSel es oculto; toggleExtras se invoca desde setActiveTab
+  // Tabs de navegación
+  const tabs = document.querySelectorAll('#tabs-mov a.nav-link');
+  function setActiveTab(tab) {
+    tabs.forEach(a => {
+      const isActive = (a.dataset.tab === tab);
+      a.classList.toggle('active', isActive);
+      a.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    switch(tab){
+      case 'entrada': tipoSel.value='ingreso'; modalidadInput.value=''; break;
+      case 'distribucion': tipoSel.value='egreso'; modalidadInput.value='distribucion'; break;
+      case 'consumo': tipoSel.value='egreso'; modalidadInput.value='consumo'; break;
+      case 'ajuste_pos': tipoSel.value='ajuste_pos'; modalidadInput.value=''; break;
+      case 'ajuste_neg': tipoSel.value='ajuste_neg'; modalidadInput.value=''; break;
+    }
+    // Actualizar visibilidad de campos tras cambiar tipo/modalidad
+    toggleExtras();
+    // Actualizar indicador visible y anuncio accesible
+    updateSectionIndicatorFromCurrent();
+  }
+  tabs.forEach(a => a.addEventListener('click', (e) => { e.preventDefault(); setActiveTab(a.dataset.tab); }));
+  // Navegación con teclado en tabs (Izquierda/Derecha para moverse, Enter/Espacio para activar)
+  tabs.forEach((a, idx) => {
+    a.addEventListener('keydown', (e) => {
+      const total = tabs.length;
+      let targetIdx = idx;
+      if (e.key === 'ArrowRight') { e.preventDefault(); targetIdx = Math.min(total-1, idx+1); tabs[targetIdx].focus(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); targetIdx = Math.max(0, idx-1); tabs[targetIdx].focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); tabs[0].focus(); }
+      else if (e.key === 'End') { e.preventDefault(); tabs[total-1].focus(); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTab(a.dataset.tab); }
+    });
+  });
+  function currentTabKey(){
+    if (tipoSel.value === 'ingreso') return 'entrada';
+    if (tipoSel.value === 'egreso' && modalidadInput.value === 'distribucion') return 'distribucion';
+    if (tipoSel.value === 'egreso' && modalidadInput.value === 'consumo') return 'consumo';
+    if (tipoSel.value === 'ajuste_pos') return 'ajuste_pos';
+    if (tipoSel.value === 'ajuste_neg') return 'ajuste_neg';
+    return 'entrada';
+  }
+  function updateTabActiveFromState(){
+    const key = currentTabKey();
+    tabs.forEach(a => {
+      const isActive = (a.dataset.tab === key);
+      a.classList.toggle('active', isActive);
+      a.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+  function labelForCurrentSection(){
+    if (tipoSel.value === 'ingreso') return 'Entrada';
+    if (tipoSel.value === 'egreso' && modalidadInput.value === 'distribucion') return 'Distribución';
+    if (tipoSel.value === 'egreso' && modalidadInput.value === 'consumo') return 'Consumo';
+    if (tipoSel.value === 'ajuste_pos') return 'Ajuste +';
+    if (tipoSel.value === 'ajuste_neg') return 'Ajuste -';
+    return 'Movimiento';
+  }
+  function updateSectionIndicatorFromCurrent(){
+    const label = labelForCurrentSection();
+    const ind = document.getElementById('section-indicator');
+    const live = document.getElementById('section-indicator-live');
+    if (ind) ind.textContent = `Sección actual: ${label}`;
+    if (live) live.textContent = `Sección actual: ${label}`;
+  }
+  // Activar tab inicial a partir del estado del select y modalidad
+  document.addEventListener('DOMContentLoaded', () => {
+    let initial = 'entrada';
+    if (tipoSel.value === 'egreso' && modalidadInput.value === 'distribucion') initial = 'distribucion';
+    else if (tipoSel.value === 'egreso' && modalidadInput.value === 'consumo') initial = 'consumo';
+    else if (tipoSel.value === 'ajuste_pos') initial = 'ajuste_pos';
+    else if (tipoSel.value === 'ajuste_neg') initial = 'ajuste_neg';
+    setActiveTab(initial);
+    toggleExtras();
+    updateSectionIndicatorFromCurrent();
+  });
   async function cargarInventariosProducto() {
     // Carga vía AJAX los inventarios del producto seleccionado para el panel auxiliar
     const id = productoSel.value;

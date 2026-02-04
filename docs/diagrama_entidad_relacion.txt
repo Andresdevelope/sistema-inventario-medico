@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA ENTIDAD-RELACIÓN (ER)
-Fecha: 12/01/2026
+Fecha: 31/01/2026
 
 Este diagrama conceptual refleja las entidades principales del dominio, sus atributos y relaciones. Está alineado con las migraciones actuales y la trazabilidad por lote.
 
@@ -19,14 +19,15 @@ RELACIONES PRINCIPALES
 - USUARIO registra MOVIMIENTOS, genera REPORTES y realiza acciones en BITÁCORA.
  - DESTINO agrupa salidas (egresos) por área/unidad.
  - MOVIMIENTO <-> USUARIO (N:N) a través de movimiento_user_reads para marcar notificaciones leídas.
+ - MOVIMIENTO (egreso) lleva una MODALIDAD: distribución (Central → Destinos) o consumo (entrega real).
 
 ATRIBUTOS CLAVE POR ENTIDAD
 - CATEGORIA: id, nombre
 - SUBCATEGORIA: id, nombre
 - PROVEEDOR: id, nombre, contacto, teléfono, dirección, email
-- PRODUCTO: id, nombre, código, presentación, unidad_medida, stock_mínimo
+- PRODUCTO: id, nombre, código, presentación, unidad_medida, tipo_producto (medicamento|insumo), stock_mínimo
 - INVENTARIO_LOTE: id, lote, cantidad, fecha_vencimiento, estado
-- MOVIMIENTO: id, tipo (ingreso, egreso, ajuste_pos, ajuste_neg), cantidad, fecha, área/salida, destino_id, origen/entrada, motivo, observaciones
+- MOVIMIENTO: id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), cantidad, fecha, área/salida, destino_id, origen/entrada, motivo, observaciones, tipo_identificacion, sexo
 - USUARIO: id, nombre, email, rol
 - REPORTE: id, nombre, tipo
 - BITÁCORA: id, acción, fecha_hora
@@ -38,12 +39,15 @@ CARDINALIDADES
 - Un Movimiento afecta 1 Producto y 1 Lote (trazabilidad).
 - Un Usuario registra 0..N Movimientos, genera 0..N Reportes y tiene 0..N registros en Bitácora.
 - Un Proveedor suministra 0..N Productos.
+ - Un Destino recibe 0..N egresos (distribución y consumo); la modalidad se define por movimiento.
 
 
 NOTAS
 - El ER es conceptual: ayuda a entender el negocio y las relaciones.
 - Se recomienda mantener la relación Movimiento → Lote obligatoria para maximizar la trazabilidad.
 - Si se maneja vencimiento por lote, usar fecha_vencimiento para priorizar salidas (FEFO).
+ - En consumo, se registran datos mínimos del beneficiario (tipo_identificación y sexo); no se guardan datos personales.
+- No se permite consumo originado en Central; Odontología sólo egresa insumos (validado por `producto.tipo_producto`).
 - El sistema implementa seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada y control de intentos de acceso.
  - Seguridad reforzada adicional: rate limiting en login y recuperación, reCAPTCHA v2 opcional en login/registro, bloqueo por intentos fallidos con desbloqueo por admin.
 - Los movimientos y acciones relevantes quedan registrados en bitácora para auditoría.
@@ -54,6 +58,7 @@ PRODUCTO ||--o{ INVENTARIO_LOTE : tiene
 INVENTARIO_LOTE ||--o{ MOVIMIENTO : se_afecta_por
 USUARIO ||--o{ MOVIMIENTO : registra
 DESTINO ||--o{ MOVIMIENTO : agrupa
+MOVIMIENTO ||--o{ DESTINO : egreso_modalidad
 MOVIMIENTO ||--o{ MOVIMIENTO_USER_READS : tiene
 USUARIO ||--o{ MOVIMIENTO_USER_READS : marca
 

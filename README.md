@@ -1,3 +1,40 @@
+
+## Instalación del proyecto
+
+1. Clona el repositorio:
+	```
+	git clone https://github.com/usuario/tu-repo.git
+	cd tu-repo/laravel
+	```
+
+2. Instala las dependencias de PHP (incluye dompdf y otros):
+	```
+	composer install
+	```
+
+3. Copia el archivo de entorno y configura tus variables:
+	```
+	cp .env.example .env
+	```
+
+4. Genera la clave de la aplicación:
+	```
+	php artisan key:generate
+	```
+
+5. Ejecuta las migraciones y seeders:
+	```
+	php artisan migrate --seed
+	```
+
+6. (Opcional) Instala dependencias de frontend:
+	```
+	npm install && npm run build
+	```
+
+> **IMPORTANTE:**  
+> Cada vez que descargues el proyecto en un nuevo equipo, ejecuta `composer install` para que todas las librerías (como dompdf) se descarguen correctamente.
+
 ## Funcionamiento Offline y Build Optimizado
 
 Este sistema está preparado para funcionar completamente sin conexión a internet, incluyendo todos los estilos, fuentes e iconos. Para asegurar la mejor experiencia y evitar parpadeos de diseño (FOUC), sigue estos pasos:
@@ -29,6 +66,31 @@ Este sistema está preparado para funcionar completamente sin conexión a intern
 - Los avatares de usuario se generan localmente con iniciales, sin llamadas externas.
 
 Si ves algún parpadeo de diseño, asegúrate de haber ejecutado el build y limpiado cachés.
+
+## Inventario/Movimientos: Nuevas reglas y migraciones
+
+Se han incorporado reglas de negocio para separar Distribución de Consumo y capturar datos mínimos del beneficiario en consumos.
+
+Novedades de BD:
+- En `movimientos`: nuevos campos `modalidad` (distribucion|consumo), `tipo_identificacion` (estudiante|trabajador|profesor|comunidad) y `sexo` (F|M|otro), con índices para reportes.
+
+Para aplicar cambios:
+
+```powershell
+php artisan migrate
+```
+
+Luego, limpiar cachés si ves inconsistencias:
+
+```powershell
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+```
+
+Documentación funcional detallada:
+- `docs/actualizacion_logica_inventario.md`
+- `docs/guia_aplicacion_codigo_ux_ui.md`
 
 ## reCAPTCHA v2 (opcional)
 

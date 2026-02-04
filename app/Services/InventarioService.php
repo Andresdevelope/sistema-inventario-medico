@@ -103,6 +103,45 @@ class InventarioService
                 ? Carbon::parse($data['fecha'])->toDateString()
                 : Carbon::today()->toDateString();
 
+            // Modalidad del egreso: distribucion (Central -> Destino) o consumo (entrega real)
+            $modalidad = $data['modalidad'] ?? null;
+            $tipoIdent = $data['tipo_identificacion'] ?? null;
+            $sexo = $data['sexo'] ?? null;
+
+            if ($tipo === 'egreso') {
+                // Validaciones de reglas de negocio
+                if ($modalidad === 'consumo') {
+                    // No se permite consumo desde CENTRAL
+                    if ($destino && strtoupper($destino->codigo ?? $destino->nombre) === 'CENTRAL') {
+                        throw new InvalidArgumentException('El consumo no puede originarse en CENTRAL. Seleccione un destino operativo.');
+                    }
+                    // Datos mínimos de beneficiario
+                    if (empty($tipoIdent) || empty($sexo)) {
+                        throw new InvalidArgumentException('Para consumo se requiere tipo de identificación y sexo del beneficiario.');
+                    }
+                    // Odontología: sólo insumos
+                    if (stripos($area, 'odont') !== false) {
+                        $tipoProd = strtolower($producto->tipo_producto ?? 'medicamento');
+                        if ($tipoProd !== 'insumo') {
+                            throw new InvalidArgumentException('Odontología sólo permite egresos de insumos.');
+                        }
+                    }
+                }
+                elseif ($modalidad === 'distribucion') {
+                    // Distribución requiere destino
+                    if (!$destino) {
+                        throw new InvalidArgumentException('La distribución requiere seleccionar un destino.');
+                    }
+                    // Odontología: sólo insumos también en distribución
+                    if ($destino && stripos(($destino->codigo ?? $destino->nombre), 'odont') !== false) {
+                        $tipoProd = strtolower($producto->tipo_producto ?? 'medicamento');
+                        if ($tipoProd !== 'insumo') {
+                            throw new InvalidArgumentException('En Odontología sólo se puede distribuir insumos.');
+                        }
+                    }
+                }
+            }
+
             if (in_array($tipo, ['ingreso','ajuste_pos'])) {
                 // Agrupar por lote + fecha de vencimiento
                 $fv = !empty($data['fecha_vencimiento']) ? Carbon::parse($data['fecha_vencimiento'])->toDateString() : null;
@@ -115,9 +154,12 @@ class InventarioService
                 $producto->stock += $cantidad;
                 $producto->save();
 
-                Movimiento::create([
+                    Movimiento::create([
                     'producto_id' => $producto->id,
                     'tipo' => $tipo,
+                        'modalidad' => $modalidad,
+                        'tipo_identificacion' => $tipoIdent,
+                        'sexo' => $sexo,
                     'salida' => $area,
                     'destino_id' => $destino?->id,
                     'inventario_id' => $inv->id,
@@ -150,6 +192,9 @@ class InventarioService
                     Movimiento::create([
                         'producto_id' => $producto->id,
                         'tipo' => 'egreso',
+                        'modalidad' => $modalidad,
+                        'tipo_identificacion' => $tipoIdent,
+                        'sexo' => $sexo,
                         'salida' => $area,
                         'destino_id' => $destino?->id,
                         'inventario_id' => $inv->id,
@@ -200,6 +245,9 @@ class InventarioService
                     Movimiento::create([
                         'producto_id' => $producto->id,
                         'tipo' => 'egreso',
+                        'modalidad' => $modalidad,
+                        'tipo_identificacion' => $tipoIdent,
+                        'sexo' => $sexo,
                         'salida' => $area,
                         'destino_id' => $destino?->id,
                         'inventario_id' => $inv->id,
@@ -239,6 +287,9 @@ class InventarioService
                     Movimiento::create([
                         'producto_id' => $producto->id,
                         'tipo' => 'ajuste_neg',
+                        'modalidad' => null,
+                        'tipo_identificacion' => null,
+                        'sexo' => null,
                         'salida' => $area,
                         'destino_id' => $destino?->id,
                         'inventario_id' => $inv->id,
@@ -274,6 +325,9 @@ class InventarioService
                     Movimiento::create([
                         'producto_id' => $producto->id,
                         'tipo' => 'ajuste_neg',
+                        'modalidad' => null,
+                        'tipo_identificacion' => null,
+                        'sexo' => null,
                         'salida' => $area,
                         'destino_id' => $destino?->id,
                         'inventario_id' => $inv->id,
