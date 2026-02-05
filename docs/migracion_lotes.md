@@ -4,13 +4,13 @@ Este documento guía la adopción del manejo de inventario por **lotes**, preser
 
 ## Resumen de cambios
 
-- Los movimientos de **ingreso** ahora registran stock por combinación: `producto_id + lote + fecha_vencimiento + um_operativa`.
-- Para medicamentos, la unidad operativa es **blíster** y se exige `contenido_por_blister` (entero > 0) por lote.
-- Para insumos, la unidad operativa es **unidad** y `contenido_por_blister` es siempre `NULL`.
+- Los movimientos de **ingreso** ahora registran stock por combinación: `producto_id + lote + fecha_vencimiento` y fijan la unidad operativa del lote mediante los campos `um_operativa` y `contenido_por_blister`.
+- Para medicamentos, la unidad operativa es **blíster** (`um_operativa = 'blister'`) y se exige `contenido_por_blister` (entero > 0) por lote.
+- Para insumos, la unidad operativa es **unidad** (`um_operativa = 'unidad'`) y `contenido_por_blister` es siempre `NULL`.
 - Los **egresos** consumen por **FEFO** (vence primero) y **FIFO** dentro de la misma fecha de vencimiento.
-- No se permite modificar `lote`, `fecha_vencimiento`, `um_operativa` ni `contenido_por_blister` en un registro de inventario existente (trazabilidad).
-- Se mantiene el **índice único** en `inventarios(producto_id, lote, fecha_vencimiento)`; a nivel lógico, un mismo lote/vencimiento debe tener siempre la misma `um_operativa` y `contenido_por_blister`.
-- La UI de **Movimientos** incluye campo `lote`, `fecha_vencimiento` y, para medicamentos, `contenido_por_blister` en ingresos y ajustes positivos.
+- No se permite mezclar en un mismo lote distintas combinaciones de `um_operativa` y `contenido_por_blister`; si un lote ya tiene esos atributos fijados, un nuevo ingreso con valores distintos será rechazado y se debe crear un lote nuevo.
+- Se mantiene el **índice lógico** por combinación (`producto_id`, `lote`, `fecha_vencimiento`); un mismo lote/vencimiento debe tener siempre la misma `um_operativa` y `contenido_por_blister`.
+- La UI de **Movimientos** incluye campo `lote`, `fecha_vencimiento` y, para medicamentos, `contenido_por_blister` en ingresos y ajustes positivos, alineado con `InventarioService::procesarMovimiento`.
 
 ## Pasos para desplegar
 
@@ -54,6 +54,16 @@ php artisan cache:clear
 
 ## Impacto esperado
 
-- Mayor trazabilidad sanitaria (cada lote conserva su vencimiento).  
-- Egresos más seguros (evitan caducar stock en almacén).  
-- Menos riesgos de sobreescritura accidental de vencimientos.
+-- Mayor trazabilidad sanitaria (cada lote conserva su vencimiento).  
+-- Egresos más seguros (evitan caducar stock en almacén).  
+-- Menos riesgos de sobreescritura accidental de vencimientos.
+
+## Historial de implementación
+
+- 31-01-2026: definición funcional de migración a inventario por lotes (este documento).
+- 31-01-2026: migración `2026_01_31_000000_add_modalidad_y_beneficiario_a_movimientos.php` añade `modalidad`, `tipo_identificacion` y `sexo` a `movimientos` para soportar los reportes de consumo.
+- 04-02-2026: migración `2026_02_04_000000_add_um_y_contenido_por_blister_to_inventarios_table.php` añade `um_operativa` y `contenido_por_blister` a `inventarios`, materializando la política de **solo blíster** para medicamentos.
+- 04-02-2026: actualización de `InventarioService::procesarMovimiento` para:
+  - Fijar `um_operativa` y `contenido_por_blister` en el primer ingreso/ajuste del lote.
+  - Validar que no se mezclen distintos contenidos por blíster en el mismo lote.
+  - Aplicar FEFO/FIFO en consumos y respetar las reglas de Odontología (solo insumos) y de no consumo desde Central.

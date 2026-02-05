@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
-Fecha: 31/01/2026
+Fecha: 05/02/2026 (actualizado)
 Autor: Equipo Servicios Médicos
 
 OBJETIVO
@@ -177,3 +177,22 @@ NOTAS
 - Selección de lotes prioriza stock > 0; se usa FEFO (fecha próxima primero) y FIFO como desempate.
  - CSV de inventario incluye vencimiento más próximo y estado de stock bajo/OK.
  - UI con tema claro/oscuro persistente y panel de notificaciones.
+
+TRAZABILIDAD CON IMPLEMENTACIÓN (RESUMEN)
+
+- CU-06, CU-07, CU-08, CU-09, CU-10, CU-11 y CU-12
+	- Implementados principalmente en:
+		- Servicio de dominio: `app/Services/InventarioService.php` (`procesarMovimiento`), que aplica FEFO/FIFO, política de solo blíster, distinción entre distribución y consumo, y reglas de Odontología solo insumos.
+		- Controlador: `app/Http/Controllers/MovimientosController.php` (validaciones y orquestación de vistas).
+		- Vistas: `resources/views/movimientos/index.blade.php` y `resources/views/movimientos/historial_consumo.blade.php`.
+
+- CU-12 y CU-13 (Historial de Consumo y Reportes)
+	- Servicio de reportes: `app/Services/ReportesMovimientosService.php`.
+		- Método `salidasFarmaciaInterna` implementa el reporte de Salidas – Farmacia Interna usando los campos `modalidad`, `tipo_identificacion` y `sexo` agregados a `movimientos`.
+
+- CU-15, CU-16, CU-17 y seguridad reforzada
+	- Bitácora, bloqueo por intentos fallidos y recuperación con preguntas de seguridad: modelos y controladores de usuarios (`User`, controladores de auth) y tabla `bitacora`.
+	- Notificaciones de movimientos (campana): tabla `movimiento_user_reads` y lógica asociada para marcar notificaciones leídas por usuario.
+	- reCAPTCHA v2 opcional: configuración en `config/services.php` y variables `.env` (`RECAPTCHA_ENABLED`, claves de sitio y secreto).
+
+Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan en la rama `new-logica-dist-salida` al 05/02/2026.

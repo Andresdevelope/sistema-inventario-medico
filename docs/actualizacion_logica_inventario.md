@@ -2,7 +2,7 @@
 
 Fecha: 31-01-2026  
 Responsable: Equipo de desarrollo / Cliente  
-Estado: Propuesto (a validar)
+Estado: Implementado (rama `new-logica-dist-salida`) — actualizado al 05-02-2026
 
 ## 1) Resumen ejecutivo
 
@@ -409,6 +409,102 @@ Definiciones para estandarizar interpretación:
 - Si se requiere mayor control del catálogo de grupos poblacionales, crear `grupos_poblacionales` y referenciar en `movimientos`.
 - La selección por FEFO puede ser override con rol especial y motivo.
 - Si en el futuro se requieren presentaciones distintas (líquidos, kits), se documentará aparte; en este alcance, la operación es únicamente en blíster para sólidos.
+
+## 16) Registro de implementación técnica (05-02-2026)
+
+Esta sección documenta cómo se implementó en código la lógica descrita en este documento.
+
+### 16.1 Migraciones aplicadas
+
+- `2026_01_31_000000_add_modalidad_y_beneficiario_a_movimientos.php`
+  - Agrega a la tabla `movimientos` los campos:
+    - `modalidad` (string, 20) — distingue **distribución** (Central → Destino) de **consumo** (entrega real).
+    - `tipo_identificacion` (string, 20) — valores operativos: `estudiante`, `trabajador`, `profesor`, `comunidad`.
+    - `sexo` (string, 10) — valores operativos: `F`, `M`, `otro`.
+  - Crea índices para reportes:
+    - `index(modalidad, tipo, fecha)`.
+    - `index(tipo_identificacion, sexo)`.
+
+- `2026_02_04_000000_add_um_y_contenido_por_blister_to_inventarios_table.php`
+  - Agrega a la tabla `inventarios` los campos:
+    - `um_operativa` (string, 20) — unidad operativa del lote: `blister` o `unidad`.
+    - `contenido_por_blister` (unsignedInteger, nullable) — entero > 0 sólo cuando `um_operativa = 'blister'`.
+
+Con esto queda materializada en base de datos la política de **solo blíster** para medicamentos y el registro de **beneficiario mínimo** para consumos.
+
+### 16.2 Servicio de inventario
+
+- Archivo: `app/Services/InventarioService.php`.
+- Método principal: `procesarMovimiento(array $data)`.
+
+Responsabilidades clave implementadas:
+
+- Sincroniza `productos.stock` con la suma real de `inventarios.cantidad` cuando existan registros por lote.
+- Implementa consumo **FEFO/FIFO** mediante `getInventariosFefoFifo()`:
+  - FEFO: ordena por `fecha_vencimiento` ascendente (NULL al final).
+  - FIFO: en empates por fecha, usa `created_at` ascendente.
+- Agrupa ingresos y ajustes positivos por combinación (`producto_id`, `lote`, `fecha_vencimiento`) usando `findOrCreateInventario()`.
+- Fija atributos críticos del lote en el **primer uso**:
+  - Medicamento: `um_operativa = 'blister'` y `contenido_por_blister` obligatorio (>0).
+  - Insumo: `um_operativa = 'unidad'` y `contenido_por_blister = null`.
+- Bloquea mezclas indebidas:
+  - Si un lote ya tiene `um_operativa` y `contenido_por_blister`, no permite cambiar esos valores; obliga a crear un nuevo lote.
+- Valida reglas de negocio de egresos:
+  - **Consumo**:
+    - Prohíbe consumo desde CENTRAL.
+    - Exige `tipo_identificacion` y `sexo` para todos los consumos.
+    - Para destinos que contengan "odont" en código/nombre, sólo permite productos con `tipo_producto = 'insumo'`.
+  - **Distribución**:
+    - Exige `destino_id` válido.
+    - Para Odontología, sólo permite `tipo_producto = 'insumo'`.
+  - **Stock no negativo**: valida saldo disponible por lote y por conjunto de lotes según tipo de movimiento.
+- Egresos con modalidad **distribución**:
+  - Registran el movimiento en `movimientos` con `modalidad = 'distribucion'`.
+  - Verifican que exista stock suficiente (para no distribuir más de lo disponible).
+  - No modifican `inventarios.cantidad` ni `productos.stock` (se registran como envío lógico).
+- Egresos con modalidad **consumo**:
+  - Descuentan stock desde inventarios por FEFO/FIFO, respetando la unidad operativa (blíster/unidad).
+  - Registran un movimiento por lote impactado, con `tipo_identificacion` y `sexo` del beneficiario.
+
+### 16.3 Reportes de movimientos
+
+- Archivo: `app/Services/ReportesMovimientosService.php`.
+- Método relevante para este documento: `salidasFarmaciaInterna(string $from, string $to, ?int $destinoId = null)`.
+
+Implementa el **Reporte 10.2: Salidas – Farmacia Interna** así:
+
+- Fuente de datos: tabla `movimientos` filtrada por:
+  - `tipo = 'egreso'`.
+  - `modalidad = 'consumo'`.
+  - Rango de fechas `[from, to]`.
+- Joins: `productos` y `destinos` para obtener nombre/código y categoría de inventario.
+- Métricas calculadas por destino:
+  - `meds_entregados`: suma de `cantidad` donde `categoria_inventario` comienza por `medicamento`.
+  - `insumos_entregados`: suma de `cantidad` donde `categoria_inventario` comienza por `insum`.
+  - `beneficiarios`: `COUNT(*)` (cada movimiento de consumo = 1 beneficiario).
+  - `F`, `M`: sumas condicionadas por `m.sexo`.
+  - `EST`, `TRAB`, `COM`: sumas condicionadas por `m.tipo_identificacion`.
+- Formato de salida: arreglo simple listo para renderizar en Blade o exportar a PDF/XLSX.
+
+Esto alinea el reporte implementado con la descripción funcional del apartado **10.2** de este documento.
+
+### 16.4 Formularios y vistas afectadas
+
+- `resources/views/movimientos/index.blade.php`:
+  - Formulario de movimientos incorpora campos:
+    - `tipo_identificacion` (select con estudiante/trabajador/profesor/comunidad).
+    - `sexo` (select con F, M, otro).
+    - `contenido_por_blister` para ingresos/ajustes positivos de medicamentos.
+  - Lógica JS para:
+    - Autocompletar `contenido_por_blister` a partir del lote cuando ya está definido.
+    - Mostrar equivalentes en unidades para medicamentos (cantidad × contenido_por_blister) sólo a nivel informativo.
+    - Bloquear cambios de `contenido_por_blister` cuando el lote ya tiene valor fijado.
+
+- `resources/views/movimientos/historial_consumo.blade.php`:
+  - Filtros por `sexo` y `tipo_identificacion`.
+  - Tabla que muestra badges con `sexo` y `tipo_identificacion` para cada movimiento de consumo.
+
+Con estas implementaciones, la lógica descrita en este documento pasa de estado **propuesto** a **implementado** en la base de datos, servicios de dominio, controladores y vistas.
 
 ## 15) Política de catálogo y presentaciones mixtas (jarabe vs crema vs blíster)
 
