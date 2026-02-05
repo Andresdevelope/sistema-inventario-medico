@@ -7,6 +7,7 @@ use App\Models\Bitacora;
 use App\Models\Movimiento;
 use App\Models\Inventario;
 use App\Services\InventarioService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,8 @@ class MovimientosController extends Controller
 {
     public function index(Request $request)
     {
-        $productos = Producto::orderBy('nombre')->get(['id','nombre','codigo']);
+        // Incluir tipo_producto para auto-clasificación en la vista (Medicamento/Insumo)
+        $productos = Producto::orderBy('nombre')->get(['id','nombre','codigo','tipo_producto']);
         $destinos = \App\Models\Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre','codigo']);
         // Últimos movimientos (paginados)
         $ultimos = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,fecha_vencimiento'])
@@ -60,6 +62,8 @@ class MovimientosController extends Controller
             'tipo_identificacion' => 'nullable|required_if:modalidad,consumo|in:estudiante,trabajador,profesor,comunidad',
             'sexo' => 'nullable|required_if:modalidad,consumo|in:F,M,otro',
             'inventario_objetivo_id' => 'nullable|exists:inventarios,id',
+            // Campo adicional: contenido por blíster (se validará en servicio según tipo de producto)
+            'contenido_por_blister' => 'nullable|integer|min:1',
         ], [
             'fecha_vencimiento.required_if' => 'Debe ingresar la fecha de vencimiento para entradas y ajustes positivos',
             'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy',
@@ -68,6 +72,7 @@ class MovimientosController extends Controller
             'modalidad.required_if' => 'Para egresos indique si es distribución o consumo',
             'tipo_identificacion.required_if' => 'Para consumo debe indicar el tipo de beneficiario',
             'sexo.required_if' => 'Para consumo debe indicar el sexo del beneficiario',
+            'contenido_por_blister.min' => 'El contenido por blíster debe ser mayor que 0',
         ]);
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -92,6 +97,7 @@ class MovimientosController extends Controller
                 'modalidad' => $data['tipo']==='egreso' ? ($data['modalidad'] ?? null) : null,
                 'tipo_identificacion' => $data['tipo']==='egreso' ? ($data['tipo_identificacion'] ?? null) : null,
                 'sexo' => $data['tipo']==='egreso' ? ($data['sexo'] ?? null) : null,
+                'contenido_por_blister' => in_array($data['tipo'], ['ingreso','ajuste_pos']) ? ($data['contenido_por_blister'] ?? null) : null,
             ]);
             // Bitácora: movimiento creado
             try {
@@ -151,10 +157,52 @@ class MovimientosController extends Controller
             ->orderByRaw('CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END ASC')
             ->orderBy('fecha_vencimiento','asc')
             ->orderBy('created_at','asc')
-            ->get(['id','lote','cantidad','fecha_vencimiento','created_at']);
+            ->get(['id','lote','cantidad','fecha_vencimiento','um_operativa','contenido_por_blister','created_at']);
         return response()->json([
             'producto_id' => $productoId,
             'inventarios' => $inventarios,
+        ]);
+    }
+
+    /**
+     * Devuelve el resumen de distribuciones acumuladas por destino para un producto.
+     */
+    public function distribucionesPorProducto(Producto $producto)
+    {
+        $distribuciones = Movimiento::where('producto_id', $producto->id)
+            ->where('tipo', 'egreso')
+            ->where('modalidad', 'distribucion')
+            ->whereNotNull('destino_id')
+            ->selectRaw('destino_id, SUM(cantidad) as total, MAX(fecha) as ultima_fecha')
+            ->groupBy('destino_id')
+            ->with('destino:id,nombre,codigo')
+            ->orderByDesc('total')
+            ->get()
+            ->map(function (Movimiento $mov) {
+                return [
+                    'destino_id' => $mov->destino_id,
+                    'destino' => $mov->destino->nombre ?? 'Sin destino',
+                    'codigo' => $mov->destino->codigo ?? null,
+                    'total' => (int) $mov->total,
+                    'ultimo_movimiento' => $mov->ultima_fecha
+                        ? Carbon::parse($mov->ultima_fecha)->translatedFormat('d/m/Y')
+                        : null,
+                ];
+            });
+
+        $stockReal = (int) Inventario::where('producto_id', $producto->id)->sum('cantidad');
+
+        return response()->json([
+            'producto' => [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'codigo' => $producto->codigo,
+            ],
+            'distribuciones' => $distribuciones,
+            'tiene_distribuciones' => $distribuciones->isNotEmpty(),
+            'total_distribuido' => (int) $distribuciones->sum('total'),
+            'stock_real' => $stockReal,
+            'actualizado' => now()->format('d/m/Y H:i'),
         ]);
     }
 

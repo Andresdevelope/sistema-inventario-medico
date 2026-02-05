@@ -18,37 +18,41 @@ Reunir escenarios de uso end-to-end para:
 - Producir reportes coherentes (10.1 Inventario, 10.2 Salidas) sin pedir datos personales.
 
 ## Contexto operativo
-- Unidad operativa (UM) para sólidos: Blíster (enteros; sin pastillas sueltas).
-- Insumos: UM = Unidad (frasco, tubo, paquete).
+- Unidad operativa (UM) para sólidos (medicamentos): **Blíster** (enteros; sin pastillas sueltas).
+- Insumos: UM = **Unidad** (frasco, tubo, paquete), sin conversión a blíster.
 - Destinos operativos: Principal/PPAL, ACI, Agro, Odontología (Odonto solo insumos).
 - Periodicidad de reportes: mensuales, trimestrales, semestrales, anuales.
 
 ## Caso A — Entrada por lote (Central)
-Objetivo: registrar un lote nuevo con su contenido por blíster y cantidad en blíster.
+Objetivo: registrar un lote nuevo con su contenido por blíster y cantidad en blíster (para medicamentos) o cantidad en unidad (para insumos).
 
 Formulario (UX):
-- Producto (typeahead)
+- Producto (typeahead con chip "MEDICAMENTO" | "INSUMO")
 - Lote (texto), Fecha de vencimiento (date)
-- Contenido por blíster (select: 5, 8, 10, 12, otros)
-- Cantidad (blíster)
+- Contenido por blíster (input numérico; **solo visible para medicamentos**)
+- Cantidad (blíster para medicamentos, unidad para insumos)
 - Observaciones
 
 Reglas:
-- UM = Blíster; prohibido registrar pastillas individuales.
-- El contenido por blíster puede variar por lote del mismo producto.
-- Stock se suma al Almacén Central.
+- Medicamentos: UM = Blíster; prohibido registrar pastillas individuales.
+- Insumos: UM = Unidad; no se captura contenido por blíster.
+- El contenido por blíster puede variar **por lote** del mismo producto.
+- Si se selecciona un lote existente con contenido definido, ese valor se bloquea (no editable) para preservar trazabilidad.
+- Stock se suma al Almacén Central por combinación `producto + lote + fecha_vencimiento + um_operativa`.
 
 Validaciones:
-- Campos obligatorios (producto, lote, vencimiento, contenido por blíster, cantidad).
-- Fecha de vencimiento válida.
-- Cantidad positiva (entera).
+- Medicamentos: obligatorios (producto, lote, vencimiento, contenido por blíster, cantidad).
+- Insumos: obligatorios (producto, lote, vencimiento cuando aplica, cantidad); `contenido_por_blister` oculto.
+- Fecha de vencimiento válida y posterior a hoy.
+- Cantidad positiva (entera, en su UM operativa).
+- Si se intenta usar un lote existente con un contenido por blíster distinto, la UI y el backend bloquean el registro y piden crear un nuevo lote.
 
 Impacto en BD:
-- `inventarios` (por lote): lote, fecha_vencimiento, cantidad (en UM operativa: blíster o unidad).
-- Movimiento: tipo `ingreso` asociado a `inventario_id` (trazabilidad).
+- `inventarios` (por lote): `producto_id`, `lote`, `fecha_vencimiento`, `um_operativa` (`blister`|`unidad`), `contenido_por_blister` (entero para blíster, `NULL` para unidad), `cantidad`.
+- `movimientos`: tipo `ingreso` asociado siempre a `inventario_id` (trazabilidad por lote y UM operativa).
 
 ## Caso B — Distribución Central → Destino
-Objetivo: transferir blíster por lote desde Central hacia un destino (sin consumo).
+Objetivo: registrar envíos desde Central hacia un destino (sin consumo real de stock), para trazabilidad y reportes.
 
 Formulario (UX):
 - Destino (select: PPAL, ACI, Agro, Odont)
@@ -57,7 +61,8 @@ Formulario (UX):
 - Observaciones
 
 Reglas:
-- No descuenta del total global; mueve stock Central → Destino.
+- **No descuenta del total global**: la distribución no modifica `inventarios` ni `productos.stock`; solo registra cuánto se ha enviado a cada destino.
+- Valida que exista saldo suficiente global (no se puede distribuir más de lo disponible sumando todos los lotes compatibles).
 - Odonto solo puede recibir insumos (bloqueo o advertencia).
 
 Validaciones:
@@ -65,8 +70,8 @@ Validaciones:
 - Bloqueo si producto es medicamento y destino = Odonto.
 
 Impacto en BD:
-- Movimientos (tipo `egreso`, `modalidad=distribucion`): salida desde Central hacia `destino_id`.
-- Ajuste de stock por lote: baja en Central.
+- Movimientos (tipo `egreso`, `modalidad=distribucion`): registra solo el envío desde Central hacia `destino_id` sin tocar inventario.
+- Los saldos físicos disponibles para consumo siguen estando en `inventarios` (por lote); las distribuciones se usan para reportes agregados por destino (por ejemplo, un botón "DISTR" en acciones para ver total enviado a cada área).
 
 ## Caso C — Consumo (Salida real) desde Destino
 Objetivo: registrar entrega a beneficiario sin datos personales, aplicando FEFO.
@@ -164,9 +169,9 @@ Plantillas de insumos (XLS):
 Componentes:
 - Select de Destino con regla Odonto (solo insumos).
 - Typeahead de Producto.
-- Lista de Lotes orden FEFO con badges: Próximo a vencer, Vencido.
-- Stepper de Cantidad (1–10 blíster).
-- Banner fijo: “Operamos solo en blíster” en Entrada y Consumo.
+- Lista de Lotes orden FEFO con badges: Próximo a vencer, Vencido, y etiqueta "1 blíster = N" cuando el lote tiene `contenido_por_blister`.
+- Stepper de Cantidad (1–10) en su UM operativa (blíster para medicamentos, unidad para insumos).
+- Banner fijo: “Operamos solo en blíster” para medicamentos y “Operamos en unidad” para insumos, en Entrada y Consumo.
 - Tarjeta Resumen del movimiento (producto, lote, destino, cantidad).
 
 Páginas:
@@ -192,13 +197,14 @@ Accesibilidad y rendimiento:
 
 ## Mapeo a modelo de datos
 - `productos`: tipo_producto (medicamento|insumo), categoría_inventario (segmento: general|odontologia), forma/UM (ver política de catálogo).
-- `inventarios` (por lote): lote, fecha_vencimiento, cantidad (UM operativa).
-- `movimientos`: tipo, modalidad, destino_id, inventario_id (lote), cantidad (UM operativa), tipo_identificacion, sexo, fecha, observaciones.
+- `inventarios` (por lote): `producto_id`, `lote`, `fecha_vencimiento`, `um_operativa` (`blister`|`unidad`), `contenido_por_blister` (entero sólo para blíster), `cantidad`, `stock_minimo`, `estado`.
+- `movimientos`: tipo, modalidad, destino_id, inventario_id (lote, cuando aplica), cantidad (en la UM operativa), tipo_identificacion, sexo, fecha, observaciones.
 
 Relaciones y restricciones:
-- FEFO aplicado en consumo; no consumir vencido por defecto.
+- FEFO aplicado en consumo; no consumir vencido por defecto; FIFO dentro de la misma fecha.
 - Odonto solo insumos; rechazar medicamentos.
 - `movimientos.inventario_id` recomendado siempre (trazabilidad por lote).
+- No se permite modificar `lote` ni `fecha_vencimiento` de un inventario existente. La `um_operativa` y el `contenido_por_blister` solo pueden definirse la primera vez (pasando de `NULL` a valor); si ya tenían valor, no se pueden cambiar. Ante errores se crean nuevos lotes y se ajusta stock con movimientos de ajuste.
 
 ## Casos de borde y decisiones
 - Presentaciones mixtas (jarabe vs crema vs blíster): se tratan como productos distintos; no se mezclan en filas de reporte.

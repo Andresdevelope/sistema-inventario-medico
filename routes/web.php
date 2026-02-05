@@ -86,6 +86,10 @@ Route::post('/movimientos', [\App\Http\Controllers\MovimientosController::class,
 Route::get('/movimientos/inventarios/{productoId}', [\App\Http\Controllers\MovimientosController::class, 'inventariosPorProducto'])
     ->middleware('auth')
     ->name('movimientos.inventarios');
+// Resumen de distribuciones por producto
+Route::get('/movimientos/distribuciones/{producto}', [\App\Http\Controllers\MovimientosController::class, 'distribucionesPorProducto'])
+    ->middleware('auth')
+    ->name('movimientos.distribuciones');
 // Historial de Consumo (egresos en modalidad consumo)
 Route::get('/consumo/historial', [\App\Http\Controllers\MovimientosController::class, 'historialConsumo'])
     ->middleware('auth')
@@ -95,6 +99,7 @@ Route::get('/consumo/historial', [\App\Http\Controllers\MovimientosController::c
 Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');
 Route::get('/reportes/export-csv', [\App\Http\Controllers\ReportesController::class, 'exportCsv'])->middleware('auth')->name('reportes.export.csv');
 Route::get('/reportes/export-pdf/inventario', [\App\Http\Controllers\ReportesController::class, 'exportInventarioPdf'])->middleware('auth')->name('reportes.export.pdf.inventario');
+Route::get('/reportes/export-pdf/consumo', [\App\Http\Controllers\ReportesController::class, 'exportConsumoPdf'])->middleware('auth')->name('reportes.export.pdf.consumo');
 
 // ================= NOTIFICACIONES (campana) =================
 // Throttle para evitar consultas excesivas y proteger backend ante ráfagas

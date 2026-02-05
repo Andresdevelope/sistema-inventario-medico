@@ -12,7 +12,7 @@
 
 <!-- Modal Añadir Proveedor -->
 <div class="modal fade" id="modalProveedor" tabindex="-1" aria-labelledby="modalProveedorLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalProveedorLabel">Añadir Proveedor</h5>
@@ -38,7 +38,7 @@
             <input type="email" class="form-control" id="proveedor_email" name="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
           </div>
           <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="submit" class="btn btn-med-primary">Guardar</button>
           </div>
         </form>
         <div id="proveedorMsg" class="mt-2"></div>
@@ -49,7 +49,7 @@
 
 <!-- Modal Editar Proveedor -->
 <div class="modal fade" id="modalEditarProveedor" tabindex="-1" aria-labelledby="modalEditarProveedorLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalEditarProveedorLabel">Editar Proveedor</h5>
@@ -75,7 +75,7 @@
             <input type="email" class="form-control" id="editar_proveedor_email" name="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
           </div>
           <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <button type="submit" class="btn btn-med-primary">Guardar Cambios</button>
           </div>
         </form>
         <div id="editarProveedorMsg" class="mt-2"></div>

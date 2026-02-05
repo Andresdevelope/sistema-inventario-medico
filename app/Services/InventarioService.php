@@ -62,6 +62,9 @@ class InventarioService
                 'lote' => $lote,
                 'cantidad' => 0,
                 'fecha_vencimiento' => $fechaVencimiento,
+                // um_operativa y contenido_por_blister se fijarán al momento del primer ingreso/ajuste +
+                'um_operativa' => null,
+                'contenido_por_blister' => null,
                 'stock_minimo' => $producto->stock_minimo,
                 'estado' => 'activo',
             ]);
@@ -88,6 +91,7 @@ class InventarioService
         DB::transaction(function() use ($data, $tipo, $cantidad) {
             /** @var Producto $producto */
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
+            $tipoProd = strtolower($producto->tipo_producto ?? 'medicamento');
             // Sincronizar stock con inventarios cuando existan
             $this->syncProductoStock($producto);
             $destinoId = $data['destino_id'] ?? null;
@@ -142,11 +146,87 @@ class InventarioService
                 }
             }
 
+            // Egresos con modalidad DISTRIBUCIÓN: NO modifican inventarios ni stock, sólo registran el envío.
+            if ($tipo === 'egreso' && $modalidad === 'distribucion') {
+                // Asegurarnos de que haya saldo suficiente para no "distribuir" más de lo disponible.
+                $totalInv = Inventario::where('producto_id', $producto->id)->sum('cantidad');
+                if ($totalInv <= 0 && ($producto->stock ?? 0) > 0) {
+                    // Auto-regularización inicial similar al egreso por consumo: trasladar stock declarado a un inventario neutro.
+                    Inventario::create([
+                        'producto_id' => $producto->id,
+                        'lote' => null,
+                        'cantidad' => (int)$producto->stock,
+                        'fecha_vencimiento' => null,
+                        'stock_minimo' => $producto->stock_minimo,
+                        'estado' => 'activo',
+                    ]);
+                    $totalInv = (int)$producto->stock;
+                }
+
+                $inventarios = $this->getInventariosFefoFifo($producto);
+                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd) {
+                    if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) {
+                        return false;
+                    }
+                    if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) {
+                        return false;
+                    }
+                    return true;
+                })->sum('cantidad');
+
+                if ($saldoTotal < $cantidad) {
+                    throw new InvalidArgumentException('Stock insuficiente para distribución');
+                }
+
+                Movimiento::create([
+                    'producto_id' => $producto->id,
+                    'tipo' => 'egreso',
+                    'modalidad' => $modalidad,
+                    'tipo_identificacion' => $tipoIdent,
+                    'sexo' => $sexo,
+                    'salida' => $area,
+                    'destino_id' => $destino?->id,
+                    'inventario_id' => null,
+                    'entrada' => null,
+                    'cantidad' => $cantidad,
+                    'motivo' => $motivo,
+                    'fecha' => $fecha,
+                    'usuario_id' => $usuarioId,
+                    'observaciones' => $observaciones,
+                ]);
+
+                return; // fin de egreso por distribución (sin afectar inventario/stock)
+            }
+
             if (in_array($tipo, ['ingreso','ajuste_pos'])) {
                 // Agrupar por lote + fecha de vencimiento
                 $fv = !empty($data['fecha_vencimiento']) ? Carbon::parse($data['fecha_vencimiento'])->toDateString() : null;
                 $lote = $data['lote'] ?? null;
                 $inv = $this->findOrCreateInventario($producto, $lote, $fv);
+                // Reglas por tipo de producto: Medicamento => blíster con contenido obligatorio; Insumo => unidad
+                if ($tipoProd === 'medicamento') {
+                    $contenido = (int)($data['contenido_por_blister'] ?? 0);
+                    if ($contenido <= 0) {
+                        throw new InvalidArgumentException('Para medicamentos, el contenido por blíster es obligatorio y debe ser mayor que 0');
+                    }
+                    // Si el inventario ya existe y tiene um_operativa distinta o contenido distinto, bloquear mezcla
+                    if (!empty($inv->um_operativa) || !empty($inv->contenido_por_blister)) {
+                        if (($inv->um_operativa !== 'blister') || ((int)$inv->contenido_por_blister !== $contenido)) {
+                            throw new InvalidArgumentException('El lote seleccionado tiene un contenido por blíster distinto. Cree un nuevo lote para mantener trazabilidad.');
+                        }
+                    } else {
+                        // Fijar atributos críticos al crear/primer uso del lote
+                        $inv->um_operativa = 'blister';
+                        $inv->contenido_por_blister = $contenido;
+                    }
+                } else { // insumo
+                    // Para insumo, um_operativa unidad y contenido_por_blister null
+                    if (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad') {
+                        throw new InvalidArgumentException('El lote seleccionado fue creado como blíster. Cree un nuevo lote o use productos de tipo insumo correctamente.');
+                    }
+                    $inv->um_operativa = 'unidad';
+                    $inv->contenido_por_blister = null;
+                }
                 $inv->cantidad += $cantidad;
                 $inv->save();
 
@@ -184,6 +264,17 @@ class InventarioService
                     }
                     if ((int)$inv->cantidad < $cantidad) {
                         throw new InvalidArgumentException('La cantidad supera el saldo del lote seleccionado');
+                    }
+                    // Validación de unidad operativa según tipo de producto
+                    if ($tipoProd === 'medicamento') {
+                        // Cantidad debe ser entero (ya validado) y operar en blíster
+                        if (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister') {
+                            throw new InvalidArgumentException('El lote no opera en blíster. Verifique el tipo de producto y el lote.');
+                        }
+                    } else { // insumo
+                        if (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad') {
+                            throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
+                        }
                     }
 
                     $inv->cantidad -= $cantidad;
@@ -229,7 +320,16 @@ class InventarioService
                 $porConsumir = $cantidad;
                 $inventarios = $this->getInventariosFefoFifo($producto);
 
-                $saldoTotal = $inventarios->sum('cantidad');
+                // Saldo total sólo considerando inventarios compatibles con la unidad operativa del producto
+                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd) {
+                    if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) {
+                        return false;
+                    }
+                    if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) {
+                        return false;
+                    }
+                    return true;
+                })->sum('cantidad');
                 // Validar también contra stock agregado del producto por coherencia
                 // Validar sólo contra el saldo real de inventarios (el campo productos.stock puede haber sido editado manualmente)
                 if ($saldoTotal < $porConsumir) {
@@ -238,6 +338,8 @@ class InventarioService
 
                 foreach ($inventarios as $inv) {
                     if ($porConsumir <= 0) break;
+                    if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) { continue; }
+                    if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) { continue; }
                     $consume = min($inv->cantidad, $porConsumir);
                     $inv->cantidad -= $consume;
                     $inv->save();

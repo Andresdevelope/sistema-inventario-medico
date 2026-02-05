@@ -174,7 +174,7 @@
         <input type="hidden" name="modalidad" id="modalidad" value="{{ old('modalidad') }}">
         <input type="hidden" name="tipo" id="tipo" value="{{ $oldTipo }}">
         <div class="col-md-5">
-          <label class="form-label">Medicamento</label>
+          <label class="form-label">Producto</label>
           <div class="position-relative">
             <input type="text" id="producto_buscar" class="form-control mb-2" placeholder="Buscar por nombre o código..." autocomplete="off">
             <div id="producto_sugerencias" class="list-group position-absolute w-100" style="z-index: 1000; display:none; max-height: 240px; overflow:auto;"></div>
@@ -182,10 +182,13 @@
           <select name="producto_id" class="form-select" required>
             <option value="">Seleccione...</option>
             @foreach($productos as $p)
-              <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
+              <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}" data-tipo="{{ strtolower($p->tipo_producto ?? '') }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
             @endforeach
           </select>
-          <small class="text-muted">Escribe para buscar, selecciona una sugerencia o usa el listado.</small>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <small class="text-muted">Escribe para buscar, selecciona una sugerencia o usa el listado.</small>
+            <span id="tipo-chip" class="badge bg-secondary" title="Tipo de producto" style="display:none;">—</span>
+          </div>
         </div>
         {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
         <div class="col-md-4" id="destino-wrapper" style="{{ $oldTipo==='egreso' ? '' : 'display:none;' }}">
@@ -224,6 +227,7 @@
         <div class="col-md-2">
           <label class="form-label">Cantidad</label>
           <input type="number" min="1" class="form-control" name="cantidad" value="{{ old('cantidad',1) }}" required>
+          <div id="calc-equivalente" class="form-text"></div>
         </div>
         <div class="col-md-2">
           <label class="form-label">Fecha</label>
@@ -240,8 +244,13 @@
           <div class="form-text mt-1">Sugerencia: usa la tabla inferior para elegir un lote con los botones “+” o “Elegir lote”, o escribe uno nuevo.</div>
           <div id="lote-advice" class="small mt-1 text-muted"></div>
         </div>
+        <div class="col-md-3" id="contenido-blister-wrapper" style="display:none;">
+          <label class="form-label">Contenido por blíster</label>
+          <input type="number" min="1" class="form-control" name="contenido_por_blister" value="{{ old('contenido_por_blister') }}" placeholder="Ej: 10">
+          <div class="form-text">Medicamentos: obligatorio. Insumos: oculto.</div>
+        </div>
         <div class="col-12" id="banner-blister" style="display:none;">
-          <div class="alert alert-info py-2 mb-0"><strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.</div>
+          <div class="alert alert-info py-2 mb-0" id="banner-blister-text"><strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.</div>
         </div>
         <div class="col-md-3">
           <label class="form-label">Motivo</label>
@@ -328,6 +337,20 @@
                   'ajuste_neg' => 'warning',
                 ][$m->tipo] ?? 'secondary';
                 $fv = optional($m->inventario)->fecha_vencimiento;
+                $tipoLabel = [
+                  'ingreso' => 'Ingreso',
+                  'egreso' => 'Egreso',
+                  'ajuste_pos' => 'Ajuste +',
+                  'ajuste_neg' => 'Ajuste -',
+                ][$m->tipo] ?? ucfirst($m->tipo);
+                $modalidadLabel = null;
+                if ($m->tipo === 'egreso') {
+                  $modalidadLabel = match($m->modalidad) {
+                    'distribucion' => 'Distribución',
+                    'consumo' => 'Consumo',
+                    default => null,
+                  };
+                }
               @endphp
               <tr>
                 <td>{{ \Carbon\Carbon::parse($m->fecha)->format('d/m/Y') }}</td>
@@ -335,7 +358,16 @@
                   <strong>{{ $m->producto->nombre ?? '—' }}</strong>
                   <span class="text-muted">({{ $m->producto->codigo ?? '' }})</span>
                 </td>
-                <td><span class="badge bg-{{ $badge }} text-uppercase">{{ $m->tipo }}</span></td>
+                <td>
+                  <div class="d-flex flex-column gap-1">
+                    <span class="badge bg-{{ $badge }} text-uppercase">{{ $tipoLabel }}@if($modalidadLabel) · {{ $modalidadLabel }} @endif</span>
+                    @if($modalidadLabel === 'Distribución')
+                      <small class="text-muted">No descuenta stock real</small>
+                    @elseif($modalidadLabel === 'Consumo')
+                      <small class="text-muted">Entrega directa a beneficiario</small>
+                    @endif
+                  </div>
+                </td>
                 <td>{{ $m->cantidad }}</td>
                 <td>
                   @php $dest = $m->destino; @endphp
@@ -432,6 +464,7 @@
   const beneficiarioWrap = document.getElementById('beneficiario-wrapper');
   const modalidadInput = document.getElementById('modalidad');
   const bannerBlister = document.getElementById('banner-blister');
+  const contenidoBlisterWrap = document.getElementById('contenido-blister-wrapper');
   const productoSel = document.querySelector('select[name="producto_id"]');
   const productoBuscar = document.getElementById('producto_buscar');
   const productoSugerencias = document.getElementById('producto_sugerencias');
@@ -449,6 +482,7 @@
     form.appendChild(hiddenTarget);
   }
   const inputCantidad = document.querySelector('input[name="cantidad"]');
+  const contenidoBlisterInput = document.querySelector('input[name="contenido_por_blister"]');
   const btnClearLote = document.getElementById('btn-clear-lote');
   let selectedInventarioId = null; // selección negativa (ajuste −)
   let selectionByQuick = false; // true si proviene del botón "−"
@@ -544,6 +578,8 @@
         ? String(r.lote)
         : `<span class="badge bg-secondary" title="Registro sin lote${sinVenc ? ' y sin vencimiento' : ''}. Puede provenir de regularización inicial o ingresos sin lote.">Sin lote${sinVenc ? ' / sin vencimiento' : ''}</span>`;
       const agotado = Number(r.cantidad) <= 0;
+      const um = (r.um_operativa || '').toLowerCase();
+      const cont = Number(r.contenido_por_blister || 0);
       const esNeg = (tipoSel.value === 'ajuste_neg');
       const esPos = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos');
       let accionesHtml = '';
@@ -568,7 +604,10 @@
         <td>${idx+1}</td>
         <td>${firstMark}${loteCell}</td>
         <td>${fv ? `<span class="badge bg-${b.cls}" title="Fecha de vencimiento">${b.text}</span>` : '<span class="text-muted" title="Sin vencimiento">Sin vencimiento</span>'}</td>
-        <td>${agotado ? `<strong>0</strong> <span class="badge bg-secondary ms-2" title="Sin stock">Agotado</span>` : `<strong>${r.cantidad}</strong>`}</td>
+        <td>
+          ${agotado ? `<strong>0</strong> <span class="badge bg-secondary ms-2" title="Sin stock">Agotado</span>` : `<strong>${r.cantidad}</strong>`}
+          ${um === 'blister' && cont > 0 ? `<span class="badge bg-info ms-2" title="Contenido por blíster">1 blíster = ${cont}</span>` : ''}
+        </td>
         <td>${new Date(r.created_at).toLocaleDateString()}</td>
         <td class="text-end">${accionesHtml}</td>
       </tr>`;
@@ -643,6 +682,8 @@
     // Rellenar campos de lote y fecha
     if (loteInput) loteInput.value = lote || '';
     if (fvInput) fvInput.value = fv || '';
+    // Si el lote seleccionado es blíster y tiene contenido, bloquear edición y prefijar
+    lockContenidoPorBlisterFromInventario(id);
     // Forzar tipo a AJUSTE + si corresponde
     if (forceAjustePos) {
       prevTipoValuePos = tipoSel.value;
@@ -651,6 +692,7 @@
       tipoSel.dispatchEvent(new Event('change'));
     }
     updateLoteAdvice();
+    updateEquivalenteUnidades();
     updateClearButtonVisibility();
   }
 
@@ -682,9 +724,24 @@
       const b = badgeForDate(fv);
       loteAdvice.innerHTML = `Se sumará al lote <b>${loteVal || '—'}</b> con vencimiento <b>${fv ? b.text : '—'}</b>.`;
       loteAdvice.className = 'small mt-1 text-success';
+      // Bloquear contenido_por_blister si el lote existente ya tiene uno definido
+      if (contenidoBlisterInput) {
+        if ((match.um_operativa || '').toLowerCase() === 'blister' && Number(match.contenido_por_blister || 0) > 0) {
+          contenidoBlisterInput.value = String(Number(match.contenido_por_blister));
+          contenidoBlisterInput.setAttribute('readonly', 'readonly');
+          contenidoBlisterInput.classList.add('disabled');
+        } else {
+          contenidoBlisterInput.removeAttribute('readonly');
+          contenidoBlisterInput.classList.remove('disabled');
+        }
+      }
     } else {
       loteAdvice.textContent = '';
       loteAdvice.className = 'small mt-1 text-muted';
+      if (contenidoBlisterInput) {
+        contenidoBlisterInput.removeAttribute('readonly');
+        contenidoBlisterInput.classList.remove('disabled');
+      }
     }
   }
 
@@ -728,6 +785,10 @@
     beneficiarioWrap.style.display = esConsumo ? 'block' : 'none';
     // Banner blíster visible en Entrada y Consumo
     bannerBlister.style.display = (esIngresoOPos || esConsumo) ? 'block' : 'none';
+    // Mostrar el campo "Contenido por blíster" sólo para medicamentos en Entrada/Ajuste +
+    const opt = productoSel.options[productoSel.selectedIndex];
+    const tipo = (opt?.dataset?.tipo || '').toLowerCase();
+    contenidoBlisterWrap.style.display = (esIngresoOPos && tipo === 'medicamento') ? 'block' : 'none';
     // Enlace a Historial de Consumo sólo cuando está activa la pestaña Consumo
     const consumoHistLink = document.getElementById('consumo-hist-link');
     if (consumoHistLink) consumoHistLink.style.display = esConsumo ? 'block' : 'none';
@@ -849,6 +910,8 @@
       if (!resp.ok) throw new Error('Error al cargar inventarios');
       const data = await resp.json();
       inventariosActuales = (data.inventarios || []);
+      // Actualizar chip de tipo y banner según producto
+      actualizarTipoChipYBanner();
       // Si el lote seleccionado ya no está en la lista, limpiar selección
       if (!inventariosActuales.some(r => Number(r.id) === selectedInventarioId)) {
         hiddenTarget.value = '';
@@ -870,7 +933,7 @@
     function buildProductosDataset() {
       productosDataset = Array.from(productoSel.querySelectorAll('option'))
         .filter(opt => opt.value)
-        .map(opt => ({ id: opt.value, nombre: opt.dataset.nombre || opt.textContent, codigo: opt.dataset.codigo || '', texto: opt.textContent }));
+        .map(opt => ({ id: opt.value, nombre: opt.dataset.nombre || opt.textContent, codigo: opt.dataset.codigo || '', tipo: (opt.dataset.tipo || '').toLowerCase(), texto: opt.textContent }));
     }
     function renderProductoSugerencias(items) {
       productoSugerencias.innerHTML = '';
@@ -879,7 +942,9 @@
         const a = document.createElement('a');
         a.href = '#';
         a.className = 'list-group-item list-group-item-action';
-        a.innerHTML = `<div class="d-flex justify-content-between"><div><strong>${it.nombre}</strong> <span class="text-muted">(${it.codigo})</span></div></div>`;
+        const tipoText = it.tipo ? it.tipo.toUpperCase() : '—';
+        const tipoBadge = `<span class="badge bg-secondary ms-2" title="Tipo">${tipoText}</span>`;
+        a.innerHTML = `<div class="d-flex justify-content-between"><div><strong>${it.nombre}</strong> <span class="text-muted">(${it.codigo})</span>${tipoBadge}</div></div>`;
         a.addEventListener('click', (e) => { e.preventDefault(); seleccionarProductoDesdeSug(it); });
         productoSugerencias.appendChild(a);
       });
@@ -929,6 +994,13 @@
     });
   loteInput.addEventListener('input', updateLoteAdvice);
   fvInput.addEventListener('change', updateLoteAdvice);
+  // Sincronizar cálculo de equivalente a unidades
+  if (inputCantidad) {
+    inputCantidad.addEventListener('input', updateEquivalenteUnidades);
+  }
+  if (contenidoBlisterInput) {
+    contenidoBlisterInput.addEventListener('input', () => { updateEquivalenteUnidades(); validarContenidoVsInventario(); });
+  }
   form.addEventListener('submit', validateFechaVencimientoBeforeSubmit);
   // Validar que en ENTRADA y AJUSTE + se indique un número de lote (nuevo o seleccionado)
   form.addEventListener('submit', (e) => {
@@ -959,6 +1031,115 @@
   const style = document.createElement('style');
   style.textContent = `.is-warning { border-color: #f1c40f !important; box-shadow: 0 0 0 .2rem rgba(241,196,15,.25) !important; }`;
   document.head.appendChild(style);
+  // Encuentra inventario por ID y bloquea el contenido por blíster si aplica
+  function lockContenidoPorBlisterFromInventario(id) {
+    if (!contenidoBlisterInput) return;
+    const inv = inventariosActuales.find(r => Number(r.id) === Number(id));
+    if (!inv) return;
+    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
+    if (tipo !== 'medicamento') { return; }
+    if ((inv.um_operativa || '').toLowerCase() === 'blister' && Number(inv.contenido_por_blister || 0) > 0) {
+      contenidoBlisterInput.value = String(Number(inv.contenido_por_blister));
+      contenidoBlisterInput.setAttribute('readonly', 'readonly');
+      contenidoBlisterInput.classList.add('disabled');
+    } else {
+      contenidoBlisterInput.removeAttribute('readonly');
+      contenidoBlisterInput.classList.remove('disabled');
+    }
+  }
+
+  // Muestra equivalente en unidades para medicamentos (cantidad × contenido_por_blister)
+  function updateEquivalenteUnidades() {
+    if (!contenidoBlisterInput || !inputCantidad) return;
+    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
+    const calc = document.getElementById('calc-equivalente');
+    if (!calc) return;
+    if (tipo !== 'medicamento') { calc.textContent = ''; return; }
+    const cant = Number(inputCantidad.value || 0);
+    const cont = Number(contenidoBlisterInput.value || 0);
+    if (cant > 0 && cont > 0) {
+      calc.textContent = `Equivalente aproximado: ${cant * cont} unidades`;
+    } else {
+      calc.textContent = '';
+    }
+  }
+
+  // Valida que, si se está usando un lote existente, el contenido por blíster coincida
+  function validarContenidoVsInventario() {
+    if (!contenidoBlisterInput) return true;
+    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
+    if (tipo !== 'medicamento') return true;
+    const loteVal = (loteInput.value || '').trim();
+    const fvVal = (fvInput.value || '').trim();
+    const match = inventariosActuales.find(r => (r.lote || '') === loteVal && (r.fecha_vencimiento || '') === fvVal);
+    if (!match) return true;
+    const contInput = Number(contenidoBlisterInput.value || 0);
+    const contInv = Number(match.contenido_por_blister || 0);
+    if (contInv > 0 && contInput > 0 && contInput !== contInv) {
+      contenidoBlisterInput.classList.add('is-invalid');
+      if (typeof showToast === 'function') showToast('El contenido por blíster no coincide con el lote existente. Corrige o usa un nuevo lote.', 'error');
+      return false;
+    }
+    contenidoBlisterInput.classList.remove('is-invalid');
+    return true;
+  }
+
+  // Validación adicional en submit para medicamentos: contenido por blíster coherente
+  form.addEventListener('submit', (e) => {
+    if (!contenidoBlisterInput) return;
+    if (!(tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos')) return;
+    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
+    if (tipo !== 'medicamento') return;
+    const cont = Number(contenidoBlisterInput.value || 0);
+    if (cont <= 0) {
+      e.preventDefault();
+      if (typeof showToast === 'function') showToast('Debes indicar el contenido por blíster (entero > 0) para medicamentos.', 'error');
+      return;
+    }
+    if (!validarContenidoVsInventario()) {
+      e.preventDefault();
+      return;
+    }
+  });
+
+  // Mostrar chip de tipo (Medicamento/Insumo) y ajustar banner segun producto seleccionado
+  function actualizarTipoChipYBanner() {
+    const chip = document.getElementById('tipo-chip');
+    if (!chip) return;
+    const opt = productoSel.options[productoSel.selectedIndex];
+    const tipo = (opt?.dataset?.tipo || '').toLowerCase();
+    if (!opt || !tipo) { chip.style.display='none'; return; }
+    chip.style.display='inline-block';
+    chip.className = 'badge';
+    let text = '—';
+    if (tipo === 'medicamento') { chip.classList.add('bg-primary'); text = 'MEDICAMENTO'; }
+    else if (tipo === 'insumo') { chip.classList.add('bg-dark'); text = 'INSUMO'; }
+    else { chip.classList.add('bg-secondary'); }
+    chip.textContent = text;
+    // Ajustar banner de UM operativa
+    const bannerText = document.getElementById('banner-blister-text');
+    const mostrarBanner = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos' || (tipoSel.value === 'egreso' && (modalidadInput.value || '') === 'consumo'));
+    bannerBlister.style.display = mostrarBanner ? 'block' : 'none';
+    if (bannerText) {
+      if (tipo === 'medicamento') {
+        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>blíster</b>. No se registran pastillas sueltas.';
+        contenidoBlisterWrap.style.display = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos') ? 'block' : 'none';
+      } else if (tipo === 'insumo') {
+        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>unidad</b>.';
+        contenidoBlisterWrap.style.display = 'none';
+      } else {
+        bannerText.innerHTML = '<strong>Nota:</strong> Selecciona un producto para ver su unidad operativa.';
+        contenidoBlisterWrap.style.display = 'none';
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded', actualizarTipoChipYBanner);
+  productoSel.addEventListener('change', actualizarTipoChipYBanner);
+  // Cuando cambie tipo/modalidad, re-sincronizar banner
+  document.addEventListener('DOMContentLoaded', () => {
+    const observer = new MutationObserver(() => actualizarTipoChipYBanner());
+    observer.observe(tipoSel, { attributes: true, attributeFilter: ['value'] });
+  });
   
   // existing scripts...
 </script>

@@ -264,6 +264,15 @@
                         </td>
                         <td>
                             <a href="{{ route('productos.show', ['producto' => $producto, 'from' => 'inventario']) }}" class="btn inv-btn-outline btn-sm">Ver</a>
+                            <button type="button"
+                                class="btn inv-btn-distr btn-sm ms-2 btn-ver-distribucion"
+                                data-product-id="{{ $producto->id }}"
+                                data-producto="{{ $producto->nombre }}"
+                                data-endpoint="{{ route('movimientos.distribuciones', $producto->id) }}"
+                                title="{{ !empty($producto->has_distribuciones) ? 'Ver distribución por destino' : 'Aún no hay distribuciones registradas' }}"
+                                @if(empty($producto->has_distribuciones)) disabled aria-disabled="true" @endif>
+                                DISTR
+                            </button>
                         </td>
                     </tr>
                 @empty
@@ -315,6 +324,35 @@
     background-color: #ff9800;
     border-color: #ff9800;
     color: #ffffff;
+}
+
+.inv-btn-distr {
+    background: linear-gradient(90deg, var(--color-orange-600, #ff7300), var(--color-orange-500, #ff8a00));
+    border-color: var(--color-orange-700, #e56200);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(255, 138, 0, 0.25);
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.inv-btn-distr:hover,
+.inv-btn-distr:focus {
+    background: linear-gradient(90deg, var(--color-orange-700, #e56200), var(--color-orange-600, #ff7300));
+    border-color: var(--color-orange-800, #c74c00);
+    box-shadow: 0 14px 28px rgba(229, 98, 0, 0.35);
+    color: #ffffff;
+}
+
+.inv-btn-distr:active {
+    transform: translateY(1px);
+}
+
+.inv-btn-distr:disabled,
+.inv-btn-distr[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    background: linear-gradient(90deg, rgba(255, 138, 0, 0.65), rgba(255, 138, 0, 0.65));
+    border-color: rgba(229, 98, 0, 0.4);
 }
 
 .inv-badge-code {
@@ -392,6 +430,175 @@
 .stock-bar__fill--rojo {
     background: linear-gradient(90deg, #fb7185, #b91c1c);
 }
+
+.inv-distrib-summary {
+    border: 1px dashed rgba(255, 138, 0, 0.4);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(255, 243, 224, 0.9), rgba(255, 229, 204, 0.8));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.inv-distrib-summary__label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c2410c;
+    margin-bottom: 0.25rem;
+}
+
+.inv-distrib-summary__value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #a34100;
+}
+
+.inv-modal-header {
+    background: linear-gradient(90deg, var(--color-orange-700, #e56200), var(--color-orange-500, #ff8a00));
+    color: #fff;
+    border-bottom: none;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.inv-modal-header small {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.inv-spinner {
+    color: var(--color-orange-600, #ff7300) !important;
+}
 </style>
+@endpush
+
+@push('modals')
+<div class="modal fade" id="modalDistribucion" tabindex="-1" aria-labelledby="modalDistribucionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header inv-modal-header py-3">
+                <div>
+                    <h5 class="modal-title mb-0" id="modalDistribucionLabel">Distribución por destino</h5>
+                    <small>Producto: <span id="modalDistribucionProducto">—</span></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex align-items-center gap-2 py-2 small">
+                    <i class="fa fa-info-circle"></i>
+                    <span>Las distribuciones registran la salida administrativa pero el stock real se mantiene. Este resumen muestra cuántos lotes fueron asignados a cada destino.</span>
+                </div>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th>Destino</th>
+                                <th class="text-end">Total distribuido</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDistribucionBody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">Selecciona un producto para ver su distribución.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="inv-distrib-summary h-100">
+                            <div class="inv-distrib-summary__label">Total distribuido</div>
+                            <div class="inv-distrib-summary__value" id="modalDistribucionTotal">—</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="inv-distrib-summary h-100">
+                            <div class="inv-distrib-summary__label">Stock real disponible</div>
+                            <div class="inv-distrib-summary__value" id="modalDistribucionStock">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <small class="text-muted" id="modalDistribucionUpdated">—</small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modalEl = document.getElementById('modalDistribucion');
+    if (!modalEl) return;
+
+    const modal = new bootstrap.Modal(modalEl);
+    const bodyEl = modalEl.querySelector('#modalDistribucionBody');
+    const totalEl = modalEl.querySelector('#modalDistribucionTotal');
+    const stockEl = modalEl.querySelector('#modalDistribucionStock');
+    const productoEl = modalEl.querySelector('#modalDistribucionProducto');
+    const updatedEl = modalEl.querySelector('#modalDistribucionUpdated');
+
+    const setLoading = () => {
+        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-muted"><div class="spinner-border spinner-border-sm inv-spinner me-2" role="status"></div>Consultando distribuciones...</td></tr>`;
+        totalEl.textContent = '—';
+        stockEl.textContent = '—';
+        updatedEl.textContent = 'Sincronizando...';
+    };
+
+    const setError = (message) => {
+        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-danger">${message}</td></tr>`;
+        totalEl.textContent = '—';
+        stockEl.textContent = '—';
+        updatedEl.textContent = 'Intento fallido';
+    };
+
+    const formatNumber = (value) => new Intl.NumberFormat('es-CO').format(value ?? 0);
+
+    document.querySelectorAll('.btn-ver-distribucion').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const endpoint = btn.dataset.endpoint;
+            if (!endpoint) return;
+
+            productoEl.textContent = btn.dataset.producto ?? 'Producto sin nombre';
+            setLoading();
+            modal.show();
+
+            fetch(endpoint, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then((response) => {
+                    if (!response.ok) throw new Error('No se pudo obtener la información.');
+                    return response.json();
+                })
+                .then((data) => {
+                    const distribuciones = data.distribuciones ?? [];
+                    if (distribuciones.length === 0) {
+                        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-muted">No hay distribuciones registradas para este producto.</td></tr>`;
+                    } else {
+                        bodyEl.innerHTML = distribuciones.map((destino, index) => `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>
+                                    <div class="fw-semibold">${destino.destino ?? 'Sin destino'}</div>
+                                    <small class="text-muted">Último movimiento: ${destino.ultimo_movimiento ?? '—'}</small>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-dark-subtle text-dark">${formatNumber(destino.total)}</span>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+
+                    totalEl.textContent = formatNumber(data.total_distribuido ?? 0);
+                    stockEl.textContent = formatNumber(data.stock_real ?? 0);
+                    updatedEl.textContent = `Actualizado: ${data.actualizado ?? 'Hace un momento'}`;
+                })
+                .catch((error) => {
+                    console.error(error);
+                    setError('Ups, ocurrió un error al consultar las distribuciones.');
+                });
+        });
+    });
+});
+</script>
 @endpush
 

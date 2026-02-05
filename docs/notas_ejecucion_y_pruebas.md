@@ -21,11 +21,14 @@ Enviar como formulario (x-www-form-urlencoded o JSON según frontend):
 - tipo: ingreso
 - lote: LOTE-A
 - fecha_vencimiento: 2026-12-31
+- contenido_por_blister (solo medicamentos): 10
 - cantidad: 5
 - observaciones: Lote inicial
 
 Esperado:
-- Crea/actualiza `inventarios` por (producto, lote, fecha_vencimiento) sumando +5.
+- Crea/actualiza `inventarios` por (producto, lote, fecha_vencimiento, um_operativa) sumando +5 en la UM operativa.
+- Para medicamentos: `um_operativa = blister`, `contenido_por_blister = 10`.
+- Para insumos: `um_operativa = unidad`, `contenido_por_blister = NULL`.
 - Crea `movimientos` con `tipo=ingreso` vinculado a `inventario_id` del lote.
 
 2) Egreso — Distribución (Central → Destino)
@@ -61,10 +64,14 @@ Esperado:
 
 ## Prueba de FEFO (consumo)
 1. Ingresar 2 lotes del mismo producto:
-   - Lote X con vencimiento 2026-04-30, cantidad 3.
-   - Lote Y con vencimiento 2026-06-30, cantidad 3.
+  - Lote X con vencimiento 2026-04-30, `contenido_por_blister = 10`, cantidad 3 blíster.
+  - Lote Y con vencimiento 2026-06-30, `contenido_por_blister = 10`, cantidad 3 blíster.
 2. Realizar 1 consumo (egreso con modalidad=consumo) por cantidad 1.
 3. Verificar en `movimientos` que el `inventario_id` restado corresponde al Lote X (vencimiento más próximo).
+
+Caso adicional (mismas fechas, distinto contenido por blíster):
+4. Intentar registrar un ingreso a un lote existente con la misma combinación `producto + lote + fecha_vencimiento` pero con `contenido_por_blister` distinto.
+5. Esperado: el backend rechaza el movimiento con mensaje indicando que debe crearse un nuevo lote para preservar la trazabilidad.
 
 ## Verificaciones rápidas en la UI
 - En Movimientos > pestaña Egreso:

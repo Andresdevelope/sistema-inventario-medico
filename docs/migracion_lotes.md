@@ -1,14 +1,16 @@
-# Migración a inventario por lotes (lote + fecha de vencimiento)
+# Migración a inventario por lotes (lote + fecha de vencimiento + unidad operativa)
 
-Este documento guía la adopción del manejo de inventario por **lotes**, preservando la **fecha de vencimiento** y evitando sobreescrituras por movimientos.
+Este documento guía la adopción del manejo de inventario por **lotes**, preservando la **fecha de vencimiento**, la **unidad operativa (blíster o unidad)** y evitando sobreescrituras por movimientos.
 
 ## Resumen de cambios
 
-- Los movimientos de **ingreso** ahora registran stock por combinación: `producto_id + lote + fecha_vencimiento`.
+- Los movimientos de **ingreso** ahora registran stock por combinación: `producto_id + lote + fecha_vencimiento + um_operativa`.
+- Para medicamentos, la unidad operativa es **blíster** y se exige `contenido_por_blister` (entero > 0) por lote.
+- Para insumos, la unidad operativa es **unidad** y `contenido_por_blister` es siempre `NULL`.
 - Los **egresos** consumen por **FEFO** (vence primero) y **FIFO** dentro de la misma fecha de vencimiento.
-- No se permite modificar `lote` ni `fecha_vencimiento` en un registro de inventario existente (trazabilidad).
-- Se añade un **índice único** en `inventarios(producto_id, lote, fecha_vencimiento)` para evitar duplicados.
-- La UI de **Movimientos** incluye campo `lote` en ingresos.
+- No se permite modificar `lote`, `fecha_vencimiento`, `um_operativa` ni `contenido_por_blister` en un registro de inventario existente (trazabilidad).
+- Se mantiene el **índice único** en `inventarios(producto_id, lote, fecha_vencimiento)`; a nivel lógico, un mismo lote/vencimiento debe tener siempre la misma `um_operativa` y `contenido_por_blister`.
+- La UI de **Movimientos** incluye campo `lote`, `fecha_vencimiento` y, para medicamentos, `contenido_por_blister` en ingresos y ajustes positivos.
 
 ## Pasos para desplegar
 
@@ -38,16 +40,17 @@ php artisan cache:clear
 
 ## Buenas prácticas
 
-- Siempre registrar **Número de lote** y **Fecha de vencimiento** en **ingresos**.  
-- En caso de error de captura, crear un **nuevo lote** con los datos correctos y ajustar el lote anterior (ajuste negativo/positivo) sin editar sus atributos críticos.
+- Siempre registrar **Número de lote**, **Fecha de vencimiento** y, para medicamentos, **Contenido por blíster** en **ingresos** y **ajustes positivos**.  
+- En caso de error de captura (ej. se digitó mal el contenido por blíster), crear un **nuevo lote** con los datos correctos y ajustar el lote anterior (ajuste negativo/positivo) sin editar sus atributos críticos (`lote`, `fecha_vencimiento`, `um_operativa`, `contenido_por_blister`).
 - Reportes deben basarse en inventarios (no en el campo vencimiento del producto) para caducidad y stock real.
 
 ## Cómo verificar
 
-- Crear un ingreso con `lote = L-TEST-001` y `fecha_vencimiento = 2026-01-31`.  
-- Crear otro ingreso del mismo producto con `lote = L-TEST-002` y `fecha_vencimiento = 2026-02-28`.  
-- Registrar un egreso: el sistema consumirá primero del lote que **vence antes**.  
-- Intentar editar el lote o fecha de un inventario existente debe lanzar error.
+1. Crear un ingreso con `lote = L-TEST-001`, `fecha_vencimiento = 2026-01-31`, `um_operativa = blister` y `contenido_por_blister = 10`, cantidad = 5 blíster.  
+2. Crear otro ingreso del mismo producto con `lote = L-TEST-002`, `fecha_vencimiento = 2026-02-28`, `contenido_por_blister = 5`, cantidad = 5 blíster.  
+3. Registrar un egreso: el sistema consumirá primero del lote que **vence antes** (L-TEST-001).  
+4. Intentar editar el lote, fecha de vencimiento, unidad operativa o contenido por blíster de un inventario existente debe lanzar error.  
+5. Intentar registrar un ingreso a un lote existente con un `contenido_por_blister` distinto debe ser rechazado (tanto en la UI como en el backend).
 
 ## Impacto esperado
 

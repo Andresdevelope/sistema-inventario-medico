@@ -45,18 +45,19 @@ VOCABULARIO
 - Bitácora: acciones relevantes por usuario.
 
 REGLAS DE NEGOCIO CLAVE
-1. Solo blíster: para medicamentos sólidos, la unidad operativa es el blíster. No se registran pastillas sueltas.
-2. FEFO en consumo: la selección de lote para consumo prioriza el que vence primero (empate: FIFO por created_at).
-3. Stock no negativo: salidas y ajustes negativos requieren disponibilidad suficiente en el/los lote(s).
-4. Odontología solo insumos: no se permiten egresos de medicamentos hacia Odontología (validado por `productos.tipo_producto`).
-5. No consumo desde Central: la modalidad “consumo” solo se registra desde destinos operativos.
-6. Trazabilidad por lote: todo movimiento guarda inventario_id y usuario_id.
-7. Modalidad de egreso: distribución (Central → Destinos) y consumo (entrega real). La modalidad se registra en el movimiento.
-8. Datos mínimos de beneficiario en consumo: tipo_identificación y sexo (sin datos personales).
-9. Integridad referencial: claves foráneas entre movimientos, productos, inventarios, destinos y usuarios.
-10. Exportaciones: CSV/PDF respetan filtros y no exponen datos sensibles.
-11. Auditoría: cambios críticos (usuarios, stock, ajustes, reportes) se registran en bitácora.
-12. Seguridad: protección CSRF, autorización por rol, sanitización de entrada, control de intentos y bloqueo, rate limiting y reCAPTCHA v2 (opcional).
+1. Solo blíster para medicamentos: para medicamentos sólidos, la unidad operativa es el **blíster**. No se registran pastillas sueltas; se exige `contenido_por_blister` por lote.
+2. Insumos por unidad: para insumos, la unidad operativa es **unidad** (frasco, tubo, paquete). No se define `contenido_por_blister`.
+3. FEFO en consumo: la selección de lote para consumo prioriza el que vence primero (empate: FIFO por created_at).
+4. Stock no negativo: salidas y ajustes negativos requieren disponibilidad suficiente en el/los lote(s).
+5. Odontología solo insumos: no se permiten egresos de medicamentos hacia Odontología (validado por `productos.tipo_producto`).
+6. No consumo desde Central: la modalidad “consumo” solo se registra desde destinos operativos.
+7. Trazabilidad por lote: todo movimiento guarda inventario_id y usuario_id; un mismo lote (producto + lote + fecha_vencimiento) mantiene siempre la misma `um_operativa` y `contenido_por_blister`.
+8. Modalidad de egreso: distribución (Central → Destinos) y consumo (entrega real). La modalidad se registra en el movimiento.
+9. Datos mínimos de beneficiario en consumo: tipo_identificación y sexo (sin datos personales).
+10. Integridad referencial: claves foráneas entre movimientos, productos, inventarios, destinos y usuarios.
+11. Exportaciones: CSV/PDF respetan filtros y no exponen datos sensibles.
+12. Auditoría: cambios críticos (usuarios, stock, ajustes, reportes) se registran en bitácora.
+13. Seguridad: protección CSRF, autorización por rol, sanitización de entrada, control de intentos de login y bloqueo temporal, rate limiting y reCAPTCHA v2 (opcional).
 
 CASOS DE USO PRINCIPALES
 
@@ -152,8 +153,8 @@ CU-18 Configuración de stock mínimo
 
 MODELO DE DATOS (RESUMEN)
 - productos: id, nombre, codigo, categoria_id, subcategoria_id, proveedor_id, presentacion, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario (segmento), stock, stock_minimo, ...
-- inventarios (por lote): id, producto_id, lote, cantidad, fecha_vencimiento, stock_minimo, estado, timestamps.
-- movimientos: id, producto_id, inventario_id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo, solo para egreso), cantidad, motivo, fecha, usuario_id, observaciones, salida/area, destino_id, entrada/origen, tipo_identificacion, sexo, timestamps.
+- inventarios (por lote): id, producto_id, lote, cantidad, fecha_vencimiento, um_operativa (blister|unidad), contenido_por_blister (entero sólo para blíster), stock_minimo, estado, timestamps.
+- movimientos: id, producto_id, inventario_id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo, solo para egreso), cantidad (en la UM operativa), motivo, fecha, usuario_id, observaciones, salida/area, destino_id, entrada/origen, tipo_identificacion, sexo, timestamps.
 - destinos: id, codigo, nombre, activo, tipo.
 - reportes, categorias, subcategorias, proveedores, users, bitácora.
 - movimiento_user_reads (pivot): movimiento_id, user_id, read_at, timestamps.

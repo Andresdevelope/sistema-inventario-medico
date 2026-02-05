@@ -3,7 +3,42 @@
 @section('content')
 <div class="container mt-4">
   <h2 class="mb-3">Reportes</h2>
+  @php
+    $modalidadSeleccionada = $modalidad_reporte ?? 'inventario';
+    $hasResultados = $resumen && request()->filled('from') && request()->filled('to');
+  @endphp
   <form method="GET" class="row g-3 align-items-end mb-4">
+    <div class="col-12">
+      <label class="form-label fw-semibold text-uppercase small text-muted">Modalidad de reporte</label>
+      <div class="row g-3 report-mode-grid" role="radiogroup" aria-label="Seleccionar modalidad de reporte">
+        <div class="col-md-6">
+          <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-inventario" value="inventario" autocomplete="off" @checked($modalidadSeleccionada==='inventario')>
+          <label class="report-mode-card" for="modo-inventario">
+            <div class="report-mode-card__icon">
+              <i class="fa fa-warehouse"></i>
+            </div>
+            <div class="report-mode-card__body">
+              <h6>Inventario de Medicamentos e Insumos</h6>
+              <p>Balance consolidado por destino + central para descargar en PDF.</p>
+              <span class="report-mode-card__meta"><i class="fa fa-file-pdf me-1"></i>Formato PDF</span>
+            </div>
+          </label>
+        </div>
+        <div class="col-md-6">
+          <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-consumo" value="consumo" autocomplete="off" @checked($modalidadSeleccionada==='consumo')>
+          <label class="report-mode-card" for="modo-consumo">
+            <div class="report-mode-card__icon">
+              <i class="fa fa-user-nurse"></i>
+            </div>
+            <div class="report-mode-card__body">
+              <h6>Salidas – Farmacia interna</h6>
+              <p>Detalle de consumos (modalidad consumo) por servicio y beneficiarios.</p>
+              <span class="report-mode-card__meta"><i class="fa fa-chart-pie me-1"></i>Métricas de consumo</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
     <div class="col-md-3">
       <label class="form-label">Desde</label>
       <input type="date" name="from" class="form-control" value="{{ $from ?? '' }}" required>
@@ -57,14 +92,17 @@
       </select>
       <small class="text-muted">Se filtra según la categoría seleccionada.</small>
     </div>
-    <div class="col-md-3 form-check form-switch mt-4">
+    <div class="col-md-3 form-check form-switch mt-4" id="mostrar-insumos-wrapper" style="{{ $modalidadSeleccionada==='consumo' ? '' : 'display:none;' }}">
       <input class="form-check-input" type="checkbox" name="mostrar_insumos" id="mostrar_insumos" value="1" @checked(($mostrar_insumos ?? false))>
       <label class="form-check-label" for="mostrar_insumos">Mostrar columna "Insumos entregados" en 10.2</label>
     </div>
-    <div class="col-md-3 d-flex gap-2">
+    <div class="col-md-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-primary flex-grow-1"><i class="fa fa-chart-bar me-1"></i> Generar</button>
       @if($resumen && $detalle)
         <a href="{{ route('reportes.export.csv',['from'=>$from,'to'=>$to,'destino_id'=>$destino_id]) }}" class="btn btn-outline-secondary" title="Exportar CSV"><i class="fa fa-file-csv"></i></a>
+      @endif
+      @if($hasResultados)
+        <a href="{{ route('reportes.index') }}" class="btn btn-light border"><i class="fa fa-rotate-left me-1"></i> Limpiar</a>
       @endif
     </div>
   </form>
@@ -73,16 +111,25 @@
     <div class="alert alert-danger mb-3">{{ session('error') }}</div>
   @endif
 
-  @if(!$resumen)
-    <div class="alert alert-info">Seleccione un rango de fechas y opcionalmente un destino para generar el reporte.</div>
+  @if(!$hasResultados)
+    <div class="report-placeholder">
+      <div class="report-placeholder__icon">
+        <i class="fa fa-clipboard-list"></i>
+      </div>
+      <div>
+        <h5 class="mb-1">Aún no has generado un reporte</h5>
+        <p class="text-muted mb-2">Define la modalidad, el rango de fechas y presiona <strong>Generar</strong> para ver el detalle. Este panel permanecerá vacío hasta que envíes la búsqueda.</p>
+        <a href="{{ route('reportes.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fa fa-rotate-left me-1"></i>Limpiar filtros</a>
+      </div>
+    </div>
   @else
-    @if($inventario_matriz)
+    @if($modalidadSeleccionada==='inventario' && $inventario_matriz)
     <div class="bg-white p-3 rounded shadow-sm border mb-4">
-      <h6 class="border-bottom pb-2 mb-3">INVENTARIO DE MEDICAMENTOS E INSUMOS</h6>
-      <div class="mb-2 text-end">
-        @if($inventario_matriz)
-          <a href="{{ route('reportes.export.pdf.inventario',[ 'to'=>$inventario_matriz['cutoff'], 'tipo'=>$tipo, 'categoria_id'=>$categoria_id, 'subcategoria_id'=>$subcategoria_id, 'periodo'=>$periodo ]) }}" class="btn btn-sm btn-outline-danger"><i class="fa fa-file-pdf me-1"></i> Exportar PDF</a>
-        @endif
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h6 class="m-0">INVENTARIO DE MEDICAMENTOS E INSUMOS</h6>
+        <a href="{{ route('reportes.export.pdf.inventario',[ 'to'=>$inventario_matriz['cutoff'], 'tipo'=>$tipo, 'categoria_id'=>$categoria_id, 'subcategoria_id'=>$subcategoria_id, 'periodo'=>$periodo ]) }}" class="btn btn-sm btn-outline-danger">
+          <i class="fa fa-file-pdf me-1"></i> Exportar PDF
+        </a>
       </div>
       <div class="table-responsive">
         <table class="table table-hover table-bordered align-middle">
@@ -119,6 +166,8 @@
       </div>
       <div class="small text-muted">UM: Blíster para medicamentos; Unidad para insumos (o la unidad definida por el producto). La cifra corresponde al estado a la fecha de corte.</div>
     </div>
+    @elseif($modalidadSeleccionada==='inventario' && !$inventario_matriz)
+      <div class="alert alert-warning">No se encontraron saldos para el corte seleccionado.</div>
     @endif
     <div class="row g-3 mb-3">
       <div class="col-md-3">
@@ -238,50 +287,65 @@
       </div>
     </div>
 
-    <div class="bg-white p-3 rounded shadow-sm border mb-4">
-      <h6 class="border-bottom pb-2 mb-3">Salidas – FARMACIA INTERNA (modalidad: consumo)</h6>
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Servicios Médicos</th>
-              <th>Medicamentos entregados (blíster)</th>
-              @if(($mostrar_insumos ?? false))
-              <th>Insumos entregados (unidades)</th>
-              @endif
-              <th>Beneficiarios</th>
-              <th>F</th>
-              <th>M</th>
-              <th>EST</th>
-              <th>TRAB</th>
-              <th>COM</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse(($interno ?? []) as $row)
+    @if($modalidadSeleccionada==='consumo')
+      <div class="bg-white p-3 rounded shadow-sm border mb-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+          <h6 class="m-0">Salidas – FARMACIA INTERNA (modalidad: consumo)</h6>
+          @php
+            $paramsConsumo = array_filter([
+              'from' => $from,
+              'to' => $to,
+              'destino_id' => $destino_id,
+              'mostrar_insumos' => ($mostrar_insumos ?? false) ? 1 : null,
+            ], fn($v) => !is_null($v));
+          @endphp
+          <a href="{{ route('reportes.export.pdf.consumo', $paramsConsumo) }}" class="btn btn-sm btn-outline-danger">
+            <i class="fa fa-file-pdf me-1"></i> Exportar PDF
+          </a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
               <tr>
-                <td>{{ $row['destino'] }}</td>
-                <td><span class="badge bg-success">{{ $row['meds_entregados'] }}</span></td>
+                <th>Servicios Médicos</th>
+                <th>Medicamentos entregados (blíster)</th>
                 @if(($mostrar_insumos ?? false))
-                <td><span class="badge bg-info text-dark">{{ $row['insumos_entregados'] }}</span></td>
+                <th>Insumos entregados (unidades)</th>
                 @endif
-                <td>{{ $row['beneficiarios'] }}</td>
-                <td>{{ $row['F'] }}</td>
-                <td>{{ $row['M'] }}</td>
-                <td>{{ $row['EST'] }}</td>
-                <td>{{ $row['TRAB'] }}</td>
-                <td>{{ $row['COM'] }}</td>
-                <td>{{ $row['total'] }}</td>
+                <th>Beneficiarios</th>
+                <th>F</th>
+                <th>M</th>
+                <th>EST</th>
+                <th>TRAB</th>
+                <th>COM</th>
+                <th>Total</th>
               </tr>
-            @empty
-              <tr><td colspan="9" class="text-center text-muted">Sin consumos en el rango.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @forelse(($interno ?? []) as $row)
+                <tr>
+                  <td>{{ $row['destino'] }}</td>
+                  <td><span class="badge bg-success">{{ $row['meds_entregados'] }}</span></td>
+                  @if(($mostrar_insumos ?? false))
+                  <td><span class="badge bg-info text-dark">{{ $row['insumos_entregados'] }}</span></td>
+                  @endif
+                  <td>{{ $row['beneficiarios'] }}</td>
+                  <td>{{ $row['F'] }}</td>
+                  <td>{{ $row['M'] }}</td>
+                  <td>{{ $row['EST'] }}</td>
+                  <td>{{ $row['TRAB'] }}</td>
+                  <td>{{ $row['COM'] }}</td>
+                  <td>{{ $row['total'] }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="{{ ($mostrar_insumos ?? false) ? 10 : 9 }}" class="text-center text-muted">Sin consumos en el rango.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+        <div class="small text-muted">Nota: “Medicamentos entregados” excluye insumos; Beneficiarios = conteo de movimientos (no personas únicas).</div>
       </div>
-      <div class="small text-muted">Nota: “Medicamentos entregados” excluye insumos; Beneficiarios = conteo de movimientos (no personas únicas).</div>
-    </div>
+    @endif
   @endif
 </div>
 @endsection
@@ -328,6 +392,107 @@
     }
     catSel.addEventListener('change', filterSubcats);
     filterSubcats();
+
+    const modeRadios = document.querySelectorAll('input[name="modalidad_reporte"]');
+    const insumosWrapper = document.getElementById('mostrar-insumos-wrapper');
+    function syncModeControls() {
+      const selected = document.querySelector('input[name="modalidad_reporte"]:checked')?.value || 'inventario';
+      if (insumosWrapper) {
+        insumosWrapper.style.display = selected === 'consumo' ? '' : 'none';
+      }
+    }
+    modeRadios.forEach(r => r.addEventListener('change', syncModeControls));
+    syncModeControls();
   });
 </script>
+@endpush
+
+@push('styles')
+<style>
+.report-mode-grid .report-mode-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid rgba(255, 138, 0, 0.15);
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+  background: linear-gradient(120deg, rgba(255, 250, 245, 0.95), rgba(255, 229, 204, 0.7));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 100%;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.btn-check:checked + .report-mode-card {
+  border-color: #ff8a00;
+  background: linear-gradient(120deg, #ff8a00, #f97316);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(249, 115, 22, 0.35);
+}
+
+.btn-check:checked + .report-mode-card .report-mode-card__icon {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+.btn-check:checked + .report-mode-card p,
+.btn-check:checked + .report-mode-card .report-mode-card__meta {
+  color: rgba(255,255,255,0.9);
+}
+
+.report-mode-card__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(255, 138, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #c2410c;
+}
+
+.report-mode-card__body h6 {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.report-mode-card__body p {
+  margin-bottom: 0.4rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.report-mode-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+.report-placeholder {
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.report-placeholder__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 138, 0, 0.15), rgba(255, 138, 0, 0.05));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #ff8a00;
+}
+</style>
 @endpush

@@ -285,7 +285,8 @@ window.showToast = function(msg, tipo='success') {
     const d=document.createElement('div'); d.textContent=msg; d.setAttribute('role','alert');
     d.style.cssText=`background:${tipo==='success'? 'var(--accent)':'#e74c3c'};color:#fff;padding:.75rem .95rem;margin-bottom:.55rem;border-radius:8px;font-size:.68rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.45);opacity:0;transform:translateY(-6px);transition:.35s;`;
     c.appendChild(d); requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateY(0)';});
-    setTimeout(()=>{d.style.opacity='0';d.style.transform='translateY(-6px)'; setTimeout(()=>d.remove(),400);},2600);
+    const duration = tipo === 'error' ? 20000 : 2600;
+    setTimeout(()=>{d.style.opacity='0';d.style.transform='translateY(-6px)'; setTimeout(()=>d.remove(),400);}, duration);
 }
 // Toggle panel notificaciones y simulación de lista de movimientos
 const bell=document.getElementById('notifBell'); const panel=document.getElementById('notifPanel'); if(bell&&panel){ bell.addEventListener('click',()=>{ const open=panel.style.display==='block'; panel.style.display=open?'none':'block'; bell.setAttribute('aria-expanded', open?'false':'true'); }); }

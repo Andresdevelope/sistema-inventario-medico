@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Producto;
 use App\Models\Categoria;
 use App\Models\Bitacora;
+use App\Models\Movimiento;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -52,6 +53,22 @@ class InventarioController extends Controller
 
         // Obtener productos paginados
         $productos = $query->orderBy('nombre')->paginate($perPage)->appends($request->query());
+
+        // Identificar qué productos ya tienen distribuciones registradas para habilitar el botón DISTR
+        $productIds = $productos->pluck('id');
+        $distribucionesPorProducto = $productIds->isNotEmpty()
+            ? Movimiento::selectRaw('producto_id, COUNT(*) as total_distribuciones')
+                ->whereIn('producto_id', $productIds)
+                ->where('tipo', 'egreso')
+                ->where('modalidad', 'distribucion')
+                ->groupBy('producto_id')
+                ->pluck('total_distribuciones', 'producto_id')
+            : collect();
+
+        $productos->getCollection()->transform(function ($producto) use ($distribucionesPorProducto) {
+            $producto->has_distribuciones = $distribucionesPorProducto->has($producto->id);
+            return $producto;
+        });
 
         // KPIs básicos para mostrar en la vista
         $totalItems = Producto::count();

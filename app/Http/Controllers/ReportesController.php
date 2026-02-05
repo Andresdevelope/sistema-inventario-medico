@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Bitacora;
+use App\Models\Destino;
 use App\Services\ReportesMovimientosService;
 use App\Models\Movimiento;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -21,6 +22,10 @@ class ReportesController extends Controller
         $categoriaId = $request->input('categoria_id');
         $subcategoriaId = $request->input('subcategoria_id');
         $mostrarInsumos = (bool)$request->input('mostrar_insumos');
+        $modalidadReporte = $request->input('modalidad_reporte', 'inventario');
+        if (!in_array($modalidadReporte, ['inventario', 'consumo'])) {
+            $modalidadReporte = 'inventario';
+        }
         // Si el usuario seleccionó sólo periodo, intentar construir desde/hasta
         if (!$from || !$to) {
             if ($periodo) {
@@ -86,6 +91,7 @@ class ReportesController extends Controller
             'resumen'=>$data,'detalle'=>$detalle,'interno'=>$interno,'destinos'=>$destinos,
             'inventario_matriz' => $inventarioMatriz ?? null,
             'categorias'=>$categorias,'subcategorias'=>$subcategorias,
+            'modalidad_reporte' => $modalidadReporte,
         ]);
     }
 
@@ -155,4 +161,55 @@ class ReportesController extends Controller
         $filename = 'inventario_matriz_'.$to.'.pdf';
         return $pdf->download($filename);
     }
+
+    public function exportConsumoPdf(Request $request)
+    {
+        $from = $request->input('from');
+        $to = $request->input('to');
+        if (!$from || !$to) {
+            return redirect()->route('reportes.index')->with('error', 'Debe seleccionar el rango de fechas para exportar.');
+        }
+
+        $destinoId = $request->input('destino_id');
+        $mostrarInsumos = (bool)$request->input('mostrar_insumos');
+        $service = new ReportesMovimientosService();
+        $interno = $service->salidasFarmaciaInterna($from, $to, $destinoId ? (int)$destinoId : null);
+
+        $destinoEtiqueta = 'Todos los destinos';
+        if ($destinoId) {
+            $destino = Destino::find((int)$destinoId);
+            if ($destino) {
+                $destinoEtiqueta = trim(($destino->nombre ?? 'Sin destino') . ' (' . ($destino->codigo ?? 'N/D') . ')');
+            }
+        }
+
+        $pdf = Pdf::loadView('reportes.consumo_pdf', [
+            'rows' => $interno,
+            'from' => $from,
+            'to' => $to,
+            'destino' => $destinoEtiqueta,
+            'mostrar_insumos' => $mostrarInsumos,
+        ])->setPaper('a4', 'landscape');
+
+        try {
+            if (Auth::check()) {
+                Bitacora::create([
+                    'user_id' => Auth::id(),
+                    'accion' => 'reportes.export.pdf.consumo',
+                    'detalles' => json_encode([
+                        'from' => $from,
+                        'to' => $to,
+                        'destino_id' => $destinoId,
+                        'mostrar_insumos' => $mostrarInsumos,
+                        'rows' => count($interno),
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'fecha_hora' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
+        $filename = 'salidas_farmacia_interna_'.$from.'_'.$to.'.pdf';
+        return $pdf->download($filename);
+    }
+
 }
