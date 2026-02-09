@@ -61,6 +61,10 @@ ACTUALIZACIÓN 05/02/2026
 	- `2026_01_31_000000_add_modalidad_y_beneficiario_a_movimientos.php`.
 	- `2026_02_04_000000_add_um_y_contenido_por_blister_to_inventarios_table.php`.
 
+ACTUALIZACIÓN 08/02/2026
+- Se incorporó en la capa de presentación el helper `mov_formatear_destino()` para normalizar cadenas complejas de destino antes de mostrarlas. Esto no modifica el ER pero refuerza el concepto de DESTINO como entidad única y evita que alias manuales afecten la trazabilidad documentada.
+- La vista de movimientos ahora define internamente `tipo` y `modalidad` con valores por defecto (cuando no son suministrados por el controlador), asegurando que las relaciones MOVIMIENTO → DESTINO/USUARIO se mantengan coherentes en todo el flujo descrito por este diagrama conceptual.
+
 EJEMPLO VISUAL (MERMAID)
 
 PRODUCTO ||--o{ INVENTARIO_LOTE : tiene

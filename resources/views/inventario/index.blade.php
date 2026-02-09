@@ -114,6 +114,7 @@
             return compact('fechaVencimiento', 'badgeClass', 'labelVence', 'tooltipVence');
         }
     }
+
 @endphp
 
 @section('content')
@@ -121,9 +122,10 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h2 class="m-0">Inventario Consolidado</h2>
         <div class="d-flex gap-2">
-            <a href="{{ route('movimientos.index') }}" class="btn inv-btn-primary">Agregar Movimiento</a>
-            <a href="{{ route('inventario.export', request()->query()) }}" class="btn inv-btn-outline">
-                Exportar CSV
+            <a href="{{ route('movimientos.index') }}" class="btn inv-btn-primary d-flex align-items-center gap-2">
+            <span class="badge bg-light text-warning fw-semibold text-uppercase small px-2 py-1">Nuevo</span>
+            <i class="fa fa-bolt"></i>
+            <span>Agregar Movimiento</span>
             </a>
         </div>
     </div>

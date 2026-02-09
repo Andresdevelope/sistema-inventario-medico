@@ -73,11 +73,11 @@ Route::put('/subcategorias/{id}', [CategoriaController::class, 'updateSubcategor
 
 
 // ================= PRODUCTOS O MEDICAMENTOS =================
+Route::get('/productos/buscar', [ProductoController::class, 'buscarAjax'])->middleware('auth')->name('productos.search');
 Route::resource('productos', ProductoController::class)->middleware('auth');
 
 // ================= INVENTARIO (placeholder) =================
 Route::get('/inventario', [\App\Http\Controllers\InventarioController::class, 'index'])->middleware('auth')->name('inventario.index');
-Route::get('/inventario/export', [\App\Http\Controllers\InventarioController::class, 'export'])->middleware('auth')->name('inventario.export');
 
 // ================= MOVIMIENTOS (placeholder) =================
 Route::get('/movimientos', [\App\Http\Controllers\MovimientosController::class, 'index'])->middleware('auth')->name('movimientos.index');

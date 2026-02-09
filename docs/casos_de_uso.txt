@@ -178,6 +178,13 @@ NOTAS
  - CSV de inventario incluye vencimiento más próximo y estado de stock bajo/OK.
  - UI con tema claro/oscuro persistente y panel de notificaciones.
 
+ACTUALIZACIÓN 08/02/2026 — FORMULARIO DE MOVIMIENTOS "MOSAICO"
+- CU-07, CU-08, CU-09 y CU-10 tienen ahora una experiencia unificada en la vista `movimientos/index.blade.php` basada en tarjetas mosaico: Identificación, Destino/Beneficiario, Control de cantidades/fechas y Notas. Cada tarjeta incluye encabezados con pasos, badges y ayudas contextuales.
+- Se añadieron filtros rápidos (Todos/Medicamentos/Insumos) y chips de productos frecuentes visibles en el Paso 1, lo que agiliza los escenarios CU-07/08/09.
+- El formulario administra de forma interna los valores `tipo` y `modalidad` usando `old()` como fallback; esto evita errores cuando se regresa desde validaciones y mantiene consistencia en la navegación por pestañas.
+- CU-11 (consulta de movimientos) incorpora en la tabla de últimos registros el helper `mov_formatear_destino`, que normaliza los nombres/cadenas complejas de destino (p. ej. "Central -> Odontología" se presenta como "Central · Odontología"). Esta normalización ayuda en la lectura de reportes y coincide con el modelo de destinos documentado.
+- Se documentan estos cambios para facilitar capacitaciones y mantener trazabilidad UX/UI dentro del proyecto.
+
 TRAZABILIDAD CON IMPLEMENTACIÓN (RESUMEN)
 
 - CU-06, CU-07, CU-08, CU-09, CU-10, CU-11 y CU-12

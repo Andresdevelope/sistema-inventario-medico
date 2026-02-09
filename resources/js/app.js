@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	const markAllBtn = document.getElementById('notifMarkAll');
 	let panelOpen = false;
 
+	const tipoColorMap = { ingreso: '#16a34a', egreso: '#dc2626', ajuste_pos: '#0ea5e9', ajuste_neg: '#ea580c', default: '#2563eb' };
+	const tipoIconMap = { ingreso: 'arrow-down', egreso: 'arrow-up', ajuste_pos: 'plus', ajuste_neg: 'minus', default: 'exchange-alt' };
+
 	// ====== Gestión de ciclo de vida del polling ======
 	let pollTimer = null;
 	let baseIntervalMs = 60000; // 60s por defecto
@@ -109,23 +112,114 @@ document.addEventListener('DOMContentLoaded', () => {
 				emptyDiv.style.display = 'block';
 			} else {
 				emptyDiv.style.display = 'none';
-				items.forEach(m => {
-					const div = document.createElement('div');
-					div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:7px 8px;border-radius:10px;margin-bottom:4px;background:' + (m.leido ? '#f5f7fa' : '#eaf4ff') + ';border:1px solid ' + (m.leido ? '#dde4ea' : '#c2ddf5') + ';';
-					const colorMap = { ingreso: '#27ae60', egreso: '#e74c3c', ajuste_pos: '#2ecc71', ajuste_neg: '#e67e22' };
-					const iconMap = { ingreso: 'arrow-down', egreso: 'arrow-up', ajuste_pos: 'plus', ajuste_neg: 'minus' };
-					const icon = iconMap[m.tipo] || 'exchange-alt';
-					const color = colorMap[m.tipo] || '#4093c7';
-					div.innerHTML = `<div style="width:24px;height:24px;border-radius:7px;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem;"><i class="fa fa-${icon}"></i></div>
-						<div style="flex:1;display:flex;flex-direction:column;gap:2px;font-size:.72rem;line-height:1.05;">
-							<div style="font-weight:600;color:#2c3e50;">${m.tipo.replace('_',' ')} · <span style="color:${color}">${m.cantidad}</span> uds</div>
-							<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#34495e;">${m.producto}</div>
-							<div style="color:#607d8b;font-size:.65rem;">${m.fecha} · ${m.motivo || ''}</div>
-						</div>`;
-					itemsContainer.appendChild(div);
-				});
+				items.forEach(item => renderNotificationCard(itemsContainer, item));
 			}
 			if (showPanel) openPanel();
+	function renderNotificationCard(container, item) {
+		const tipo = item.tipo || 'movimiento';
+		const color = tipoColorMap[tipo] || tipoColorMap.default;
+		const icon = tipoIconMap[tipo] || tipoIconMap.default;
+		const headline = item.headline || `${formatTipoLabel(tipo, item.modalidad)} · ${item.producto || 'Producto'}`;
+		const resumen = item.resumen || `${item.cantidad ?? '—'} unidades`;
+		const subtext = item.subtext || buildLegacySubtext(item);
+		const chips = Array.isArray(item.chips) && item.chips.length ? item.chips : buildLegacyChips(item);
+		const actor = item.actor || null;
+
+		const card = document.createElement('div');
+		card.className = 'notif-card' + (item.leido ? '' : ' notif-card-unread');
+
+		const iconBox = document.createElement('div');
+		iconBox.className = 'notif-icon';
+		iconBox.style.background = color;
+		iconBox.innerHTML = `<i class="fa fa-${icon}"></i>`;
+		card.appendChild(iconBox);
+
+		const body = document.createElement('div');
+		body.className = 'notif-body';
+		card.appendChild(body);
+
+		const headlineEl = document.createElement('div');
+		headlineEl.className = 'notif-headline';
+		headlineEl.textContent = headline;
+		body.appendChild(headlineEl);
+
+		const resumenEl = document.createElement('div');
+		resumenEl.className = 'notif-resumen';
+		resumenEl.textContent = resumen;
+		body.appendChild(resumenEl);
+
+		if (subtext) {
+			const subtextEl = document.createElement('div');
+			subtextEl.className = 'notif-subtext';
+			subtextEl.textContent = subtext;
+			body.appendChild(subtextEl);
+		}
+
+		if (actor) {
+			const actorEl = document.createElement('div');
+			actorEl.className = 'notif-actor';
+			actorEl.textContent = `Registrado por ${actor}`;
+			body.appendChild(actorEl);
+		}
+
+		if (chips.length) {
+			const chipWrap = document.createElement('div');
+			chipWrap.className = 'notif-chips';
+			chips.forEach(chip => {
+				const chipEl = document.createElement('span');
+				chipEl.className = 'notif-chip';
+				chipEl.textContent = chip;
+				chipWrap.appendChild(chipEl);
+			});
+			body.appendChild(chipWrap);
+		}
+
+		const meta = document.createElement('div');
+		meta.className = 'notif-meta';
+		meta.textContent = item.fecha || '';
+		body.appendChild(meta);
+
+		container.appendChild(card);
+	}
+
+	function formatTipoLabel(tipo, modalidad) {
+		switch (tipo) {
+			case 'ingreso':
+				return modalidad === 'ajuste' ? 'Ajuste positivo' : 'Entrada';
+			case 'egreso':
+				if (modalidad === 'distribucion') return 'Distribución';
+				if (modalidad === 'consumo') return 'Consumo';
+				return 'Salida';
+			case 'ajuste_pos':
+				return 'Ajuste positivo';
+			case 'ajuste_neg':
+				return 'Ajuste negativo';
+			default:
+				return 'Movimiento';
+		}
+	}
+
+	function buildLegacySubtext(item) {
+		const chunks = [];
+		if (item.modalidad === 'distribucion' && item.destino) {
+			chunks.push(`Destino: ${item.destino}`);
+		}
+		if (item.modalidad === 'consumo' && item.salida) {
+			chunks.push(`Servicio: ${item.salida}`);
+		}
+		if (item.motivo) {
+			chunks.push(item.motivo);
+		}
+		return chunks.join(' · ');
+	}
+
+	function buildLegacyChips(item) {
+		const chips = [];
+		if (item.modalidad === 'distribucion') chips.push('Distribución');
+		if (item.modalidad === 'consumo') chips.push('Consumo');
+		if (item.tipo && item.tipo.startsWith('ajuste')) chips.push('Ajuste');
+		return chips;
+	}
 
 			// Si vino del temporizador, programar la siguiente ejecución con el backoff actual
 			if (fromTimer && !isPaused){ scheduleNext(currentIntervalMs); }
@@ -192,6 +286,18 @@ if (!document.getElementById(bellStyleId)) {
 	const st = document.createElement('style');
 	st.id = bellStyleId;
 	st.textContent = `.pulse-bell { animation: pulseBell 1.2s ease-in-out infinite; }
-	@keyframes pulseBell { 0%{ transform:scale(1); } 50%{ transform:scale(1.15); } 100%{ transform:scale(1); } }`;
+	@keyframes pulseBell { 0%{ transform:scale(1); } 50%{ transform:scale(1.15); } 100%{ transform:scale(1); } }
+	.notif-card { display:flex;gap:.9rem;padding:.85rem;border-radius:1rem;border:1px solid #e2e8f0;background:#fff;margin-bottom:.6rem;box-shadow:0 6px 18px rgba(15,23,42,.08); }
+	.notif-card-unread { border-color:#bfdbfe;background:#f0f7ff; box-shadow:0 8px 22px rgba(37,99,235,.15); }
+	.notif-icon { width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem; }
+	.notif-body { flex:1;display:flex;flex-direction:column;gap:.25rem;min-width:0; }
+	.notif-headline { font-size:.78rem;font-weight:600;color:#0f172a; }
+	.notif-resumen { font-size:.72rem;font-weight:600;color:#0f766e; }
+	.notif-subtext { font-size:.68rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+	.notif-actor { font-size:.63rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em; }
+	.notif-chips { display:flex;flex-wrap:wrap;gap:.35rem; }
+	.notif-chip { font-size:.62rem;padding:.1rem .55rem;border-radius:999px;background:#eef2ff;color:#312e81;border:1px solid #c7d2fe;font-weight:600; }
+	.notif-meta { font-size:.6rem;color:#94a3b8;margin-top:.15rem; }
+	`;
 	document.head.appendChild(st);
 }

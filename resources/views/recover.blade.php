@@ -79,7 +79,7 @@ button:hover{ background:var(--accentH); }
 <div class="auth-page">
   <header class="auth-header" style="position:absolute;top:0;left:0;width:100%;padding:25px 50px;background:transparent;z-index:10;">
     <div class="brand" style="display:flex;align-items:center;gap:12px;">
-      <div class="logo-placeholder" style="width:45px;height:45px;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);"></div>
+      <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG" style="width:45px;height:45px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);object-fit:cover;background:#fff;" />
       <h1 style="font-size:22px;color:var(--text);margin:0;font-weight:600;">Sistema de Inventario</h1>
     </div>
   </header>

@@ -27,43 +27,64 @@
         <div class="row g-4">
                     <div class="col-md-6">
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="nombre" id="nombre" class="form-control ps-5" placeholder="Nombre" value="{{ old('nombre') }}" required>
+                            <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" required>
                             <label for="nombre"><i class="fas fa-capsules me-2"></i> Nombre</label>
                         </div>
+                        @error('nombre')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="codigo" id="codigo" class="form-control ps-5" placeholder="Código" value="{{ old('codigo') }}" required>
+                            <input type="text" name="codigo" id="codigo" class="form-control ps-5 @error('codigo') is-invalid @enderror" placeholder="Código" value="{{ old('codigo') }}" required>
                             <label for="codigo"><i class="fas fa-barcode me-2"></i> Código</label>
                         </div>
+                        @error('codigo')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <textarea name="descripcion" id="descripcion" class="form-control ps-5" placeholder="Descripción" style="height: 80px;">{{ old('descripcion') }}</textarea>
+                            <textarea name="descripcion" id="descripcion" class="form-control ps-5 @error('descripcion') is-invalid @enderror" placeholder="Descripción" style="height: 80px;">{{ old('descripcion') }}</textarea>
                             <label for="descripcion"><i class="fas fa-align-left me-2"></i> Descripción</label>
                         </div>
+                        @error('descripcion')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="presentacion" id="presentacion" class="form-control ps-5" placeholder="Presentación" value="{{ old('presentacion') }}" required>
+                            <input type="text" name="presentacion" id="presentacion" class="form-control ps-5 @error('presentacion') is-invalid @enderror" placeholder="Presentación" value="{{ old('presentacion') }}" required>
                             <label for="presentacion"><i class="fas fa-box-open me-2"></i> Presentación</label>
                         </div>
+                        @error('presentacion')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="text" name="unidad_medida" id="unidad_medida" class="form-control ps-5" placeholder="Unidad de Medida" value="{{ old('unidad_medida') }}" required>
+              <input type="text" name="unidad_medida" id="unidad_medida" class="form-control ps-5 @error('unidad_medida') is-invalid @enderror" placeholder="Unidad de Medida" value="{{ old('unidad_medida') }}" required>
               <label for="unidad_medida"><i class="fas fa-ruler me-2"></i> Unidad de Medida</label>
             </div>
+            @error('unidad_medida')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
             <div class="form-floating mb-3 position-relative">
-              <select name="tipo_producto" id="tipo_producto" class="form-select ps-5" required>
+              <select name="tipo_producto" id="tipo_producto" class="form-select ps-5 @error('tipo_producto') is-invalid @enderror" required>
                 <option value="medicamento" {{ old('tipo_producto', 'medicamento') == 'medicamento' ? 'selected' : '' }}>Medicamento</option>
                 <option value="insumo" {{ old('tipo_producto') == 'insumo' ? 'selected' : '' }}>Insumo</option>
               </select>
               <label for="tipo_producto"><i class="fas fa-tags me-2"></i> Tipo de Producto</label>
             </div>
+            @error('tipo_producto')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
             <div class="form-floating mb-3 position-relative">
-              <select name="categoria_inventario" id="categoria_inventario" class="form-select ps-5" required>
+              <select name="categoria_inventario" id="categoria_inventario" class="form-select ps-5 @error('categoria_inventario') is-invalid @enderror" required>
                 <option value="general" {{ old('categoria_inventario', 'general') == 'general' ? 'selected' : '' }}>Inventario General</option>
                 <option value="odontologia" {{ old('categoria_inventario') == 'odontologia' ? 'selected' : '' }}>Odontología</option>
               </select>
               <label for="categoria_inventario"><i class="fas fa-warehouse me-2"></i> Categoría de Inventario</label>
             </div>
+            @error('categoria_inventario')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
                     </div>
                     <div class="col-md-6">
                         <div class="form-floating mb-3 position-relative">
-              <select name="categoria_id" id="categoria_id" class="form-select ps-5" required>
+              <select name="categoria_id" id="categoria_id" class="form-select ps-5 @error('categoria_id') is-invalid @enderror" required>
                 <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una categoría</option>
                 @foreach($categorias as $categoria)
                   <option value="{{ $categoria->id }}" {{ old('categoria_id') == $categoria->id ? 'selected' : '' }}>{{ $categoria->nombre }}</option>
@@ -71,8 +92,11 @@
               </select>
                             <label for="categoria_id"><i class="fas fa-layer-group me-2"></i> Categoría</label>
                         </div>
+                        @error('categoria_id')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                         <div class="form-floating mb-3 position-relative">
-              <select name="subcategoria_id" id="subcategoria_id" class="form-select ps-5" required>
+              <select name="subcategoria_id" id="subcategoria_id" class="form-select ps-5 @error('subcategoria_id') is-invalid @enderror" required>
                 <option value="" disabled {{ old('subcategoria_id') ? '' : 'selected' }}>Selecciona una subcategoría</option>
                 @foreach($subcategorias as $subcategoria)
                   <option value="{{ $subcategoria->id }}" {{ old('subcategoria_id') == $subcategoria->id ? 'selected' : '' }}>{{ $subcategoria->nombre }}</option>
@@ -80,16 +104,25 @@
               </select>
                             <label for="subcategoria_id"><i class="fas fa-sitemap me-2"></i> Subcategoría</label>
                         </div>
+                        @error('subcategoria_id')
+                          <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="number" name="stock" id="stock" class="form-control ps-5" min="0" placeholder="Stock" value="{{ old('stock') }}" required>
+              <input type="number" name="stock" id="stock" class="form-control ps-5 @error('stock') is-invalid @enderror" min="0" placeholder="Stock" value="{{ old('stock') }}" required>
               <label for="stock"><i class="fas fa-boxes me-2"></i> Stock</label>
             </div>
+            @error('stock')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="number" name="stock_minimo" id="stock_minimo" class="form-control ps-5" min="0" placeholder="Stock mínimo recomendado" value="{{ old('stock_minimo') }}">
+              <input type="number" name="stock_minimo" id="stock_minimo" class="form-control ps-5 @error('stock_minimo') is-invalid @enderror" min="0" placeholder="Stock mínimo recomendado" value="{{ old('stock_minimo') }}">
               <label for="stock_minimo"><i class="fas fa-exclamation-triangle me-2"></i> Stock mínimo recomendado</label>
             </div>
+            @error('stock_minimo')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
                         <div class="form-floating mb-3 position-relative d-flex align-items-center gap-2">
-              <select name="proveedor_id" id="proveedor_id" class="form-select ps-5" required style="max-width: 70%;">
+              <select name="proveedor_id" id="proveedor_id" class="form-select ps-5 @error('proveedor_id') is-invalid @enderror" required style="max-width: 70%;">
                 <option value="" disabled {{ old('proveedor_id') ? '' : 'selected' }}>Selecciona un proveedor</option>
                 @foreach($proveedores as $proveedor)
                   <option value="{{ $proveedor->id }}" 
@@ -109,14 +142,23 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
+            @error('proveedor_id')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="date" name="fecha_ingreso" id="fecha_ingreso" class="form-control ps-5" placeholder="Fecha de Ingreso" value="{{ old('fecha_ingreso') }}" required>
+              <input type="date" name="fecha_ingreso" id="fecha_ingreso" class="form-control ps-5 @error('fecha_ingreso') is-invalid @enderror" placeholder="Fecha de Ingreso" value="{{ old('fecha_ingreso') }}" required>
               <label for="fecha_ingreso"><i class="fas fa-calendar-plus me-2"></i> Fecha de Ingreso</label>
             </div>
+            @error('fecha_ingreso')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="form-control ps-5" placeholder="Fecha de Vencimiento" value="{{ old('fecha_vencimiento') }}">
+              <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="form-control ps-5 @error('fecha_vencimiento') is-invalid @enderror" placeholder="Fecha de Vencimiento" value="{{ old('fecha_vencimiento') }}">
               <label for="fecha_vencimiento"><i class="fas fa-calendar-alt me-2"></i> Fecha de Vencimiento</label>
             </div>
+            @error('fecha_vencimiento')
+              <div class="invalid-feedback d-block">{{ $message }}</div>
+            @enderror
                     </div>
                 </div>
                 <div class="row mt-4">
@@ -144,14 +186,17 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Mostrar errores de validación como toast
   @if ($errors->any())
-    var toastErrores = document.getElementById('toastErrores');
-    var toastErroresLista = document.getElementById('toastErroresLista');
+    const toastErrores = document.getElementById('toastErrores');
+    const toastErroresLista = document.getElementById('toastErroresLista');
     if (toastErrores && toastErroresLista) {
       toastErroresLista.innerHTML = '';
-      @foreach ($errors->all() as $error)
-        toastErroresLista.innerHTML += '<li>{{ $error }}'</li>;
-      @endforeach
-      var toast = new bootstrap.Toast(toastErrores, { delay: 6000 });
+      const errores = @json($errors->all());
+      errores.forEach(error => {
+        const li = document.createElement('li');
+        li.textContent = error;
+        toastErroresLista.appendChild(li);
+      });
+      const toast = new bootstrap.Toast(toastErrores, { delay: 6000 });
       toast.show();
     }
   @endif

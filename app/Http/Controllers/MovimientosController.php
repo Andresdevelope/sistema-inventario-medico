@@ -11,13 +11,17 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MovimientosController extends Controller
 {
     public function index(Request $request)
     {
         // Incluir tipo_producto para auto-clasificación en la vista (Medicamento/Insumo)
-        $productos = Producto::orderBy('nombre')->get(['id','nombre','codigo','tipo_producto']);
+        // Limitamos el set inicial para evitar renderizar cientos de opciones; el resto se consulta vía AJAX.
+        $productos = Producto::orderBy('nombre')
+            ->limit(50)
+            ->get(['id','nombre','codigo','tipo_producto']);
         $destinos = \App\Models\Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre','codigo']);
         // Últimos movimientos (paginados)
         $ultimos = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,fecha_vencimiento'])
@@ -25,6 +29,29 @@ class MovimientosController extends Controller
             ->orderByDesc('id')
             ->paginate((int)$request->input('per_page', 10))
             ->appends($request->query());
+        $productosFrecuentes = Movimiento::select('producto_id', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('producto_id')
+            ->groupBy('producto_id')
+            ->orderByDesc('total')
+            ->with('producto:id,nombre,codigo,tipo_producto')
+            ->limit(8)
+            ->get()
+            ->map(function ($row) {
+                $producto = $row->producto;
+                if (!$producto) {
+                    return null;
+                }
+                return [
+                    'id' => $producto->id,
+                    'nombre' => $producto->nombre,
+                    'codigo' => $producto->codigo,
+                    'tipo' => $producto->tipo_producto,
+                    'uso' => (int) $row->total,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->toArray();
         // Bitácora: ingreso a módulo movimientos
         try {
             if (Auth::check()) {
@@ -38,7 +65,7 @@ class MovimientosController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {}
-        return view('movimientos.index', compact('productos','ultimos','destinos'));
+        return view('movimientos.index', compact('productos','ultimos','destinos','productosFrecuentes'));
     }
 
     public function store(Request $request, InventarioService $service)

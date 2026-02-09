@@ -26,6 +26,7 @@ class User extends Authenticatable
         'security_padre_answer',
         'login_attempts',
         'locked_until',
+        'notif_mov_last_seen_id',
         'role', // permite asignar el rol desde formularios o seeds
     ];
 

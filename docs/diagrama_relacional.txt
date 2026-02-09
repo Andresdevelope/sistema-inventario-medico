@@ -41,6 +41,10 @@ NOTAS
   - `2026_01_31_000000_add_modalidad_y_beneficiario_a_movimientos.php` → agrega `modalidad`, `tipo_identificacion`, `sexo` e índices relacionados.
   - `2026_02_04_000000_add_um_y_contenido_por_blister_to_inventarios_table.php` → agrega `um_operativa` y `contenido_por_blister` a `inventarios`.
 
+ACTUALIZACIÓN 08/02/2026
+- No se añadieron nuevas columnas; sin embargo, la interfaz de movimientos reorganizada en tarjetas ("mosaico") ahora controla los valores `tipo` y `modalidad` mediante `old()` para garantizar que las inserciones/actualizaciones respeten el esquema relacional descrito.
+- Se introdujo el helper `mov_formatear_destino()` a nivel de Blade para representar cadenas normalizadas de DESTINO sin alterar la tabla `destinos`. La normalización mantiene coherencia con las claves foráneas documentadas y evita disparidades en reportes/exportes.
+
 REPORTES (vista lógica)
 - Inventario periódico (matriz por destino): título “INVENTARIO DE MEDICAMENTOS E INSUMOS”, periodo (mensual/trimestral/semestral/anual), columnas por destino con fecha de corte; UM respetada (blíster/unidad); total global.
 - Salidas — FARMACIA INTERNA: filas por destino (p. ej. BÁSICO/PPAL, ÁREA, E. BRACHO, TOTAL); columnas: Medicamentos entregados (blíster), Beneficiarios (entregas), F, M, EST, TRAB, COM; columna opcional “Insumos entregados (unidades)”. Odontología = 0 en medicamentos; insumos se reportan en sus plantillas (Insumos varios, Inyectadoras, Guantes).

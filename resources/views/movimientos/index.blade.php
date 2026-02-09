@@ -20,7 +20,12 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="m-0">Registrar Movimiento</h2>
     <div class="d-flex gap-2">
-      <a href="{{ route('inventario.index') }}" class="btn btn-orange">Ver Inventario <span class="btn-badge ms-1">INV</span></a>
+      <a href="{{ route('inventario.index') }}" class="btn btn-orange d-flex align-items-center">
+      <span class="me-2">
+        <i class="fa fa-box-open fa-lg" style="color:#fff; background:rgba(255,255,255,0.15); border-radius:50%; padding:4px;"></i>
+      </span>
+      Ver Inventario
+      </a>
     </div>
   </div>
 
@@ -32,6 +37,59 @@
     $isConsumo = ($oldTipo === 'egreso' && $oldModalidad === 'consumo');
     $isAjustePos = $oldTipo === 'ajuste_pos';
     $isAjusteNeg = $oldTipo === 'ajuste_neg';
+      
+    /// función de ayuda para formatear el destino de un movimiento de egreso, aplicando reglas de normalización y formato legible. Se usa en la tabla de últimos movimientos para mostrar el destino de forma más clara y consistente, incluso si los datos originales son variados o inconsistentes. 
+    if (! function_exists('mov_formatear_destino')) {
+      function mov_formatear_destino($texto) {
+        $texto = trim((string) $texto);
+        if ($texto === '') {
+          return '-';
+        }
+        if (strpos($texto, '/') === false) {
+          return $texto;
+        }
+
+        $partes = array_values(array_filter(array_map('trim', explode('/', $texto))));
+        if (count($partes) <= 1) {
+          return $texto;
+        }
+
+        $detalleParts = [];
+        $principal = array_shift($partes);
+
+        if (preg_match('/^([A-ZÁÉÍÓÚÜÑ0-9]{2,})\s+(.+)$/u', $principal, $matches)) {
+          $detalleParts[] = trim($matches[2]);
+          $principal = trim($matches[1]);
+        }
+
+        $detalleParts = array_merge($detalleParts, $partes);
+        $detalleParts = array_map('trim', $detalleParts);
+
+        if (empty($detalleParts)) {
+          return $principal;
+        }
+
+        if (count($detalleParts) === 1) {
+          $detalle = $detalleParts[0];
+        } else {
+          $ultimo = array_pop($detalleParts);
+          $conector = ' y ';
+          $normalizado = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(ltrim($ultimo)));
+          if (\Illuminate\Support\Str::startsWith($normalizado, ['i', 'hi'])) {
+            $conector = ' e ';
+          }
+          $detalle = implode(', ', array_filter($detalleParts, fn($p) => $p !== ''));
+          $ultimo = trim($ultimo);
+          $detalle = $detalle !== '' ? $detalle . $conector . $ultimo : $ultimo;
+        }
+
+        return trim($principal) . ' (' . $detalle . ')';
+      }
+    }
+  @endphp
+  @php
+    $productosFrecuentes = $productosFrecuentes ?? [];
+    $hasTopProductos = !empty($productosFrecuentes);
   @endphp
 
   <ul class="nav nav-tabs mb-3" id="tabs-mov" role="tablist" aria-label="Seleccionar tipo de movimiento">
@@ -118,6 +176,58 @@
       white-space: nowrap; /* avoid text wrapping */
       border: 0;
     }
+    #producto_sugerencias {
+      border: 1px solid rgba(255,138,0,.3);
+      border-radius: .75rem;
+      background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,247,237,.97));
+      box-shadow: 0 12px 30px rgba(31,31,31,.15);
+      padding: .25rem;
+    }
+    #producto_sugerencias .list-group-item {
+      background-color: transparent;
+      border: none;
+      border-radius: .65rem;
+      margin-bottom: .25rem;
+    }
+    #producto_sugerencias .list-group-item-action:hover,
+    #producto_sugerencias .list-group-item-action.active {
+      background-color: rgba(255,138,0,.12);
+      color: #c04a00;
+    }
+    #producto_sugerencias .list-group-item-heading {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #a05900;
+      font-weight: 600;
+      cursor: default;
+    }
+    .producto-quick-tools {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.05);
+      border-radius: .75rem;
+      padding: .65rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.04);
+    }
+    .producto-quick-tools .btn-group .btn.active {
+      background-color: var(--color-orange-600, #FF7300);
+      color: #fff;
+      border-color: var(--color-orange-600, #FF7300);
+    }
+    .producto-top-chip {
+      border-radius: 999px;
+      background: rgba(255,115,0,.08);
+      border-color: transparent;
+      color: #b14a00;
+    }
+    .producto-top-chip:hover {
+      background: rgba(255,115,0,.15);
+      color: #a14200;
+    }
+    .producto-top-chip .badge {
+      background: rgba(255,255,255,.7);
+      color: #5a3200;
+    }
   </style>
 
   {{-- Enlace al Historial de Consumo: visible solo cuando la pestaña Consumo está activa --}}
@@ -186,8 +296,35 @@
             @endforeach
           </select>
           <div class="d-flex align-items-center justify-content-between mt-2">
-            <small class="text-muted">Escribe para buscar, selecciona una sugerencia o usa el listado.</small>
+            <small class="text-muted">
+              Puedes buscar por nombre o código, o seleccionar manualmente desde la lista de abajo.
+            </small>
             <span id="tipo-chip" class="badge bg-secondary" title="Tipo de producto" style="display:none;">—</span>
+          </div>
+          <div class="producto-quick-tools mt-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <span class="text-muted small text-uppercase fw-semibold">Filtros rápidos:</span>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Filtro por tipo" id="tipo-filter-buttons">
+                <button type="button" class="btn btn-outline-secondary btn-tipo-filter active" data-tipo="">Todos</button>
+                <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="medicamento">Medicamentos</button>
+                <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="insumo">Insumos</button>
+              </div>
+              <button type="button" class="btn btn-link btn-sm text-decoration-none" id="btn-ver-top-sugerencias" {{ $hasTopProductos ? '' : 'disabled' }}>
+                <i class="fa fa-star text-warning me-1"></i>Ver más usados
+              </button>
+            </div>
+            @if($hasTopProductos)
+              <div class="mt-2 d-flex flex-wrap gap-2" id="producto-top-chips">
+                @foreach($productosFrecuentes as $fav)
+                  <button type="button" class="btn btn-outline-primary btn-sm producto-top-chip" data-id="{{ $fav['id'] }}" data-nombre="{{ $fav['nombre'] }}" data-codigo="{{ $fav['codigo'] }}" data-tipo="{{ $fav['tipo'] }}" title="{{ $fav['uso'] }} movimiento(s) registrados">
+                    {{ \Illuminate\Support\Str::limit($fav['nombre'], 24) }}
+                    <span class="badge ms-1">{{ $fav['uso'] }}</span>
+                  </button>
+                @endforeach
+              </div>
+            @else
+              <small class="text-muted d-block mt-2">Se mostrarán atajos en cuanto registres movimientos frecuentes.</small>
+            @endif
           </div>
         </div>
         {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
@@ -262,7 +399,13 @@
         </div>
 
         <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-orange">Registrar movimiento <span class="btn-badge ms-1">MOV</span></button>
+          <div class="d-flex gap-2">
+            <a href="{{ route('movimientos.index') }}" class="btn btn-orange d-flex align-items-center gap-2">
+              <span class="badge bg-light text-warning fw-semibold text-uppercase small px-2 py-1">Nuevo</span>
+              <i class="fa fa-bolt"></i>
+              <span>Agregar Movimiento</span>
+            </a>
+          </div>
         </div>
       </form>
     </div>
@@ -272,8 +415,8 @@
     <div class="card-body">
       {{-- Panel auxiliar: lotes y vencimientos del producto seleccionado.
            Orden FEFO/FIFO y selector para autocompletar lote+fecha en el formulario. --}}
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h5 class="m-0">Lotes y vencimientos del producto seleccionado</h5>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <small class="text-muted">Escribe para buscar (consulta en vivo) o usa los últimos 50 listados.</small>
         <div class="d-flex align-items-center gap-2">
           <small class="text-muted me-2">Ayuda visual para no afectar registros previos</small>
           <button type="button" id="btn-clear-lote" class="btn btn-sm btn-outline-secondary" style="display:none;">Quitar selección</button>
@@ -370,9 +513,13 @@
                 </td>
                 <td>{{ $m->cantidad }}</td>
                 <td>
-                  @php $dest = $m->destino; @endphp
+                  @php
+                    $dest = $m->destino;
+                    $destinoCrudo = $dest?->nombre ?? $m->salida ?? '-';
+                    $destinoMostrar = mov_formatear_destino($destinoCrudo);
+                  @endphp
                   @if($m->tipo==='egreso')
-                    <span class="badge bg-dark" title="Destino normalizado">{{ $dest?->nombre ?? $m->salida ?? '-' }}</span>
+                    <span class="badge bg-dark" title="Destino normalizado">{{ $destinoMostrar }}</span>
                   @else
                     <span class="text-muted">-</span>
                   @endif
@@ -927,70 +1074,225 @@
   productoSel.addEventListener('change', () => { cargarInventariosProducto(); if (typeof updateLoteAdvice === 'function') { updateLoteAdvice(); } });
   document.addEventListener('DOMContentLoaded', cargarInventariosProducto);
   btnClearLote.addEventListener('click', clearSelection);
-    // === Búsqueda profesional (tipoahead) basada en las opciones del select ===
-    let productosDataset = [];
+    // === Búsqueda incremental conectada al backend + atajos visuales ===
+    const productosSearchUrl = @json(route('productos.search'));
+    const quickTopProductos = @json($productosFrecuentes ?? []);
+    const productosCache = new Map();
+    const MIN_CHARS_BUSCADOR = 2;
+    let currentSearchResults = [];
+    let currentSearchTerm = '';
+    let nextSearchPage = null;
     let activeSugIdx = -1;
-    function buildProductosDataset() {
-      productosDataset = Array.from(productoSel.querySelectorAll('option'))
-        .filter(opt => opt.value)
-        .map(opt => ({ id: opt.value, nombre: opt.dataset.nombre || opt.textContent, codigo: opt.dataset.codigo || '', tipo: (opt.dataset.tipo || '').toLowerCase(), texto: opt.textContent }));
+    let searchAbortCtrl = null;
+    let debounceTimerId = null;
+    let currentTipoFilter = '';
+    const tipoFilterButtons = document.querySelectorAll('.btn-tipo-filter');
+    const btnVerTopSugerencias = document.getElementById('btn-ver-top-sugerencias');
+    const productoTopChips = document.querySelectorAll('.producto-top-chip');
+
+    function syncProductoBuscadorConSelect() {
+      const opt = productoSel.options[productoSel.selectedIndex];
+      if (!opt) { productoBuscar.value = ''; return; }
+      productoBuscar.value = opt.dataset?.nombre || opt.textContent?.trim() || '';
     }
-    function renderProductoSugerencias(items) {
+    document.addEventListener('DOMContentLoaded', syncProductoBuscadorConSelect);
+    productoSel.addEventListener('change', syncProductoBuscadorConSelect);
+
+    function renderProductoSugerencias(items, { message = null, loading = false, header = null } = {}) {
       productoSugerencias.innerHTML = '';
-      if (!items.length) { productoSugerencias.style.display='none'; return; }
-      items.slice(0, 20).forEach((it, idx) => {
+      if (loading) {
+        productoSugerencias.innerHTML = '<div class="list-group-item text-muted">Buscando...</div>';
+        productoSugerencias.style.display = 'block';
+        return;
+      }
+      if (message) {
+        productoSugerencias.innerHTML = `<div class="list-group-item text-muted">${message}</div>`;
+        productoSugerencias.style.display = 'block';
+        return;
+      }
+      if (!items.length) {
+        productoSugerencias.innerHTML = '<div class="list-group-item text-muted">Sin resultados</div>';
+        productoSugerencias.style.display = 'block';
+        return;
+      }
+      if (header) {
+        const headerEl = document.createElement('div');
+        headerEl.className = 'list-group-item list-group-item-heading';
+        headerEl.textContent = header;
+        productoSugerencias.appendChild(headerEl);
+      }
+      items.forEach((it, idx) => {
         const a = document.createElement('a');
         a.href = '#';
-        a.className = 'list-group-item list-group-item-action';
-        const tipoText = it.tipo ? it.tipo.toUpperCase() : '—';
+        a.className = 'list-group-item list-group-item-action suggestion-item';
+        a.dataset.index = idx;
+        const tipoText = (it.tipo || '—').toUpperCase();
         const tipoBadge = `<span class="badge bg-secondary ms-2" title="Tipo">${tipoText}</span>`;
-        a.innerHTML = `<div class="d-flex justify-content-between"><div><strong>${it.nombre}</strong> <span class="text-muted">(${it.codigo})</span>${tipoBadge}</div></div>`;
+        const usoBadge = typeof it.uso !== 'undefined'
+          ? `<span class="badge bg-light text-dark ms-2" title="Movimientos registrados"><i class="fa fa-star text-warning me-1"></i>${it.uso}</span>`
+          : '';
+        a.innerHTML = `<div class="d-flex flex-column">
+          <div><strong>${it.nombre}</strong> <span class="text-muted">(${it.codigo})</span>${tipoBadge}${usoBadge}</div>
+        </div>`;
         a.addEventListener('click', (e) => { e.preventDefault(); seleccionarProductoDesdeSug(it); });
         productoSugerencias.appendChild(a);
       });
-      productoSugerencias.style.display='block';
+      if (nextSearchPage) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.type = 'button';
+        loadMoreBtn.className = 'list-group-item list-group-item-action text-center load-more-suggestions';
+        loadMoreBtn.textContent = 'Cargar más resultados';
+        loadMoreBtn.addEventListener('click', () => requestProductos(currentSearchTerm, { page: nextSearchPage, append: true }));
+        productoSugerencias.appendChild(loadMoreBtn);
+      }
+      productoSugerencias.style.display = 'block';
       activeSugIdx = -1;
     }
+
+    function requestProductos(term, { page = 1, append = false } = {}) {
+      const normalized = (term || '').trim();
+      if (!append) {
+        currentSearchResults = [];
+        nextSearchPage = null;
+      }
+      currentSearchTerm = normalized;
+      if (normalized.length < MIN_CHARS_BUSCADOR) {
+        if (!normalized) {
+          productoSugerencias.style.display = 'none';
+        } else {
+          renderProductoSugerencias([], { message: `Escribe al menos ${MIN_CHARS_BUSCADOR} caracteres` });
+        }
+        return;
+      }
+      const cacheKey = `${normalized}|${page}|${currentTipoFilter || 'all'}`;
+      if (productosCache.has(cacheKey)) {
+        const cached = productosCache.get(cacheKey);
+        nextSearchPage = cached.nextPage;
+        currentSearchResults = append ? currentSearchResults.concat(cached.data) : cached.data.slice();
+        renderProductoSugerencias(currentSearchResults);
+        return;
+      }
+      if (!append) {
+        renderProductoSugerencias([], { loading: true });
+      }
+      searchAbortCtrl?.abort();
+      searchAbortCtrl = new AbortController();
+      const params = new URLSearchParams({ q: normalized, page: String(page) });
+      if (currentTipoFilter) params.append('tipo', currentTipoFilter);
+      fetch(`${productosSearchUrl}?${params.toString()}`, { signal: searchAbortCtrl.signal })
+        .then(resp => {
+          if (!resp.ok) throw new Error('No se pudo obtener la lista de productos.');
+          return resp.json();
+        })
+        .then(json => {
+          if (currentSearchTerm !== normalized) return;
+          const data = Array.isArray(json.data) ? json.data : [];
+          const meta = json.meta || {};
+          const nextPage = meta.has_more ? meta.next_page : null;
+          productosCache.set(cacheKey, { data, nextPage });
+          nextSearchPage = nextPage;
+          currentSearchResults = append ? currentSearchResults.concat(data) : data.slice();
+          renderProductoSugerencias(currentSearchResults);
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return;
+          renderProductoSugerencias([], { message: err.message || 'Error al buscar productos' });
+        });
+    }
+
     function seleccionarProductoDesdeSug(item) {
-      productoSel.value = item.id;
-      productoSugerencias.style.display='none';
+      ensureOptionExists(item);
+      productoSel.value = String(item.id);
       productoSel.dispatchEvent(new Event('change'));
+      productoBuscar.value = item.nombre;
+      productoSugerencias.style.display = 'none';
     }
-    function filtrarProductos(term) {
-      const t = term.trim().toLowerCase();
-      if (!t) return [];
-      return productosDataset.filter(p => (
-        (p.nombre || '').toLowerCase().includes(t) || (p.codigo || '').toLowerCase().includes(t)
-      ));
+
+    function ensureOptionExists(item) {
+      let opt = productoSel.querySelector(`option[value="${item.id}"]`);
+      if (!opt) {
+        opt = document.createElement('option');
+        productoSel.appendChild(opt);
+      }
+      opt.value = item.id;
+      opt.dataset.nombre = item.nombre || '';
+      opt.dataset.codigo = item.codigo || '';
+      opt.dataset.tipo = (item.tipo || '').toLowerCase();
+      opt.textContent = `${item.nombre} (${item.codigo})`;
     }
+
+    function getSuggestionElements() {
+      return Array.from(productoSugerencias.querySelectorAll('.suggestion-item'));
+    }
+
     function moverSugerenciaActiva(delta) {
-      const children = Array.from(productoSugerencias.children);
-      if (!children.length) return;
-      activeSugIdx = Math.max(0, Math.min(children.length-1, activeSugIdx + delta));
-      children.forEach((el, i) => el.classList.toggle('active', i === activeSugIdx));
+      const items = getSuggestionElements();
+      if (!items.length) return;
+      activeSugIdx = Math.max(0, Math.min(items.length - 1, activeSugIdx + delta));
+      items.forEach((el, idx) => el.classList.toggle('active', idx === activeSugIdx));
     }
-    document.addEventListener('DOMContentLoaded', buildProductosDataset);
+
     productoBuscar.addEventListener('input', () => {
-      const items = filtrarProductos(productoBuscar.value);
-      renderProductoSugerencias(items);
+      clearTimeout(debounceTimerId);
+      debounceTimerId = setTimeout(() => requestProductos(productoBuscar.value), 250);
+    });
+    productoBuscar.addEventListener('focus', () => {
+      if (productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR) {
+        requestProductos(productoBuscar.value, { page: 1, append: false });
+      }
     });
     productoBuscar.addEventListener('keydown', (e) => {
       if (productoSugerencias.style.display !== 'block') return;
-      switch (e.key) {
-        case 'ArrowDown': e.preventDefault(); moverSugerenciaActiva(1); break;
-        case 'ArrowUp': e.preventDefault(); moverSugerenciaActiva(-1); break;
-        case 'Enter':
+      if (e.key === 'ArrowDown') { e.preventDefault(); moverSugerenciaActiva(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); moverSugerenciaActiva(-1); }
+      else if (e.key === 'Enter') {
+        const items = getSuggestionElements();
+        if (items.length && activeSugIdx >= 0) {
           e.preventDefault();
-          const items = Array.from(productoSugerencias.children);
-          if (activeSugIdx >= 0 && items[activeSugIdx]) { items[activeSugIdx].click(); }
-          break;
-        case 'Escape': productoSugerencias.style.display='none'; break;
+          items[activeSugIdx].click();
+        }
+      } else if (e.key === 'Escape') {
+        productoSugerencias.style.display = 'none';
       }
     });
     document.addEventListener('click', (e) => {
       if (!productoSugerencias.contains(e.target) && e.target !== productoBuscar) {
-        productoSugerencias.style.display='none';
+        productoSugerencias.style.display = 'none';
       }
+    });
+
+    tipoFilterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')) return;
+        tipoFilterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTipoFilter = btn.dataset.tipo || '';
+        productosCache.clear();
+        if (productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR) {
+          requestProductos(productoBuscar.value, { page: 1, append: false });
+        }
+      });
+    });
+
+    if (btnVerTopSugerencias) {
+      btnVerTopSugerencias.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!quickTopProductos.length) {
+          renderProductoSugerencias([], { message: 'Aún no hay suficientes movimientos para destacar productos.' });
+          return;
+        }
+        renderProductoSugerencias(quickTopProductos, { header: 'Más usados' });
+      });
+    }
+    productoTopChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        seleccionarProductoDesdeSug({
+          id: chip.dataset.id,
+          nombre: chip.dataset.nombre,
+          codigo: chip.dataset.codigo,
+          tipo: chip.dataset.tipo
+        });
+      });
     });
   loteInput.addEventListener('input', updateLoteAdvice);
   fvInput.addEventListener('change', updateLoteAdvice);

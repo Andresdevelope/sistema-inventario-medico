@@ -356,13 +356,20 @@
         try {
             const res = await fetch(`/categorias/${id}/dependencias`, { headers:{'Accept':'application/json'} });
             const js = await res.json();
-            const deps = js.dependencias || {medicamentos:0, subcategorias:0};
-            if(deps.medicamentos>0 || deps.subcategorias>0){
-                const msg = `La categoría "${nombre}" tiene ${deps.medicamentos} medicamento(s) y ${deps.subcategorias} subcategoría(s) asociadas.\nNo se recomienda eliminarla. Reasigna los medicamentos y/o elimina las subcategorías primero.`;
-                confirmar(msg, ()=>{}); // solo mostrar advertencia, no eliminar
-            } else {
-                confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id));
+            const deps = js.dependencias || {};
+            const meds = deps.medicamentos || 0;
+            const subEnUso = deps.subcategorias_en_uso || 0;
+            const subVacias = deps.subcategorias_vacias ?? Math.max((deps.subcategorias_totales || 0) - subEnUso, 0);
+            if(meds>0 || subEnUso>0){
+                const msg = `La categoría "${nombre}" está en uso: ${meds} medicamento(s) registrados y ${subEnUso} subcategoría(s) con datos.\nReasigna o elimina esos registros antes de continuar.`;
+                confirmar(msg, ()=>{});
+                return;
             }
+            let mensaje = `¿Eliminar la categoría "${nombre}"?`;
+            if(subVacias>0){
+                mensaje += `\nSe eliminarán también ${subVacias} subcategoría(s) vacías.`;
+            }
+            confirmar(mensaje, ()=> eliminarCategoria(id));
         } catch(e){ confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id)); }
     }
 

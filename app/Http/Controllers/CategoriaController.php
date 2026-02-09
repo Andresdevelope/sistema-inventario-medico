@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Categoria;
 use App\Models\Subcategoria;
 use App\Models\Producto;
@@ -140,20 +141,41 @@ class CategoriaController extends Controller
     public function destroy($id)
     {
         $categoria = Categoria::findOrFail($id);
-        // Validar dependencias: productos y subcategorías
         $productosCount = Producto::where('categoria_id', $categoria->id)->count();
-        $subcatsCount = Subcategoria::where('categoria_id', $categoria->id)->count();
-        if ($productosCount > 0 || $subcatsCount > 0) {
+        $subcategoriaIds = Subcategoria::where('categoria_id', $categoria->id)->pluck('id');
+        $subcatsConMedicamentos = $subcategoriaIds->isEmpty()
+            ? 0
+            : Producto::whereIn('subcategoria_id', $subcategoriaIds)->distinct()->count('subcategoria_id');
+
+        if ($productosCount > 0 || $subcatsConMedicamentos > 0) {
             return response()->json([
                 'success' => false,
-                'message' => "No se puede eliminar. La categoría tiene {$productosCount} medicamento(s) y {$subcatsCount} subcategoría(s) asociadas.",
-                'dependencias' => ['medicamentos' => $productosCount, 'subcategorias' => $subcatsCount]
+                'message' => 'No se puede eliminar. Reasigna o elimina primero los medicamentos asociados a esta categoría o a sus subcategorías.',
+                'dependencias' => [
+                    'medicamentos' => $productosCount,
+                    'subcategorias_en_uso' => $subcatsConMedicamentos,
+                    'subcategorias_totales' => $subcategoriaIds->count(),
+                ]
             ], 422);
         }
-        $snapshot = ['id'=>$categoria->id,'nombre'=>$categoria->nombre];
-        $categoria->delete();
-        $this->logBitacora('categoria.eliminar', $snapshot);
-        return response()->json(['success' => true]);
+
+        DB::transaction(function () use ($categoria, $subcategoriaIds) {
+            if ($subcategoriaIds->isNotEmpty()) {
+                Subcategoria::whereIn('id', $subcategoriaIds)->delete();
+            }
+            $snapshot = [
+                'id' => $categoria->id,
+                'nombre' => $categoria->nombre,
+                'subcategorias_eliminadas' => $subcategoriaIds->count(),
+            ];
+            $categoria->delete();
+            $this->logBitacora('categoria.eliminar', $snapshot);
+        });
+
+        return response()->json([
+            'success' => true,
+            'subcategorias_eliminadas' => $subcategoriaIds->count(),
+        ]);
     }
 
     /**
@@ -172,10 +194,20 @@ class CategoriaController extends Controller
     {
         $categoria = Categoria::findOrFail($id);
         $medicamentos = Producto::where('categoria_id', $id)->count();
-        $subcategorias = Subcategoria::where('categoria_id', $id)->count();
+        $subcategoriasTotales = Subcategoria::where('categoria_id', $id)->count();
+        $subcategoriaIds = Subcategoria::where('categoria_id', $id)->pluck('id');
+        $subcategoriasEnUso = $subcategoriaIds->isEmpty()
+            ? 0
+            : Producto::whereIn('subcategoria_id', $subcategoriaIds)->distinct()->count('subcategoria_id');
+        $subcategoriasVacias = max(0, $subcategoriasTotales - $subcategoriasEnUso);
         return response()->json([
             'success' => true,
-            'dependencias' => compact('medicamentos', 'subcategorias')
+            'dependencias' => [
+                'medicamentos' => $medicamentos,
+                'subcategorias_totales' => $subcategoriasTotales,
+                'subcategorias_en_uso' => $subcategoriasEnUso,
+                'subcategorias_vacias' => $subcategoriasVacias,
+            ]
         ]);
     }
 }

@@ -68,7 +68,7 @@ class ProductoController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $rules = [
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:100|unique:productos,codigo',
             'descripcion' => 'nullable|string',
@@ -81,9 +81,11 @@ class ProductoController extends Controller
             'stock' => 'required|integer|min:0',
             'stock_minimo' => 'nullable|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
-            'fecha_ingreso' => 'required|date',
-            'fecha_vencimiento' => 'required|date'
-        ]);
+            'fecha_ingreso' => 'required|date|before_or_equal:today',
+            'fecha_vencimiento' => 'required|date|after:fecha_ingreso|after:today'
+        ];
+
+        $request->validate($rules, $this->mensajesValidacion());
 
         $producto = Producto::create($request->all() + [
             'created_by' => Auth::user() ? Auth::user()->id : null,
@@ -117,6 +119,54 @@ class ProductoController extends Controller
     }
 
     /**
+     * Endpoint AJAX para búsquedas incrementales desde el módulo de movimientos.
+     */
+    public function buscarAjax(Request $request)
+    {
+        $term = trim((string) $request->input('q', ''));
+        $tipo = $request->input('tipo');
+        $perPage = (int) $request->input('per_page', 15);
+        $perPage = max(5, min(30, $perPage));
+
+        $query = Producto::query()->select(['id','nombre','codigo','tipo_producto']);
+
+        if ($term !== '') {
+            $query->where(function($qb) use ($term) {
+                $qb->where('nombre', 'like', "%{$term}%")
+                   ->orWhere('codigo', 'like', "%{$term}%");
+            });
+        }
+
+        if (in_array($tipo, ['medicamento','insumo'], true)) {
+            $query->where('tipo_producto', $tipo);
+        }
+
+        $productos = $query->orderBy('nombre')->simplePaginate($perPage);
+
+        $items = collect($productos->items())->map(function (Producto $producto) {
+            return [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'codigo' => $producto->codigo,
+                'tipo' => $producto->tipo_producto,
+                'display' => sprintf('%s (%s)', $producto->nombre, $producto->codigo),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'current_page' => $productos->currentPage(),
+                'per_page' => $perPage,
+                'has_more' => $productos->hasMorePages(),
+                'next_page' => $productos->hasMorePages() ? $productos->currentPage() + 1 : null,
+                'query' => $term,
+                'tipo' => $tipo,
+            ],
+        ]);
+    }
+
+    /**
      * Display the specified product.
      */
     public function show(Producto $producto)
@@ -140,7 +190,7 @@ class ProductoController extends Controller
      */
     public function update(Request $request, Producto $producto)
     {
-        $request->validate([
+        $rules = [
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:100|unique:productos,codigo,' . $producto->id,
             'descripcion' => 'nullable|string',
@@ -153,11 +203,14 @@ class ProductoController extends Controller
             'stock' => 'required|integer|min:0',
             'stock_minimo' => 'nullable|integer|min:0',
             'proveedor_id' => 'required|exists:proveedores,id',
-            'fecha_ingreso' => 'required|date',
-            'fecha_vencimiento' => 'nullable|date',
-        ]);
+            'fecha_ingreso' => 'required|date|before_or_equal:today',
+            'fecha_vencimiento' => 'nullable|date|after:fecha_ingreso|after:today',
+        ];
 
-        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','categoria_inventario','stock','proveedor_id','stock_minimo']);
+        $request->validate($rules, $this->mensajesValidacion());
+
+        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','categoria_inventario','stock','proveedor_id','stock_minimo','fecha_vencimiento']);
+        $oldFechaVencimiento = $producto->fecha_vencimiento;
         $producto->update($request->all() + [
             'updated_by' => Auth::user() ? Auth::user()->id : null,
         ]);
@@ -174,6 +227,13 @@ class ProductoController extends Controller
                 'stock_minimo' => $producto->stock_minimo,
                 'estado' => 'activo',
             ]);
+        } elseif ($request->filled('fecha_vencimiento') && $oldFechaVencimiento !== $producto->fecha_vencimiento) {
+            Inventario::where('producto_id', $producto->id)
+                ->where(function($q) use ($oldFechaVencimiento) {
+                    $q->whereNull('lote')
+                      ->orWhere('fecha_vencimiento', $oldFechaVencimiento);
+                })
+                ->update(['fecha_vencimiento' => $producto->fecha_vencimiento]);
         }
 
         return redirect()->route('productos.index')->with('success', 'Producto actualizado correctamente.');
@@ -184,13 +244,18 @@ class ProductoController extends Controller
      */
     public function destroy(Producto $producto)
     {
-        // Validación previa: evitar borrar si existen inventarios o movimientos asociados
-        $inventariosCount = \App\Models\Inventario::where('producto_id', $producto->id)->count();
+        // Validación previa: bloquear si existen movimientos; si solo hay inventarios "vírgenes", se eliminan automáticamente
+        $inventariosQuery = \App\Models\Inventario::where('producto_id', $producto->id);
+        $inventariosCount = $inventariosQuery->count();
         $movimientosCount = \App\Models\Movimiento::where('producto_id', $producto->id)->count();
 
-        if ($inventariosCount > 0 || $movimientosCount > 0) {
+        if ($movimientosCount > 0) {
             return redirect()->route('productos.index')
-                ->with('error', "No se puede eliminar: tiene {$inventariosCount} inventario(s) y {$movimientosCount} movimiento(s) asociados.");
+                ->with('error', "No se puede eliminar: tiene {$inventariosCount} inventario(s) y {$movimientosCount} movimiento(s) registrados.");
+        }
+
+        if ($inventariosCount > 0) {
+            $inventariosQuery->delete();
         }
 
         $snapshot = $producto->only(['id','nombre','codigo']);
@@ -201,4 +266,60 @@ class ProductoController extends Controller
 
     // El middleware de autenticación debe ser aplicado en el controlador base o en las rutas.
     // Si necesitas protección, usa Route::middleware(['auth']) en web.php o elimina este constructor.
+
+    private function mensajesValidacion(): array
+    {
+        return [
+            'nombre.required' => 'El nombre es obligatorio.',
+            'nombre.string' => 'El nombre debe ser un texto válido.',
+            'nombre.max' => 'El nombre no puede superar los 255 caracteres.',
+
+            'codigo.required' => 'El código es obligatorio.',
+            'codigo.string' => 'El código debe ser un texto válido.',
+            'codigo.max' => 'El código no puede superar los 100 caracteres.',
+            'codigo.unique' => 'El código ingresado ya existe en otro producto.',
+
+            'descripcion.string' => 'La descripción debe ser un texto válido.',
+
+            'categoria_id.required' => 'Debes seleccionar una categoría.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
+
+            'subcategoria_id.required' => 'Debes seleccionar una subcategoría.',
+            'subcategoria_id.exists' => 'La subcategoría seleccionada no es válida.',
+
+            'presentacion.required' => 'La presentación es obligatoria.',
+            'presentacion.string' => 'La presentación debe ser un texto válido.',
+            'presentacion.max' => 'La presentación no puede superar los 100 caracteres.',
+
+            'unidad_medida.required' => 'La unidad de medida es obligatoria.',
+            'unidad_medida.string' => 'La unidad de medida debe ser un texto válido.',
+            'unidad_medida.max' => 'La unidad de medida no puede superar los 50 caracteres.',
+
+            'tipo_producto.required' => 'Debes seleccionar el tipo de producto.',
+            'tipo_producto.string' => 'El tipo de producto debe ser un texto válido.',
+            'tipo_producto.in' => 'El tipo de producto seleccionado no es válido.',
+
+            'categoria_inventario.required' => 'Debes seleccionar la categoría de inventario.',
+            'categoria_inventario.string' => 'La categoría de inventario debe ser un texto válido.',
+            'categoria_inventario.in' => 'La categoría de inventario seleccionada no es válida.',
+
+            'stock.required' => 'El stock es obligatorio.',
+            'stock.integer' => 'El stock debe ser un número entero.',
+            'stock.min' => 'El stock no puede ser negativo.',
+
+            'stock_minimo.integer' => 'El stock mínimo debe ser un número entero.',
+            'stock_minimo.min' => 'El stock mínimo no puede ser negativo.',
+
+            'proveedor_id.required' => 'Debes seleccionar un proveedor.',
+            'proveedor_id.exists' => 'El proveedor seleccionado no es válido.',
+
+            'fecha_ingreso.required' => 'La fecha de ingreso es obligatoria.',
+            'fecha_ingreso.date' => 'La fecha de ingreso debe tener un formato válido.',
+            'fecha_ingreso.before_or_equal' => 'La fecha de ingreso no puede ser posterior a hoy.',
+
+            'fecha_vencimiento.required' => 'La fecha de vencimiento es obligatoria.',
+            'fecha_vencimiento.date' => 'La fecha de vencimiento debe tener un formato válido.',
+            'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a la fecha de ingreso y al día actual.',
+        ];
+    }
 }

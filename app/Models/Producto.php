@@ -12,6 +12,15 @@ class Producto extends Model
 
     // Eliminado: No se autogenera el código, debe ser ingresado manualmente por el usuario.
 
+    protected static function booted(): void
+    {
+        static::creating(function (Producto $producto) {
+            if (empty($producto->codigo)) {
+                $producto->codigo = self::generateUniqueCodigo($producto->nombre ?? 'PROD-' . Str::random(4));
+            }
+        });
+    }
+
     protected $fillable = [
         'nombre',
         'codigo',
