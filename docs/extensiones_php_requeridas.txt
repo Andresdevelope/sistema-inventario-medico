@@ -1,0 +1,31 @@
+Extensiones PHP necesarias para desplegar el Sistema de Inventario Médico
+=======================================================================
+
+Descomenta (elimina el prefijo ;) estas líneas en el archivo `php.ini` de la instalación donde vayas a ejecutar el sistema. Todas se encuentran en la sección de extensiones y se listan aquí junto con su propósito principal:
+
+1. extension=bz2                -> Soporte para compresión/lectura de archivos comprimidos usados por librerías auxiliares.
+2. extension=curl               -> Requerido por Laravel y clientes HTTP para consumir APIs externas.
+3. extension=fileinfo           -> Permite detectar tipos MIME al gestionar archivos (subidas, reportes, etc.).
+4. extension=gd                 -> Necesario para DomPDF cuando incrusta imágenes en los PDF.
+5. extension=gettext            -> Utilizado para internacionalización básica y compatibilidad con paquetes de localización.
+6. extension=mbstring           -> Manejo correcto de strings multibyte (acentos y caracteres especiales).
+7. extension=exif               -> Dependencia de mbstring para lectura de metadatos cuando se manipulan imágenes.
+8. extension=mysqli             -> Cliente nativo MySQL utilizado por el conector base.
+9. extension=pdo_mysql          -> Driver PDO requeridísimo para las conexiones principales de Laravel.
+10. extension=pdo_sqlite        -> Útil para pruebas/colas y algunas funcionalidades internas.
+11. extension=zip               -> Permite generar/leer archivos ZIP que usan ciertas librerías del framework.
+12. extension=php_openssl.dll   -> Habilita HTTPS y el cifrado que Laravel usa para claves y firmas.
+13. extension=php_ftp.dll       -> Necesaria si se usan discos FTP en `filesystems` (el sistema ya la requiere para compatibilidad general).
+
+Extensiones adicionales recomendadas (actívalas si tu entorno las soporta y el host lo permite):
+- extension=intl                -> Mejora el formateo de fechas/números y la validación de textos.
+- extension=sodium              -> Funciones criptográficas modernas usadas por Laravel 11+.
+
+Pasos rápidos para preparar una nueva instalación
+-------------------------------------------------
+1. Ubica el `php.ini` que usará el servidor (CLI y/o Apache) y confirma `extension_dir`.
+2. Quita el `;` inicial de cada línea listada arriba (si aún está comentada).
+3. Guarda el archivo y reinicia el servidor PHP/Apache/Nginx o vuelve a iniciar `php artisan serve`.
+4. Valida que las extensiones estén cargadas ejecutando en consola:
+      php -m | findstr "bz2 curl fileinfo gd gettext mbstring exif mysqli pdo_mysql pdo_sqlite zip openssl ftp"
+5. Si todas aparecen, la instalación está lista para correr el sistema y generar los PDF sin errores.
