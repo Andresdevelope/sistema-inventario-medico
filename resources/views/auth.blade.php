@@ -178,7 +178,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
     <div class="overlay-container">
       <div class="overlay">
         <div class="overlay-panel overlay-left">
-          <h1>¡Bienvenido al SSM UPTAG!</h1>
+          <h1>¡Bienvenido al Sistema Servicios medicos UPTAG!</h1>
           <p>Ingresa para gestionar inventario, productos y proveedores del sistema médico</p>
           <button class="ghost" id="signIn">Iniciar Sesión</button>
         </div>
