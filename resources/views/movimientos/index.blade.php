@@ -182,6 +182,8 @@
       background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,247,237,.97));
       box-shadow: 0 12px 30px rgba(31,31,31,.15);
       padding: .25rem;
+      top: calc(100% + .25rem);
+      left: 0;
     }
     #producto_sugerencias .list-group-item {
       background-color: transparent;
@@ -289,12 +291,14 @@
             <input type="text" id="producto_buscar" class="form-control mb-2" placeholder="Buscar por nombre o código..." autocomplete="off">
             <div id="producto_sugerencias" class="list-group position-absolute w-100" style="z-index: 1000; display:none; max-height: 240px; overflow:auto;"></div>
           </div>
+          <small class="form-text text-muted" id="producto-buscar-hint">El buscador recorre todo el catálogo; los filtros solo acotan la lista desplegable inferior.</small>
           <select name="producto_id" class="form-select" required>
             <option value="">Seleccione...</option>
             @foreach($productos as $p)
               <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}" data-tipo="{{ strtolower($p->tipo_producto ?? '') }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
             @endforeach
           </select>
+          
           <div class="d-flex align-items-center justify-content-between mt-2">
             <small class="text-muted">
               Puedes buscar por nombre o código, o seleccionar manualmente desde la lista de abajo.
@@ -325,6 +329,7 @@
             @else
               <small class="text-muted d-block mt-2">Se mostrarán atajos en cuanto registres movimientos frecuentes.</small>
             @endif
+            <small id="producto-filter-summary" class="text-muted d-block mt-2" aria-live="polite"></small>
           </div>
         </div>
         {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
@@ -1089,29 +1094,174 @@
     const tipoFilterButtons = document.querySelectorAll('.btn-tipo-filter');
     const btnVerTopSugerencias = document.getElementById('btn-ver-top-sugerencias');
     const productoTopChips = document.querySelectorAll('.producto-top-chip');
+    const productoFilterSummary = document.getElementById('producto-filter-summary');
+    const tipoFilterLabels = { medicamento: 'Medicamentos', insumo: 'Insumos' };
+
+    function normalizeTipo(value) {
+      return (value || '').toLowerCase();
+    }
+
+    function labelForTipo(tipo) {
+      return tipoFilterLabels[tipo] || 'Todos';
+    }
+
+    function updateFilterSummary(tipo, count) {
+      if (!productoFilterSummary) return;
+      if (!tipo) {
+        if (count > 0) {
+          productoFilterSummary.textContent = `Mostrando todos los productos del catálogo (${count}). Usa el buscador para filtrar por nombre o código.`;
+          productoFilterSummary.classList.remove('text-danger');
+        } else {
+          productoFilterSummary.textContent = 'Aún no hay productos cargados o todos están ocultos. Agrega uno nuevo o revisa los filtros.';
+          productoFilterSummary.classList.add('text-danger');
+        }
+        return;
+      }
+      if (count === 0) {
+        productoFilterSummary.innerHTML = `No hay registros locales para <strong>${labelForTipo(tipo)}</strong>. Usa el buscador o quita el filtro.`;
+        productoFilterSummary.classList.add('text-danger');
+      } else {
+        productoFilterSummary.innerHTML = `Filtro aplicado: <strong>${labelForTipo(tipo)}</strong> (${count} en catálogo local).`;
+        productoFilterSummary.classList.remove('text-danger');
+      }
+    }
+
+    function applyDropdownFilter(tipo = '') {
+      const normalized = normalizeTipo(tipo);
+      let visibleCount = 0;
+      Array.from(productoSel.options).forEach(opt => {
+        if (!opt.value) {
+          opt.hidden = false;
+          return;
+        }
+        const optTipo = normalizeTipo(opt.dataset?.tipo);
+        const matches = !normalized || optTipo === normalized;
+        opt.hidden = !matches;
+        if (matches) visibleCount++;
+      });
+      if (normalized && productoSel.value) {
+        const selectedOpt = productoSel.options[productoSel.selectedIndex];
+        if (selectedOpt && selectedOpt.hidden) {
+          productoSel.value = '';
+          productoSel.dispatchEvent(new Event('change'));
+        }
+      }
+      updateFilterSummary(normalized, visibleCount);
+      return visibleCount;
+    }
+
+    function optionToItem(opt) {
+      return {
+        id: opt.value,
+        nombre: opt.dataset?.nombre || opt.textContent.replace(/\s*\([^)]*\)\s*$/, '').trim(),
+        codigo: opt.dataset?.codigo || (opt.textContent.match(/\(([^)]+)\)/)?.[1] ?? ''),
+        tipo: opt.dataset?.tipo || ''
+      };
+    }
+
+    function searchLocalOptions(term = '', tipo = '', limit = 8) {
+      const normalizedTipo = normalizeTipo(tipo);
+      const normalizedTerm = (term || '').trim().toLowerCase();
+      return Array.from(productoSel.options)
+        .filter(opt => opt.value && (!normalizedTipo || normalizeTipo(opt.dataset?.tipo) === normalizedTipo))
+        .filter(opt => {
+          if (!normalizedTerm) return true;
+          const nombre = (opt.dataset?.nombre || '').toLowerCase();
+          const codigo = (opt.dataset?.codigo || '').toLowerCase();
+          return nombre.includes(normalizedTerm) || codigo.includes(normalizedTerm);
+        })
+        .slice(0, limit)
+        .map(optionToItem);
+    }
+
+    function buildFallbackFromSelect(tipo) {
+      return searchLocalOptions('', tipo, 8);
+    }
+
+    function createClearFilterButton(label = 'Ver todos los tipos') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'list-group-item list-group-item-action text-center clear-filter-btn';
+      btn.textContent = label;
+      btn.addEventListener('click', () => setTipoFilter(''));
+      return btn;
+    }
+
+    function setTipoFilter(tipo = '', { silent = false } = {}) {
+      const normalized = normalizeTipo(tipo);
+      currentTipoFilter = normalized;
+      tipoFilterButtons.forEach(btn => {
+        const btnTipo = normalizeTipo(btn.dataset?.tipo);
+        const isActive = btnTipo === normalized || (!btnTipo && !normalized);
+        btn.classList.toggle('active', isActive);
+      });
+      productosCache.clear();
+      const visibles = applyDropdownFilter(normalized);
+      const hasSearchTerm = productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR;
+      if (hasSearchTerm) {
+        requestProductos(productoBuscar.value, { page: 1, append: false });
+        return;
+      }
+      if (silent) {
+        productoSugerencias.style.display = 'none';
+        return;
+      }
+      const fallback = buildFallbackFromSelect(normalized);
+      if (fallback.length) {
+        const headerBase = normalized ? `Catálogo local · ${labelForTipo(normalized)}` : 'Catálogo local · Todos';
+        renderProductoSugerencias(fallback, { header: headerBase, allowClearFilter: !!normalized });
+        return;
+      }
+      if (normalized) {
+        renderProductoSugerencias([], { message: `No hay ${labelForTipo(normalized).toLowerCase()} registrados localmente.`, allowClearFilter: true });
+      } else {
+        const totalCatalogo = Array.from(productoSel.options).filter(opt => opt.value).length;
+        const emptyMessage = totalCatalogo > 0
+          ? 'Selecciona un producto desde la lista o escribe al menos 2 letras para buscar.'
+          : 'Aún no hay productos registrados. Usa el módulo de Productos para crear el primero.';
+        renderProductoSugerencias([], { message: emptyMessage });
+      }
+    }
 
     function syncProductoBuscadorConSelect() {
       const opt = productoSel.options[productoSel.selectedIndex];
-      if (!opt) { productoBuscar.value = ''; return; }
+      if (!opt || !opt.value) {
+        productoBuscar.value = '';
+        productoSugerencias.style.display = 'none';
+        return;
+      }
       productoBuscar.value = opt.dataset?.nombre || opt.textContent?.trim() || '';
     }
     document.addEventListener('DOMContentLoaded', syncProductoBuscadorConSelect);
     productoSel.addEventListener('change', syncProductoBuscadorConSelect);
 
-    function renderProductoSugerencias(items, { message = null, loading = false, header = null } = {}) {
+    function renderProductoSugerencias(items, { message = null, loading = false, header = null, allowClearFilter = false } = {}) {
       productoSugerencias.innerHTML = '';
       if (loading) {
         productoSugerencias.innerHTML = '<div class="list-group-item text-muted">Buscando...</div>';
         productoSugerencias.style.display = 'block';
         return;
       }
-      if (message) {
-        productoSugerencias.innerHTML = `<div class="list-group-item text-muted">${message}</div>`;
+      const shouldOfferClear = allowClearFilter && !!currentTipoFilter;
+      if (message && !items.length) {
+        const msg = document.createElement('div');
+        msg.className = 'list-group-item text-muted';
+        msg.textContent = message;
+        productoSugerencias.appendChild(msg);
+        if (shouldOfferClear) {
+          productoSugerencias.appendChild(createClearFilterButton());
+        }
         productoSugerencias.style.display = 'block';
         return;
       }
       if (!items.length) {
-        productoSugerencias.innerHTML = '<div class="list-group-item text-muted">Sin resultados</div>';
+        const empty = document.createElement('div');
+        empty.className = 'list-group-item text-muted';
+        empty.textContent = 'Sin resultados';
+        productoSugerencias.appendChild(empty);
+        if (shouldOfferClear) {
+          productoSugerencias.appendChild(createClearFilterButton());
+        }
         productoSugerencias.style.display = 'block';
         return;
       }
@@ -1160,7 +1310,7 @@
         if (!normalized) {
           productoSugerencias.style.display = 'none';
         } else {
-          renderProductoSugerencias([], { message: `Escribe al menos ${MIN_CHARS_BUSCADOR} caracteres` });
+          renderProductoSugerencias([], { message: `Escribe al menos ${MIN_CHARS_BUSCADOR} caracteres o utiliza la lista inferior.`, allowClearFilter: !!currentTipoFilter });
         }
         return;
       }
@@ -1169,7 +1319,7 @@
         const cached = productosCache.get(cacheKey);
         nextSearchPage = cached.nextPage;
         currentSearchResults = append ? currentSearchResults.concat(cached.data) : cached.data.slice();
-        renderProductoSugerencias(currentSearchResults);
+        renderProductoSugerencias(currentSearchResults, { allowClearFilter: !!currentTipoFilter });
         return;
       }
       if (!append) {
@@ -1192,15 +1342,26 @@
           productosCache.set(cacheKey, { data, nextPage });
           nextSearchPage = nextPage;
           currentSearchResults = append ? currentSearchResults.concat(data) : data.slice();
-          renderProductoSugerencias(currentSearchResults);
+          if (!currentSearchResults.length && !nextPage) {
+            const locales = searchLocalOptions(normalized, currentTipoFilter, 10);
+            if (locales.length) {
+              renderProductoSugerencias(locales, { header: 'Coincidencias locales disponibles', allowClearFilter: !!currentTipoFilter });
+              return;
+            }
+          }
+          renderProductoSugerencias(currentSearchResults, { allowClearFilter: !!currentTipoFilter });
         })
         .catch(err => {
           if (err.name === 'AbortError') return;
-          renderProductoSugerencias([], { message: err.message || 'Error al buscar productos' });
+          renderProductoSugerencias([], { message: (err.message || 'Error al buscar productos') + '. Usa la lista inferior o ajusta el filtro.', allowClearFilter: !!currentTipoFilter });
         });
     }
 
     function seleccionarProductoDesdeSug(item) {
+      const itemTipo = normalizeTipo(item.tipo);
+      if (itemTipo && currentTipoFilter && currentTipoFilter !== itemTipo) {
+        setTipoFilter(itemTipo);
+      }
       ensureOptionExists(item);
       productoSel.value = String(item.id);
       productoSel.dispatchEvent(new Event('change'));
@@ -1263,14 +1424,9 @@
 
     tipoFilterButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
-        tipoFilterButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTipoFilter = btn.dataset.tipo || '';
-        productosCache.clear();
-        if (productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR) {
-          requestProductos(productoBuscar.value, { page: 1, append: false });
-        }
+        const targetTipo = btn.dataset.tipo || '';
+        if (normalizeTipo(targetTipo) === currentTipoFilter) return;
+        setTipoFilter(targetTipo);
       });
     });
 
@@ -1281,11 +1437,24 @@
           renderProductoSugerencias([], { message: 'Aún no hay suficientes movimientos para destacar productos.' });
           return;
         }
-        renderProductoSugerencias(quickTopProductos, { header: 'Más usados' });
+        const filtered = quickTopProductos.filter(item => {
+          const itemTipo = normalizeTipo(item.tipo);
+          return !currentTipoFilter || itemTipo === currentTipoFilter;
+        });
+        if (!filtered.length) {
+          renderProductoSugerencias([], { message: `Tus favoritos aún no incluyen ${labelForTipo(currentTipoFilter).toLowerCase()}.`, allowClearFilter: true });
+          return;
+        }
+        const headerText = currentTipoFilter ? `Más usados · ${labelForTipo(currentTipoFilter)}` : 'Más usados';
+        renderProductoSugerencias(filtered, { header: headerText });
       });
     }
     productoTopChips.forEach(chip => {
       chip.addEventListener('click', () => {
+        const chipTipo = normalizeTipo(chip.dataset.tipo || '');
+        if (chipTipo && chipTipo !== currentTipoFilter) {
+          setTipoFilter(chipTipo);
+        }
         seleccionarProductoDesdeSug({
           id: chip.dataset.id,
           nombre: chip.dataset.nombre,
@@ -1293,6 +1462,9 @@
           tipo: chip.dataset.tipo
         });
       });
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      setTipoFilter(currentTipoFilter, { silent: true });
     });
   loteInput.addEventListener('input', updateLoteAdvice);
   fvInput.addEventListener('change', updateLoteAdvice);
