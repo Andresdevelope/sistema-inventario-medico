@@ -63,12 +63,15 @@
     <script>
         (function(){
             const overlay=document.getElementById('auth-loader-overlay');
-            const loginForm=document.getElementById('username-login-form');
-            if(!overlay||!loginForm) return;
-            loginForm.addEventListener('submit',function(){
+            if(!overlay) return;
+            window.showAuthLoader = function(){
                 overlay.classList.add('active');
                 overlay.setAttribute('aria-hidden','false');
-            });
+            };
+            window.hideAuthLoader = function(){
+                overlay.classList.remove('active');
+                overlay.setAttribute('aria-hidden','true');
+            };
         })();
     </script>
 </body>

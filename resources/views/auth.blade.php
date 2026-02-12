@@ -200,6 +200,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 @endif
 <script>
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  const recaptchaEnabled = {{ config('services.recaptcha.enabled') && config('services.recaptcha.site_key') ? 'true' : 'false' }};
   const container = document.getElementById('container');
   const signUpButton = document.getElementById('signUp');
   const signInButton = document.getElementById('signIn');
@@ -245,8 +246,12 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       }
       // Validación reCAPTCHA para registro (si está activo)
       try {
-        if (window.grecaptcha && typeof grecaptcha.getResponse === 'function'){
-          // Asegurar que tengamos índices mapeados
+        if (recaptchaEnabled) {
+          if (!window.grecaptcha || typeof grecaptcha.getResponse !== 'function') {
+            registerAlert.textContent = 'El reCAPTCHA no está disponible. Intenta recargar la página.';
+            registerAlert.style.display = 'block';
+            return;
+          }
           if (recaptchaRegisterIndex === null) detectRecaptchaIndexes();
           let token = null;
           if (typeof recaptchaRegisterIndex === 'number') {
@@ -260,7 +265,11 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
             return;
           }
         }
-      } catch(_){}
+      } catch(_){
+        registerAlert.textContent = 'No se pudo validar el reCAPTCHA. Intenta nuevamente.';
+        registerAlert.style.display = 'block';
+        return;
+      }
       const btn = registerForm.querySelector('button[type="submit"]');
       const originalText = btn?.textContent;
       if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
@@ -336,9 +345,19 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   }
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    let redirecting = false;
     // Enforce reCAPTCHA resuelto cuando esté activo
     try {
-      if (window.grecaptcha && typeof grecaptcha.getResponse === 'function'){
+      if (recaptchaEnabled) {
+        if (!window.grecaptcha || typeof grecaptcha.getResponse !== 'function') {
+          if (loginAlert){
+            loginAlert.className = 'alert-box';
+            loginAlert.style.display = 'block';
+            loginAlert.textContent = 'El reCAPTCHA no está disponible. Intenta recargar la página.';
+          }
+          if (window.hideAuthLoader) window.hideAuthLoader();
+          return;
+        }
         if (recaptchaLoginIndex === null) detectRecaptchaIndexes();
         let token = null;
         if (typeof recaptchaLoginIndex === 'number') {
@@ -352,10 +371,19 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
             loginAlert.style.display = 'block';
             loginAlert.textContent = 'Por favor completa el reCAPTCHA.';
           }
+          if (window.hideAuthLoader) window.hideAuthLoader();
           return;
         }
       }
-    } catch(_){}
+    } catch(_){
+      if (loginAlert){
+        loginAlert.className = 'alert-box';
+        loginAlert.style.display = 'block';
+        loginAlert.textContent = 'No se pudo validar el reCAPTCHA. Intenta nuevamente.';
+      }
+      if (window.hideAuthLoader) window.hideAuthLoader();
+      return;
+    }
     // Ocultar aviso anterior y limpiar contador
     if (lockInterval) { clearInterval(lockInterval); lockInterval = null; }
     if (loginAlert){
@@ -363,6 +391,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       loginAlert.textContent = '';
       loginAlert.className = 'alert-box';
     }
+    if (window.showAuthLoader) window.showAuthLoader();
     const btn = loginForm.querySelector('button[type="submit"]');
     const originalText = btn?.textContent;
     if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
@@ -378,6 +407,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       if (lockInterval) { clearInterval(lockInterval); lockInterval = null; }
       // Éxito: redirigir
       if (data?.success && data?.redirect){
+        redirecting = true;
         window.location.href = data.redirect;
       } else {
         // Mostrar inline
@@ -434,7 +464,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         } else {
           loginAlert.className = 'alert-box';
           loginAlert.style.display = 'block';
-          loginAlert.textContent = data?.message || 'Credenciales incorrectas';
+          loginAlert.textContent = data?.message || 'No se pudo validar tu acceso. Verifica tus datos e intenta nuevamente.';
         }
         // Tras cualquier fallo de login, forzar refresh del reCAPTCHA
         try {
@@ -447,7 +477,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
     } catch (err) {
       loginAlert.className = 'alert-box';
       loginAlert.style.display = 'block';
-      loginAlert.textContent = 'Error de red: intenta nuevamente.';
+      loginAlert.textContent = 'No se pudo validar tu acceso. Revisa tu conexión e intenta nuevamente.';
       // Reset también ante errores de red
       try {
         if (window.grecaptcha && typeof grecaptcha.reset === 'function'){
@@ -457,6 +487,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       } catch(_){}
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
+      if (!redirecting && window.hideAuthLoader) window.hideAuthLoader();
     }
   });
 
