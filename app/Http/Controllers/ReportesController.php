@@ -95,35 +95,6 @@ class ReportesController extends Controller
         ]);
     }
 
-    public function exportCsv(Request $request)
-    {
-        $from = $request->input('from');
-        $to = $request->input('to');
-        if (!$from || !$to) { return redirect()->route('reportes.index')->with('error','Debe seleccionar rango de fechas'); }
-        $destinoId = $request->input('destino_id');
-        $service = new ReportesMovimientosService();
-        $detalle = $service->detalle($from,$to, $destinoId ? (int)$destinoId : null);
-        $filename = 'reporte_consumo_'.$from.'_'.$to.'.csv';
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"$filename\"",
-        ];
-        $output = fopen('php://temp','w');
-        fputcsv($output, ['CODIGO','MEDICAMENTO','ENTRADAS','SALIDAS','MOVIMIENTOS','STOCK_FINAL']);
-        foreach ($detalle as $row) {
-            fputcsv($output, [$row['codigo'],$row['nombre'],$row['entradas'],$row['salidas'],$row['movimientos'],$row['stock_final']]);
-        }
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-        // Bitácora export
-        try { if (Auth::check()) { Bitacora::create([
-            'user_id'=>Auth::id(),'accion'=>'reportes.export.csv',
-            'detalles'=>json_encode(['from'=>$from,'to'=>$to,'destino_id'=>$destinoId,'rows'=>count($detalle)], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-            'fecha_hora'=>now(),]); }} catch(\Throwable $e) {}
-        return response($csv, 200, $headers);
-    }
-
     public function exportInventarioPdf(Request $request)
     {
         $to = $request->input('to');

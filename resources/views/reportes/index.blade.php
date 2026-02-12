@@ -98,9 +98,6 @@
     </div>
     <div class="col-md-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-primary flex-grow-1"><i class="fa fa-chart-bar me-1"></i> Generar</button>
-      @if($resumen && $detalle)
-        <a href="{{ route('reportes.export.csv',['from'=>$from,'to'=>$to,'destino_id'=>$destino_id]) }}" class="btn btn-outline-secondary" title="Exportar CSV"><i class="fa fa-file-csv"></i></a>
-      @endif
       @if($hasResultados)
         <a href="{{ route('reportes.index') }}" class="btn btn-light border"><i class="fa fa-rotate-left me-1"></i> Limpiar</a>
       @endif
