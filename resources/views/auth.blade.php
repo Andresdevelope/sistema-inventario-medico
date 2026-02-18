@@ -127,7 +127,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   <header class="auth-header">
     <div class="brand">
       <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG" style="width:45px;height:45px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);object-fit:cover;background:#fff;" />
-      <h1>servicios Medico </h1>
+      <h1>Servicios Medico </h1>
     </div>
   </header>
   <div class="container" id="container">

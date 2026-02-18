@@ -1,7 +1,7 @@
 
 @extends('layouts.dashboard')
 @section('content')
-<div class="container mt-4">
+<div class="container mt-4 reportes-scope">
   <h2 class="mb-3">Reportes</h2>
   @php
     $modalidadSeleccionada = $modalidad_reporte ?? 'inventario';
@@ -124,12 +124,12 @@
     <div class="bg-white p-3 rounded shadow-sm border mb-4">
       <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
         <h6 class="m-0">INVENTARIO DE MEDICAMENTOS E INSUMOS</h6>
-        <a href="{{ route('reportes.export.pdf.inventario',[ 'to'=>$inventario_matriz['cutoff'], 'tipo'=>$tipo, 'categoria_id'=>$categoria_id, 'subcategoria_id'=>$subcategoria_id, 'periodo'=>$periodo ]) }}" class="btn btn-sm btn-outline-danger">
+        <a href="{{ route('reportes.export.pdf.inventario',[ 'to'=>$inventario_matriz['cutoff'], 'tipo'=>$tipo, 'categoria_id'=>$categoria_id, 'subcategoria_id'=>$subcategoria_id, 'periodo'=>$periodo ]) }}" class="btn btn-sm btn-export-pdf">
           <i class="fa fa-file-pdf me-1"></i> Exportar PDF
         </a>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
+        <table class="table table-hover table-bordered align-middle report-table">
           <thead class="table-light">
             <tr>
               <th>Descripción</th>
@@ -239,7 +239,7 @@
         <div class="text-muted small">Sin lotes próximos a vencer.</div>
       @else
         <div class="table-responsive">
-          <table class="table table-sm table-bordered mb-0">
+          <table class="table table-sm table-bordered mb-0 report-table">
             <thead class="table-light">
               <tr><th>Medicamento</th><th>Fecha vencimiento</th><th>Cantidad</th></tr>
             </thead>
@@ -255,7 +255,7 @@
     <div class="bg-white p-3 rounded shadow-sm border mb-4">
       <h6 class="border-bottom pb-2 mb-3">Detalle de consumo</h6>
       <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
+        <table class="table table-hover table-bordered align-middle report-table">
           <thead class="table-light">
             <tr>
               <th>Código</th>
@@ -296,12 +296,12 @@
               'mostrar_insumos' => ($mostrar_insumos ?? false) ? 1 : null,
             ], fn($v) => !is_null($v));
           @endphp
-          <a href="{{ route('reportes.export.pdf.consumo', $paramsConsumo) }}" class="btn btn-sm btn-outline-danger">
+          <a href="{{ route('reportes.export.pdf.consumo', $paramsConsumo) }}" class="btn btn-sm btn-export-pdf">
             <i class="fa fa-file-pdf me-1"></i> Exportar PDF
           </a>
         </div>
         <div class="table-responsive">
-          <table class="table table-hover table-bordered align-middle">
+          <table class="table table-hover table-bordered align-middle report-table">
             <thead class="table-light">
               <tr>
                 <th>Servicios Médicos</th>
@@ -490,6 +490,78 @@
   justify-content: center;
   font-size: 2rem;
   color: #ff8a00;
+}
+
+/* ===== Unificación visual de tablas y badges (igual línea que Movimientos) ===== */
+.reportes-scope .report-table {
+  margin-bottom: 0;
+  border: 1px solid var(--slate-border, #d9e0e6);
+  border-radius: .75rem;
+  overflow: hidden;
+  background: var(--slate-surface, #fff);
+}
+
+.reportes-scope .report-table thead th {
+  background: var(--slate-surface-soft, #f4f7fa);
+  color: var(--txt, #1f2937);
+  font-weight: 700;
+  border-bottom: 1px solid var(--slate-border, #d9e0e6);
+  white-space: nowrap;
+}
+
+.reportes-scope .report-table tbody td {
+  background: var(--slate-surface, #fff);
+  color: var(--txt, #1f2937);
+  border-color: var(--slate-border, #e5e7eb);
+  vertical-align: middle;
+}
+
+.reportes-scope .report-table.table-hover tbody tr:hover > td {
+  background: rgba(255, 106, 23, .08);
+  transition: background-color .15s ease;
+}
+
+/* Badges numéricos / estados */
+.reportes-scope .badge.bg-primary {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #93c5fd;
+}
+
+.reportes-scope .badge.bg-success {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border: 1px solid #fdba74;
+}
+
+.reportes-scope .badge.bg-info,
+.reportes-scope .badge.bg-info.text-dark {
+  background: #ecfeff !important;
+  color: #155e75 !important;
+  border: 1px solid #67e8f9;
+}
+
+/* Botón PDF: mantener rojo pero más pro */
+.reportes-scope .btn-export-pdf {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff !important;
+  border: 1px solid #b91c1c;
+  font-weight: 600;
+  letter-spacing: .01em;
+  border-radius: .6rem;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, .2);
+  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.reportes-scope .btn-export-pdf:hover {
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(220, 38, 38, .28);
+  filter: brightness(1.03);
+}
+
+.reportes-scope .btn-export-pdf:active {
+  transform: translateY(0);
 }
 </style>
 @endpush

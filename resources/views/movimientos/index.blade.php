@@ -182,8 +182,11 @@
       background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,247,237,.97));
       box-shadow: 0 12px 30px rgba(31,31,31,.15);
       padding: .25rem;
-      top: calc(100% + .25rem);
+      top: calc(100% + .25rem) !important;
+      bottom: auto !important;
       left: 0;
+      right: auto;
+      transform: none !important;
     }
     #producto_sugerencias .list-group-item {
       background-color: transparent;
@@ -230,6 +233,160 @@
       background: rgba(255,255,255,.7);
       color: #5a3200;
     }
+
+    /* === Estética unificada para tablas de lotes y últimos movimientos === */
+    .table-lotes,
+    .table-mov-ultimos {
+      margin-bottom: 0;
+      border: 1px solid var(--slate-border, #d9e0e6);
+      border-radius: .75rem;
+      overflow: hidden;
+      background: var(--slate-surface, #fff);
+    }
+
+    .table-lotes thead th,
+    .table-mov-ultimos thead th {
+      background: var(--slate-surface-soft, #f4f7fa);
+      color: var(--txt, #1f2937);
+      font-weight: 700;
+      border-bottom: 1px solid var(--slate-border, #d9e0e6);
+      white-space: nowrap;
+    }
+
+    .table-lotes tbody td,
+    .table-mov-ultimos tbody td {
+      background: var(--slate-surface, #fff);
+      color: var(--txt, #1f2937);
+      border-color: var(--slate-border, #e5e7eb);
+      vertical-align: middle;
+    }
+
+    .table-lotes.table-hover tbody tr:hover > td,
+    .table-mov-ultimos.table-hover tbody tr:hover > td {
+      background: rgba(255, 106, 23, .08);
+      transition: background-color .15s ease;
+    }
+
+    /* Fila seleccionada desde tabla de lotes (usa .table-primary desde JS) */
+    .table-lotes tbody tr.table-primary > td {
+      background: rgba(255, 106, 23, .16) !important;
+      border-color: rgba(255, 106, 23, .35);
+      color: var(--txt, #1f2937);
+    }
+
+    /* Badges y micro-estados específicos del panel de lotes */
+    .table-lotes .badge-prioridad {
+      background: linear-gradient(135deg, var(--accent, #FF6A17), #ff9f58) !important;
+      color: #fff !important;
+      border: 1px solid rgba(255, 106, 23, .55);
+      box-shadow: 0 4px 10px rgba(255, 106, 23, .2);
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+
+    .table-lotes .badge-vencimiento.bg-info,
+    .table-mov-ultimos .badge.bg-info {
+      background: #ecfeff !important;
+      color: #155e75 !important;
+      border: 1px solid #67e8f9;
+      font-weight: 700;
+    }
+
+    .table-lotes .badge-vencimiento.bg-warning,
+    .table-lotes .badge-vencimiento.text-dark,
+    .table-mov-ultimos .badge.bg-warning,
+    .table-mov-ultimos .badge.text-dark {
+      background: #fffbeb !important;
+      color: #92400e !important;
+      border: 1px solid #fcd34d;
+      font-weight: 700;
+    }
+
+    .table-lotes .badge-vencimiento.bg-danger,
+    .table-mov-ultimos .badge.bg-danger {
+      background: #fff1f2 !important;
+      color: #b42318 !important;
+      border: 1px solid #fda4af;
+      font-weight: 700;
+    }
+
+    .table-lotes .badge-agotado,
+    .table-lotes .badge.bg-secondary {
+      background: #eef2f6 !important;
+      color: #475569 !important;
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+    }
+
+    .table-lotes .sin-vencimiento-chip {
+      color: #64748b;
+      font-weight: 600;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: .5rem;
+      padding: .15rem .45rem;
+      display: inline-block;
+    }
+
+    /* Botones de acciones dentro de lotes: misma familia visual del sistema */
+    #inventarios-producto .btn-outline-primary,
+    #inventarios-producto .btn-outline-success,
+    #inventarios-producto .btn-outline-danger,
+    #inventarios-producto .btn-outline-secondary {
+      border-radius: .55rem;
+      font-weight: 600;
+      transition: all .15s ease;
+    }
+
+    #inventarios-producto .btn-outline-primary {
+      color: var(--accent, #FF6A17);
+      border-color: rgba(255, 106, 23, .45);
+      background: rgba(255, 106, 23, .05);
+    }
+    #inventarios-producto .btn-outline-primary:hover {
+      color: #fff;
+      background: var(--accent, #FF6A17);
+      border-color: var(--accent, #FF6A17);
+    }
+
+    #inventarios-producto .btn-outline-success {
+      color: #0f766e;
+      border-color: #5eead4;
+      background: #f0fdfa;
+    }
+    #inventarios-producto .btn-outline-success:hover {
+      color: #fff;
+      background: #0f766e;
+      border-color: #0f766e;
+    }
+
+    #inventarios-producto .btn-outline-danger {
+      color: #b42318;
+      border-color: #fda4af;
+      background: #fff1f2;
+    }
+    #inventarios-producto .btn-outline-danger:hover {
+      color: #fff;
+      background: #b42318;
+      border-color: #b42318;
+    }
+
+    #inventarios-producto .btn-outline-secondary {
+      color: var(--txt-sec, #4b5563);
+      border-color: var(--slate-border, #d1d5db);
+      background: var(--slate-surface-soft, #f9fafb);
+    }
+    #inventarios-producto .btn-outline-secondary:hover {
+      color: var(--txt, #111827);
+      border-color: var(--slate-line, #9ca3af);
+      background: var(--slate-surface, #fff);
+    }
+
+    /* Badges de tipo y vencimiento en últimos movimientos con contraste suave */
+    .table-mov-ultimos .badge.bg-success { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #6ee7b7; }
+    .table-mov-ultimos .badge.bg-primary { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #93c5fd; }
+    .table-mov-ultimos .badge.bg-secondary { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1; }
+    .table-mov-ultimos .badge.bg-dark { background: #1f2937 !important; color: #f9fafb !important; border: 1px solid #374151; }
   </style>
 
   {{-- Enlace al Historial de Consumo: visible solo cuando la pestaña Consumo está activa --}}
@@ -285,7 +442,7 @@
         @csrf
         <input type="hidden" name="modalidad" id="modalidad" value="{{ old('modalidad') }}">
         <input type="hidden" name="tipo" id="tipo" value="{{ $oldTipo }}">
-        <div class="col-md-5">
+        <div class="col-12 col-xl-8">
           <label class="form-label">Producto</label>
           <div class="position-relative">
             <input type="text" id="producto_buscar" class="form-control mb-2" placeholder="Buscar por nombre o código..." autocomplete="off">
@@ -298,7 +455,7 @@
               <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}" data-tipo="{{ strtolower($p->tipo_producto ?? '') }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
             @endforeach
           </select>
-          
+
           <div class="d-flex align-items-center justify-content-between mt-2">
             <small class="text-muted">
               Puedes buscar por nombre o código, o seleccionar manualmente desde la lista de abajo.
@@ -306,12 +463,14 @@
             <span id="tipo-chip" class="badge bg-secondary" title="Tipo de producto" style="display:none;">—</span>
           </div>
           <div class="producto-quick-tools mt-3">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-              <span class="text-muted small text-uppercase fw-semibold">Filtros rápidos:</span>
-              <div class="btn-group btn-group-sm" role="group" aria-label="Filtro por tipo" id="tipo-filter-buttons">
-                <button type="button" class="btn btn-outline-secondary btn-tipo-filter active" data-tipo="">Todos</button>
-                <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="medicamento">Medicamentos</button>
-                <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="insumo">Insumos</button>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="text-muted small text-uppercase fw-semibold">Filtros rápidos:</span>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Filtro por tipo" id="tipo-filter-buttons">
+                  <button type="button" class="btn btn-outline-secondary btn-tipo-filter active" data-tipo="">Todos</button>
+                  <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="medicamento">Medicamentos</button>
+                  <button type="button" class="btn btn-outline-secondary btn-tipo-filter" data-tipo="insumo">Insumos</button>
+                </div>
               </div>
               <button type="button" class="btn btn-link btn-sm text-decoration-none" id="btn-ver-top-sugerencias" {{ $hasTopProductos ? '' : 'disabled' }}>
                 <i class="fa fa-star text-warning me-1"></i>Ver más usados
@@ -332,75 +491,87 @@
             <small id="producto-filter-summary" class="text-muted d-block mt-2" aria-live="polite"></small>
           </div>
         </div>
-        {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
-        <div class="col-md-4" id="destino-wrapper" style="{{ $oldTipo==='egreso' ? '' : 'display:none;' }}">
-          <label class="form-label" id="destino-label">Destino</label>
-          @php $hayDestinos = isset($destinos) && count($destinos)>0; @endphp
-          <select name="destino_id" id="destino_id" class="form-select">
-            <option value="">Seleccione destino...</option>
-            @if($hayDestinos)
-              @foreach($destinos as $d)
-                <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }}</option>
-              @endforeach
-            @endif
-          </select>
-          @if(!$hayDestinos)
-            <div class="alert alert-warning mt-2 p-2 small mb-0">No hay destinos cargados. Ejecute migraciones y seeders (php artisan migrate --seed) o verifique la tabla <code>destinos</code>.</div>
-          @endif
-        </div>
-        <div class="col-md-4" id="beneficiario-wrapper" style="display:none;">
-          <label class="form-label">Datos del beneficiario (Consumo)</label>
-          <div class="d-flex gap-2">
-            <select name="tipo_identificacion" id="tipo_identificacion" class="form-select">
-              <option value="">Tipo de identificación...</option>
-              @foreach(['estudiante','trabajador','profesor','comunidad'] as $ti)
-                <option value="{{ $ti }}" @selected(old('tipo_identificacion')===$ti)>{{ strtoupper($ti) }}</option>
-              @endforeach
-            </select>
-            <select name="sexo" id="sexo" class="form-select" style="max-width: 140px;">
-              <option value="">Sexo...</option>
-              @foreach(['F','M','otro'] as $sx)
-                <option value="{{ $sx }}" @selected(old('sexo')===$sx)>{{ strtoupper($sx) }}</option>
-              @endforeach
-            </select>
+
+        <div class="col-12 col-xl-4">
+          <div class="row g-3">
+            {{-- Eliminado select visible de Tipo: se controla por las pestañas superiores. --}}
+            <div class="col-12" id="destino-wrapper" style="{{ $oldTipo==='egreso' ? '' : 'display:none;' }}">
+              <label class="form-label" id="destino-label">Destino</label>
+              @php $hayDestinos = isset($destinos) && count($destinos)>0; @endphp
+              <select name="destino_id" id="destino_id" class="form-select">
+                <option value="">Seleccione destino...</option>
+                @if($hayDestinos)
+                  @foreach($destinos as $d)
+                    <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }}</option>
+                  @endforeach
+                @endif
+              </select>
+              @if(!$hayDestinos)
+                <div class="alert alert-warning mt-2 p-2 small mb-0">No hay destinos cargados. Ejecute migraciones y seeders (php artisan migrate --seed) o verifique la tabla <code>destinos</code>.</div>
+              @endif
+            </div>
+
+            <div class="col-12" id="beneficiario-wrapper" style="display:none;">
+              <label class="form-label">Datos del beneficiario (Consumo)</label>
+              <div class="d-flex gap-2">
+                <select name="tipo_identificacion" id="tipo_identificacion" class="form-select">
+                  <option value="">Tipo de identificación...</option>
+                  @foreach(['estudiante','trabajador','profesor','comunidad'] as $ti)
+                    <option value="{{ $ti }}" @selected(old('tipo_identificacion')===$ti)>{{ strtoupper($ti) }}</option>
+                  @endforeach
+                </select>
+                <select name="sexo" id="sexo" class="form-select" style="max-width: 140px;">
+                  <option value="">Sexo...</option>
+                  @foreach(['F','M','otro'] as $sx)
+                    <option value="{{ $sx }}" @selected(old('sexo')===$sx)>{{ strtoupper($sx) }}</option>
+                  @endforeach
+                </select>
+              </div>
+              <small class="text-muted">Se registran solo métricas, sin datos personales.</small>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label">Cantidad</label>
+              <input type="number" min="1" class="form-control" name="cantidad" value="{{ old('cantidad',1) }}" required>
+              <div id="calc-equivalente" class="form-text"></div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Fecha</label>
+              <input type="date" class="form-control" name="fecha" value="{{ old('fecha', now()->toDateString()) }}">
+            </div>
           </div>
-          <small class="text-muted">Se registran solo métricas, sin datos personales.</small>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label">Cantidad</label>
-          <input type="number" min="1" class="form-control" name="cantidad" value="{{ old('cantidad',1) }}" required>
-          <div id="calc-equivalente" class="form-text"></div>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label">Fecha</label>
-          <input type="date" class="form-control" name="fecha" value="{{ old('fecha', now()->toDateString()) }}">
         </div>
 
-        <div class="col-md-3" id="fv-wrapper">
-          <label class="form-label">Fecha de vencimiento </label>
-          <input type="date" class="form-control" name="fecha_vencimiento" value="{{ old('fecha_vencimiento') }}">
+        <div class="col-12">
+          <div class="row g-3">
+            <div class="col-md-4 col-xl-3" id="fv-wrapper">
+              <label class="form-label">Fecha de vencimiento </label>
+              <input type="date" class="form-control" name="fecha_vencimiento" value="{{ old('fecha_vencimiento') }}">
+            </div>
+            <div class="col-md-8 col-xl-4" id="lote-wrapper">
+              <label class="form-label">Número de lote </label>
+              <input type="text" class="form-control" maxlength="50" name="lote" value="{{ old('lote') }}" placeholder="Ej: L-2025-AX13">
+              <div class="form-text mt-1">Sugerencia: usa la tabla inferior para elegir un lote con los botones “+” o “Elegir lote”, o escribe uno nuevo.</div>
+              <div id="lote-advice" class="small mt-1 text-muted"></div>
+            </div>
+            <div class="col-md-4 col-xl-2" id="contenido-blister-wrapper" style="display:none;">
+              <label class="form-label">Contenido por blíster</label>
+              <input type="number" min="1" class="form-control" name="contenido_por_blister" value="{{ old('contenido_por_blister') }}" placeholder="Ej: 10">
+              <div class="form-text">Medicamentos: obligatorio. Insumos: oculto.</div>
+            </div>
+            <div class="col-md-4 col-xl-3">
+              <label class="form-label">Motivo</label>
+              <input type="text" class="form-control" name="motivo" value="{{ old('motivo') }}" placeholder="Opcional">
+            </div>
+            <div class="col-md-8 col-xl-6">
+              <label class="form-label">Observaciones</label>
+              <input type="text" class="form-control" name="observaciones" value="{{ old('observaciones') }}" placeholder="Opcional">
+            </div>
+          </div>
         </div>
-        <div class="col-md-3" id="lote-wrapper">
-          <label class="form-label">Número de lote </label>
-          <input type="text" class="form-control" maxlength="50" name="lote" value="{{ old('lote') }}" placeholder="Ej: L-2025-AX13">
-          <div class="form-text mt-1">Sugerencia: usa la tabla inferior para elegir un lote con los botones “+” o “Elegir lote”, o escribe uno nuevo.</div>
-          <div id="lote-advice" class="small mt-1 text-muted"></div>
-        </div>
-        <div class="col-md-3" id="contenido-blister-wrapper" style="display:none;">
-          <label class="form-label">Contenido por blíster</label>
-          <input type="number" min="1" class="form-control" name="contenido_por_blister" value="{{ old('contenido_por_blister') }}" placeholder="Ej: 10">
-          <div class="form-text">Medicamentos: obligatorio. Insumos: oculto.</div>
-        </div>
+
         <div class="col-12" id="banner-blister" style="display:none;">
           <div class="alert alert-info py-2 mb-0" id="banner-blister-text"><strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.</div>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Motivo</label>
-          <input type="text" class="form-control" name="motivo" value="{{ old('motivo') }}" placeholder="Opcional">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Observaciones</label>
-          <input type="text" class="form-control" name="observaciones" value="{{ old('observaciones') }}" placeholder="Opcional">
         </div>
 
         <div class="col-12 d-flex justify-content-end">
@@ -428,7 +599,7 @@
         </div>
       </div>
       <div id="inventarios-producto" class="table-responsive">
-        <table class="table table-sm align-middle">
+        <table class="table table-sm table-hover align-middle table-lotes">
           <thead class="table-light">
             <tr>
               <th>#</th>
@@ -462,7 +633,7 @@
         </form>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle table-mov-ultimos">
           <thead class="table-light">
             <tr>
               <th>Fecha</th>
@@ -524,7 +695,7 @@
                     $destinoMostrar = mov_formatear_destino($destinoCrudo);
                   @endphp
                   @if($m->tipo==='egreso')
-                    <span class="badge bg-dark" title="Destino normalizado">{{ $destinoMostrar }}</span>
+                    <span class="badge bg-secondary" title="Destino normalizado">{{ $destinoMostrar }}</span>
                   @else
                     <span class="text-muted">-</span>
                   @endif
@@ -644,6 +815,30 @@
   let selectionByQuickPos = false; // true si proviene del botón "+"
   let prevTipoValuePos = tipoSel.value; // tipo previo antes de forzar ajuste_pos
 
+  const INVENTARIO_ROW_SELECTOR = '#inventarios-producto tbody tr';
+
+  function clearInventarioRowSelection() {
+    document.querySelectorAll(INVENTARIO_ROW_SELECTOR).forEach(tr => tr.classList.remove('table-primary'));
+  }
+
+  function findInventarioButtonById(id, selectors) {
+    for (const selector of selectors) {
+      const btn = document.querySelector(`${selector}[data-id="${id}"]`);
+      if (btn) return btn;
+    }
+    return null;
+  }
+
+  function highlightInventarioRowFromButton(btn) {
+    if (btn) btn.closest('tr')?.classList.add('table-primary');
+  }
+
+  function bindClickActions(selector, callback) {
+    document.querySelectorAll(selector).forEach(btn => {
+      btn.addEventListener('click', () => callback(btn));
+    });
+  }
+
   function updateClearButtonVisibility(){
     // Mostrar el botón si hay selección de lote objetivo (egreso/ajuste_neg)
     // o si hay selección de lote para sumar (ingreso/ajuste_pos)
@@ -653,7 +848,7 @@
   function clearSelection(){
     hiddenTarget.value = '';
     selectedInventarioId = null;
-    document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
+    clearInventarioRowSelection();
     inputCantidad.removeAttribute('max');
     if (selectionByQuick) {
       // Restaurar el tipo previo si la selección vino del botón "−" (ajuste −)
@@ -681,9 +876,9 @@
   function applySelectionNeg(id, cant, { forceAjusteNeg } = { forceAjusteNeg: false }){
     hiddenTarget.value = String(id);
     selectedInventarioId = Number(id);
-    document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
-    const btn = document.querySelector(`.select-lote-neg[data-id="${id}"]`) || document.querySelector(`.quick-ajuste-neg[data-id="${id}"]`);
-    if (btn) btn.closest('tr').classList.add('table-primary');
+    clearInventarioRowSelection();
+    const btn = findInventarioButtonById(id, ['.select-lote-neg', '.quick-ajuste-neg']);
+    highlightInventarioRowFromButton(btn);
     inputCantidad.removeAttribute('max');
     if (cant > 0) inputCantidad.setAttribute('max', String(cant));
     if (forceAjusteNeg) {
@@ -723,7 +918,7 @@
     const rows = inventariosActuales.map((r, idx) => {
       const fv = r.fecha_vencimiento ? new Date(r.fecha_vencimiento) : null;
       const b = badgeForDate(fv);
-      const firstMark = (firstIdx >= 0 && idx === firstIdx) ? '<span class="badge bg-primary me-2">A consumir primero</span>' : '';
+      const firstMark = (firstIdx >= 0 && idx === firstIdx) ? '<span class="badge bg-primary badge-prioridad me-2">A consumir primero</span>' : '';
       const sinVenc = !r.fecha_vencimiento;
       const hasLote = !!(r.lote && String(r.lote).trim().length);
       const loteCell = hasLote
@@ -755,9 +950,9 @@
       return `<tr>
         <td>${idx+1}</td>
         <td>${firstMark}${loteCell}</td>
-        <td>${fv ? `<span class="badge bg-${b.cls}" title="Fecha de vencimiento">${b.text}</span>` : '<span class="text-muted" title="Sin vencimiento">Sin vencimiento</span>'}</td>
+        <td>${fv ? `<span class="badge bg-${b.cls} badge-vencimiento" title="Fecha de vencimiento">${b.text}</span>` : '<span class="sin-vencimiento-chip" title="Sin vencimiento">Sin vencimiento</span>'}</td>
         <td>
-          ${agotado ? `<strong>0</strong> <span class="badge bg-secondary ms-2" title="Sin stock">Agotado</span>` : `<strong>${r.cantidad}</strong>`}
+          ${agotado ? `<strong>0</strong> <span class="badge bg-secondary badge-agotado ms-2" title="Sin stock">Agotado</span>` : `<strong>${r.cantidad}</strong>`}
           ${um === 'blister' && cont > 0 ? `<span class="badge bg-info ms-2" title="Contenido por blíster">1 blíster = ${cont}</span>` : ''}
         </td>
         <td>${new Date(r.created_at).toLocaleDateString()}</td>
@@ -766,61 +961,53 @@
     });
     invTableBody.innerHTML = rows.join('');
     // Enlazar eventos de selección de lote (negativo: solo ajuste −)
-    document.querySelectorAll('.select-lote-neg').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.getAttribute('data-id'));
-        const cant = Number(btn.getAttribute('data-cant') || 0);
-        // Toggle: si ya está seleccionado, quitar; si no, aplicar sin forzar egreso
-        if (selectedInventarioId === id) { clearSelection(); return; }
-        // Al activar selección negativa, limpiar cualquier selección positiva
-        selectedInventarioIdPos = null;
-        selectionByQuick = false; // selección manual no forzada
-        applySelectionNeg(id, cant, { forceAjusteNeg: false });
-      });
+    bindClickActions('.select-lote-neg', (btn) => {
+      const id = Number(btn.getAttribute('data-id'));
+      const cant = Number(btn.getAttribute('data-cant') || 0);
+      // Toggle: si ya está seleccionado, quitar; si no, aplicar sin forzar egreso
+      if (selectedInventarioId === id) { clearSelection(); return; }
+      // Al activar selección negativa, limpiar cualquier selección positiva
+      selectedInventarioIdPos = null;
+      selectionByQuick = false; // selección manual no forzada
+      applySelectionNeg(id, cant, { forceAjusteNeg: false });
     });
     // Enlazar evento rápido para ajuste − con "-"
-    document.querySelectorAll('.quick-ajuste-neg').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.getAttribute('data-id'));
-        const cant = Number(btn.getAttribute('data-cant') || 0);
-        // Toggle: si ya está seleccionado, quitar; si no, aplicar forzando AJUSTE −
-        if (selectedInventarioId === id) { clearSelection(); return; }
-        // Al activar selección negativa, limpiar cualquier selección positiva
-        selectedInventarioIdPos = null;
-        applySelectionNeg(id, cant, { forceAjusteNeg: true });
-        inputCantidad.focus();
-      });
+    bindClickActions('.quick-ajuste-neg', (btn) => {
+      const id = Number(btn.getAttribute('data-id'));
+      const cant = Number(btn.getAttribute('data-cant') || 0);
+      // Toggle: si ya está seleccionado, quitar; si no, aplicar forzando AJUSTE −
+      if (selectedInventarioId === id) { clearSelection(); return; }
+      // Al activar selección negativa, limpiar cualquier selección positiva
+      selectedInventarioIdPos = null;
+      applySelectionNeg(id, cant, { forceAjusteNeg: true });
+      inputCantidad.focus();
     });
     // Enlazar eventos de selección de lote (positivo)
-    document.querySelectorAll('.select-lote-pos').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.getAttribute('data-id'));
-        const lote = btn.getAttribute('data-lote') || '';
-        const fv = btn.getAttribute('data-fv') || '';
-        // Toggle: si ya está seleccionado, quitar
-        if (selectedInventarioIdPos === id) { clearSelection(); return; }
-        // Cancelar selección negativa si hubiera
-        hiddenTarget.value = '';
-        selectedInventarioId = null;
-        selectionByQuick = false;
-        // Aplicar selección positiva sin forzar tipo
-        applySelectionPos(id, lote, fv, { forceAjustePos: false });
-      });
+    bindClickActions('.select-lote-pos', (btn) => {
+      const id = Number(btn.getAttribute('data-id'));
+      const lote = btn.getAttribute('data-lote') || '';
+      const fv = btn.getAttribute('data-fv') || '';
+      // Toggle: si ya está seleccionado, quitar
+      if (selectedInventarioIdPos === id) { clearSelection(); return; }
+      // Cancelar selección negativa si hubiera
+      hiddenTarget.value = '';
+      selectedInventarioId = null;
+      selectionByQuick = false;
+      // Aplicar selección positiva sin forzar tipo
+      applySelectionPos(id, lote, fv, { forceAjustePos: false });
     });
     // Evento rápido para forzar AJUSTE + con "+"
-    document.querySelectorAll('.quick-ajuste-pos').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = Number(btn.getAttribute('data-id'));
-        const lote = btn.getAttribute('data-lote') || '';
-        const fv = btn.getAttribute('data-fv') || '';
-        if (selectedInventarioIdPos === id && selectionByQuickPos) { clearSelection(); return; }
-        // Cancelar selección negativa si hubiera
-        hiddenTarget.value = '';
-        selectedInventarioId = null;
-        selectionByQuick = false;
-        applySelectionPos(id, lote, fv, { forceAjustePos: true });
-        inputCantidad.focus();
-      });
+    bindClickActions('.quick-ajuste-pos', (btn) => {
+      const id = Number(btn.getAttribute('data-id'));
+      const lote = btn.getAttribute('data-lote') || '';
+      const fv = btn.getAttribute('data-fv') || '';
+      if (selectedInventarioIdPos === id && selectionByQuickPos) { clearSelection(); return; }
+      // Cancelar selección negativa si hubiera
+      hiddenTarget.value = '';
+      selectedInventarioId = null;
+      selectionByQuick = false;
+      applySelectionPos(id, lote, fv, { forceAjustePos: true });
+      inputCantidad.focus();
     });
     updateClearButtonVisibility();
   }
@@ -828,9 +1015,9 @@
   function applySelectionPos(id, lote, fv, { forceAjustePos } = { forceAjustePos: false }){
     selectedInventarioIdPos = Number(id);
     // Resaltar fila
-    document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
-    const btn = document.querySelector(`.select-lote-pos[data-id="${id}"]`) || document.querySelector(`.quick-ajuste-pos[data-id="${id}"]`);
-    if (btn) btn.closest('tr').classList.add('table-primary');
+    clearInventarioRowSelection();
+    const btn = findInventarioButtonById(id, ['.select-lote-pos', '.quick-ajuste-pos']);
+    highlightInventarioRowFromButton(btn);
     // Rellenar campos de lote y fecha
     if (loteInput) loteInput.value = lote || '';
     if (fvInput) fvInput.value = fv || '';
@@ -850,14 +1037,14 @@
 
   function reapplyHighlights() {
     // Reaplica resaltado según selecciones activas tras re-render o cambio de tipo
-    document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
+    clearInventarioRowSelection();
     if (selectedInventarioId && (tipoSel.value === 'ajuste_neg')) {
-      const btnNeg = document.querySelector(`.select-lote-neg[data-id="${selectedInventarioId}"]`) || document.querySelector(`.quick-ajuste-neg[data-id="${selectedInventarioId}"]`);
-      if (btnNeg) btnNeg.closest('tr').classList.add('table-primary');
+      const btnNeg = findInventarioButtonById(selectedInventarioId, ['.select-lote-neg', '.quick-ajuste-neg']);
+      highlightInventarioRowFromButton(btnNeg);
     }
     if (selectedInventarioIdPos && (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos')) {
-      const btnPos = document.querySelector(`.select-lote-pos[data-id="${selectedInventarioIdPos}"]`) || document.querySelector(`.quick-ajuste-pos[data-id="${selectedInventarioIdPos}"]`);
-      if (btnPos) btnPos.closest('tr').classList.add('table-primary');
+      const btnPos = findInventarioButtonById(selectedInventarioIdPos, ['.select-lote-pos', '.quick-ajuste-pos']);
+      highlightInventarioRowFromButton(btnPos);
     }
   }
 
@@ -952,14 +1139,14 @@
     // Limpiar selección de lote objetivo si el tipo no lo usa
     if (!(tipoSel.value === 'ajuste_neg')) {
       hiddenTarget.value = '';
-      document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
+      clearInventarioRowSelection();
     }
     // Limpiar selección positiva si el tipo no lo usa
     if (!(tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos')) {
       selectedInventarioIdPos = null;
       selectionByQuickPos = false;
       // mantener valores escritos manualmente; sólo quitamos resalte
-      document.querySelectorAll('#inventarios-producto tbody tr').forEach(tr => tr.classList.remove('table-primary'));
+      clearInventarioRowSelection();
     }
     // Re-render de acciones según tipo y re-aplicar resaltado
     renderInventariosTable();
@@ -1196,7 +1383,7 @@
         btn.classList.toggle('active', isActive);
       });
       productosCache.clear();
-      const visibles = applyDropdownFilter(normalized);
+      applyDropdownFilter(normalized);
       const hasSearchTerm = productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR;
       if (hasSearchTerm) {
         requestProductos(productoBuscar.value, { page: 1, append: false });
@@ -1236,6 +1423,7 @@
     productoSel.addEventListener('change', syncProductoBuscadorConSelect);
 
     function renderProductoSugerencias(items, { message = null, loading = false, header = null, allowClearFilter = false } = {}) {
+      forceProductoSugerenciasAbajo();
       productoSugerencias.innerHTML = '';
       if (loading) {
         productoSugerencias.innerHTML = '<div class="list-group-item text-muted">Buscando...</div>';
@@ -1297,6 +1485,15 @@
       }
       productoSugerencias.style.display = 'block';
       activeSugIdx = -1;
+    }
+
+    function forceProductoSugerenciasAbajo() {
+      if (!productoBuscar || !productoSugerencias) return;
+      productoSugerencias.style.top = `${productoBuscar.offsetHeight + 6}px`;
+      productoSugerencias.style.bottom = 'auto';
+      productoSugerencias.style.left = '0';
+      productoSugerencias.style.right = 'auto';
+      productoSugerencias.style.transform = 'none';
     }
 
     function requestProductos(term, { page = 1, append = false } = {}) {
@@ -1398,6 +1595,7 @@
       debounceTimerId = setTimeout(() => requestProductos(productoBuscar.value), 250);
     });
     productoBuscar.addEventListener('focus', () => {
+      forceProductoSugerenciasAbajo();
       if (productoBuscar.value.trim().length >= MIN_CHARS_BUSCADOR) {
         requestProductos(productoBuscar.value, { page: 1, append: false });
       }
@@ -1421,6 +1619,8 @@
         productoSugerencias.style.display = 'none';
       }
     });
+    window.addEventListener('resize', forceProductoSugerenciasAbajo);
+    window.addEventListener('scroll', forceProductoSugerenciasAbajo, true);
 
     tipoFilterButtons.forEach(btn => {
       btn.addEventListener('click', () => {

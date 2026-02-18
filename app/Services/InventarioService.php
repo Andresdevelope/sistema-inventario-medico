@@ -13,6 +13,23 @@ use InvalidArgumentException;
 class InventarioService
 {
     /**
+     * Determina si un inventario es compatible con el tipo de producto.
+     * - Medicamento: sólo lotes blister (o null heredado para datos antiguos).
+     * - Insumo: sólo lotes unidad (o null heredado para datos antiguos).
+     */
+    private function isInventarioCompatibleConTipo(Inventario $inv, string $tipoProd): bool
+    {
+        $um = strtolower((string) ($inv->um_operativa ?? ''));
+        if ($tipoProd === 'medicamento' && $um !== '' && $um !== 'blister') {
+            return false;
+        }
+        if ($tipoProd !== 'medicamento' && $um !== '' && $um !== 'unidad') {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Sincroniza el campo Producto.stock con la suma de inventarios cuando existan registros de inventario.
      * Evita desajustes cuando el stock del producto ha sido editado manualmente.
      */
@@ -164,15 +181,8 @@ class InventarioService
                 }
 
                 $inventarios = $this->getInventariosFefoFifo($producto);
-                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd) {
-                    if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) {
-                        return false;
-                    }
-                    if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) {
-                        return false;
-                    }
-                    return true;
-                })->sum('cantidad');
+                $saldoTotal = $inventarios->filter(fn (Inventario $inv) => $this->isInventarioCompatibleConTipo($inv, $tipoProd))
+                    ->sum('cantidad');
 
                 if ($saldoTotal < $cantidad) {
                     throw new InvalidArgumentException('Stock insuficiente para distribución');
@@ -266,15 +276,11 @@ class InventarioService
                         throw new InvalidArgumentException('La cantidad supera el saldo del lote seleccionado');
                     }
                     // Validación de unidad operativa según tipo de producto
-                    if ($tipoProd === 'medicamento') {
-                        // Cantidad debe ser entero (ya validado) y operar en blíster
-                        if (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister') {
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) {
+                        if ($tipoProd === 'medicamento') {
                             throw new InvalidArgumentException('El lote no opera en blíster. Verifique el tipo de producto y el lote.');
                         }
-                    } else { // insumo
-                        if (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad') {
-                            throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
-                        }
+                        throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
                     }
 
                     $inv->cantidad -= $cantidad;
@@ -338,8 +344,7 @@ class InventarioService
 
                 foreach ($inventarios as $inv) {
                     if ($porConsumir <= 0) break;
-                    if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) { continue; }
-                    if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) { continue; }
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) { continue; }
                     $consume = min($inv->cantidad, $porConsumir);
                     $inv->cantidad -= $consume;
                     $inv->save();
@@ -382,6 +387,12 @@ class InventarioService
                     if ((int)$inv->cantidad < $cantidad) {
                         throw new InvalidArgumentException('La cantidad supera el saldo del lote seleccionado');
                     }
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) {
+                        if ($tipoProd === 'medicamento') {
+                            throw new InvalidArgumentException('El lote no opera en blíster. Verifique el tipo de producto y el lote.');
+                        }
+                        throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
+                    }
 
                     $inv->cantidad -= $cantidad;
                     $inv->save();
@@ -412,7 +423,8 @@ class InventarioService
                 $porAjustar = $cantidad;
                 $inventarios = $this->getInventariosFefoFifo($producto);
 
-                $saldoTotal = $inventarios->sum('cantidad');
+                $saldoTotal = $inventarios->filter(fn (Inventario $inv) => $this->isInventarioCompatibleConTipo($inv, $tipoProd))
+                    ->sum('cantidad');
                 // Validar sólo contra inventarios
                 if ($saldoTotal < $porAjustar) {
                     throw new InvalidArgumentException('Stock insuficiente para ajuste negativo');
@@ -420,6 +432,7 @@ class InventarioService
 
                 foreach ($inventarios as $inv) {
                     if ($porAjustar <= 0) break;
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) { continue; }
                     $consume = min($inv->cantidad, $porAjustar);
                     $inv->cantidad -= $consume;
                     $inv->save();

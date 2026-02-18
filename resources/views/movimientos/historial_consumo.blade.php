@@ -28,6 +28,46 @@
       border-radius: .5rem;
       vertical-align: middle;
     }
+
+    /* Tabla unificada con "Últimos movimientos" */
+    .table-mov-ultimos {
+      margin-bottom: 0;
+      border: 1px solid var(--slate-border, #d9e0e6);
+      border-radius: .75rem;
+      overflow: hidden;
+      background: var(--slate-surface, #fff);
+    }
+
+    .table-mov-ultimos thead th {
+      background: var(--slate-surface-soft, #f4f7fa);
+      color: var(--txt, #1f2937);
+      font-weight: 700;
+      border-bottom: 1px solid var(--slate-border, #d9e0e6);
+      white-space: nowrap;
+    }
+
+    .table-mov-ultimos tbody td {
+      background: var(--slate-surface, #fff);
+      color: var(--txt, #1f2937);
+      border-color: var(--slate-border, #e5e7eb);
+      vertical-align: middle;
+    }
+
+    .table-mov-ultimos.table-hover tbody tr:hover > td {
+      background: rgba(255, 106, 23, .08);
+      transition: background-color .15s ease;
+    }
+
+    /* Badges igual que en últimos movimientos */
+    .table-mov-ultimos .badge.bg-success { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #6ee7b7; }
+    .table-mov-ultimos .badge.bg-danger { background: #fff1f2 !important; color: #b42318 !important; border: 1px solid #fda4af; }
+    .table-mov-ultimos .badge.bg-primary { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #93c5fd; }
+    .table-mov-ultimos .badge.bg-warning,
+    .table-mov-ultimos .badge.text-dark { background: #fffbeb !important; color: #92400e !important; border: 1px solid #fcd34d; }
+    .table-mov-ultimos .badge.bg-dark { background: #1f2937 !important; color: #f9fafb !important; border: 1px solid #374151; }
+    .table-mov-ultimos .badge.bg-info { background: #ecfeff !important; color: #155e75 !important; border: 1px solid #67e8f9; }
+    .table-mov-ultimos .badge.bg-secondary { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1; }
+    .table-mov-ultimos .badge.bg-light.text-dark { background: #f8fafc !important; color: #334155 !important; border: 1px solid #cbd5e1; }
   </style>
 
   <div class="card shadow-sm mb-4">
@@ -99,7 +139,7 @@
         <small class="text-muted">Modalidad: <span class="badge bg-dark">consumo</span></small>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle table-mov-ultimos">
           <thead class="table-light">
             <tr>
               <th>Fecha</th>

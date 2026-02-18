@@ -7,7 +7,7 @@
             <h2 class="mb-1">Bitácora de movimientos</h2>
             <div class="text-muted">Registro detallado de acciones realizadas por los usuarios en el sistema.</div>
         </div>
-        
+         
     </div>
 
     <style>
