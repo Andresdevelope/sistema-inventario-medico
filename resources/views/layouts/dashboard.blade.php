@@ -63,7 +63,15 @@
         */
         .topbar { display:flex; align-items:center; height:66px; padding:0 2rem; background:var(--slate-surface); border-bottom:1px solid var(--slate-line); position:sticky; top:0; z-index:1200; }
         .topbar .logo { font-weight:700; font-size:1.15rem; letter-spacing:.6px; display:flex; align-items:center; gap:.65rem; }
-        .topbar .logo i { color:var(--accent); font-size:1.3rem; }
+        .topbar .logo img{
+            width:34px;
+            height:34px;
+            border-radius:8px;
+            object-fit:cover;
+            background:#fff;
+            border:1px solid rgba(255,255,255,.22);
+            box-shadow:0 4px 14px rgba(0,0,0,.25);
+        }
         .topbar-actions { margin-left:auto; display:flex; align-items:center; gap:.9rem; }
         .icon-btn { width:40px; height:40px; border:1px solid var(--slate-border); background:var(--slate-surface-soft); color:var(--txt-sec); display:flex; align-items:center; justify-content:center; border-radius:var(--r-md); font-size:1.05rem; cursor:pointer; position:relative; transition:background var(--speed), color var(--speed), border-color var(--speed); user-select:none; }
         .icon-btn:hover { background:var(--slate-surface); color:var(--accent); border-color:var(--accent); }
@@ -153,6 +161,46 @@
             Responsividad para pantallas menores a 900px
         */
         @media (max-width:900px){ .sidebar{width:200px;} .content-area{padding:1.2rem 1.1rem 3.2rem 1.1rem;} .quick-strip{flex-direction:column; align-items:flex-start; gap:.8rem;} .topbar{padding:0 1rem;} }
+
+        /* Overlay de transición para cierre de sesión */
+        #logout-loader-overlay{
+            position:fixed;
+            inset:0;
+            background:rgba(7,7,12,.88);
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:18px;
+            color:#f9fafb;
+            z-index:99999;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity .3s ease;
+        }
+        #logout-loader-overlay.active{opacity:1;pointer-events:all;}
+        .logout-loader-ring{
+            width:110px;
+            height:110px;
+            border-radius:50%;
+            border:3px solid rgba(255,255,255,.15);
+            border-top-color:#ff8c00;
+            animation:logoutSpin 1.2s linear infinite;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            position:relative;
+        }
+        .logout-loader-ring img{
+            width:72px;
+            height:72px;
+            border-radius:20px;
+            object-fit:cover;
+            box-shadow:0 15px 45px rgba(0,0,0,.35);
+        }
+        .logout-loader-text{font-size:.95rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+        .logout-loader-sub{font-size:.82rem;color:#d8deea;}
+        @keyframes logoutSpin{to{transform:rotate(360deg);}}
     </style>
     @stack('styles')
 </head>
@@ -163,7 +211,10 @@
 <div class="layout-shell">
     {{-- Topbar: barra superior con logo, acciones y usuario --}}
     <div class="topbar" role="banner" aria-label="Barra superior">
-        <div class="logo"><i class="fa-solid fa-capsules"></i> Servicios Médicos</div>
+        <div class="logo">
+            <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG">
+            Servicios Médicos
+        </div>
         <div class="topbar-actions" role="navigation" aria-label="Acciones de usuario">
             <button id="themeToggle" type="button" class="icon-btn" aria-label="Cambiar tema"><i class="fa fa-sun" id="themeIcon"></i></button>
             <div class="notif-wrapper">
@@ -277,6 +328,13 @@
     {{-- Footer: pie de página --}}
     <div class="footer">© 2025 - <a href="#">Sistemas inventario SERVICIOS MEDICOS</a></div>
 </div>
+<div id="logout-loader-overlay" aria-hidden="true">
+    <div class="logout-loader-ring">
+        <img src="{{ asset('logouptag.png') }}" alt="Logo Servicios Médicos">
+    </div>
+    <div class="logout-loader-text">Cerrando sesión…</div>
+    <div class="logout-loader-sub">Preparando pantalla de acceso</div>
+</div>
 {{-- Toast global para notificaciones --}}
 <div id="toast-container" style="position:fixed;top:30px;right:30px;z-index:3000;"></div>
 <script>
@@ -334,6 +392,48 @@ themeBtn?.addEventListener('click',()=>{
         document.documentElement.classList.remove('theme-light');
     }
 });
+
+// Transición visual al cerrar sesión (evita pantallazo brusco antes del login)
+(function(){
+    const overlay = document.getElementById('logout-loader-overlay');
+    if (!overlay) return;
+
+    const showLogoutLoader = () => {
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+    };
+
+    const logoutForms = Array.from(document.querySelectorAll('form')).filter(f => (f.getAttribute('action') || '').includes('/logout'));
+    logoutForms.forEach((form) => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (form.dataset.logoutPending === '1') return;
+            form.dataset.logoutPending = '1';
+
+            showLogoutLoader();
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            try {
+                await fetch(form.action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json, text/plain, */*'
+                    },
+                    body: new FormData(form)
+                });
+                window.location.replace('{{ url('/login') }}');
+            } catch (_) {
+                // Fallback robusto: si falla fetch, enviar formulario de manera tradicional.
+                form.submit();
+            }
+        });
+    });
+})();
 </script>
 @stack('modals')
 @stack('scripts')

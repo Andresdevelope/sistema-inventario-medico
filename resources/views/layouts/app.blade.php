@@ -8,6 +8,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/css/app.css','resources/js/app.js'])
     <style>
+        body{ margin:0; background:#f7fbff; color:#222831; }
         #auth-loader-overlay{
             position:fixed;
             inset:0;
