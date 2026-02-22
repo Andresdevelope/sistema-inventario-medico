@@ -502,7 +502,7 @@
                 <option value="">Seleccione destino...</option>
                 @if($hayDestinos)
                   @foreach($destinos as $d)
-                    <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ $d->nombre }}</option>
+                    <option value="{{ $d->id }}" @selected(old('destino_id')==$d->id)>{{ mov_formatear_destino($d->nombre) }}</option>
                   @endforeach
                 @endif
               </select>
@@ -576,10 +576,11 @@
 
         <div class="col-12 d-flex justify-content-end">
           <div class="d-flex gap-2">
-            <a href="{{ route('movimientos.index') }}" class="btn btn-orange d-flex align-items-center gap-2">
-              <span class="badge bg-light text-warning fw-semibold text-uppercase small px-2 py-1">Nuevo</span>
-              <i class="fa fa-bolt"></i>
-              <span>Agregar Movimiento</span>
+            <button type="submit" class="btn btn-orange d-flex align-items-center gap-2">
+              <i class="fa fa-save"></i>
+              <span>Registrar Movimiento</span>
+            </button>
+            
             </a>
           </div>
         </div>

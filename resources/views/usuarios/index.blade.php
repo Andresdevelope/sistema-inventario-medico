@@ -15,9 +15,19 @@
             const c = document.getElementById('toast-container');
             if (!c) return;
             const d = document.createElement('div');
-            d.textContent = msg;
             d.setAttribute('role', 'alert');
+            d.setAttribute('aria-live', tipo === 'error' ? 'assertive' : 'polite');
+            const icon = document.createElement('i');
+            icon.className = tipo === 'success' ? 'fa fa-circle-check' : 'fa fa-triangle-exclamation';
+            icon.setAttribute('aria-hidden', 'true');
+            const text = document.createElement('span');
+            text.textContent = msg;
+            d.appendChild(icon);
+            d.appendChild(text);
             d.style.cssText = `background:${tipo==='success'?'var(--accent)':'#e74c3c'};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
+            d.style.display = 'flex';
+            d.style.alignItems = 'center';
+            d.style.gap = '.55rem';
             c.appendChild(d);
             requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateX(0)';});
             const duration = tipo === 'error' ? 5200 : 2700; // errores quedan un poco más tiempo para poder leerlos

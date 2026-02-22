@@ -163,10 +163,20 @@
     function showToast(msg, tipo='success'){
         const c = els.toastContainer(); if(!c) return;
         const d = document.createElement('div');
-        d.textContent = msg;
         d.setAttribute('role','alert');
+        d.setAttribute('aria-live', tipo === 'error' ? 'assertive' : 'polite');
+        const icon = document.createElement('i');
+        icon.className = tipo === 'success' ? 'fa fa-circle-check' : 'fa fa-triangle-exclamation';
+        icon.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        text.textContent = msg;
+        d.appendChild(icon);
+        d.appendChild(text);
         const bg = tipo==='success' ? '#ff9800' : '#e74c3c'; // naranja para éxito, rojo para error
         d.style.cssText = `background:${bg};color:#fff;padding:.8rem 1rem;margin-bottom:.6rem;border-radius:8px;font-size:.85rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.25);opacity:0;transform:translateX(40px);transition:.35s;`;
+        d.style.display = 'flex';
+        d.style.alignItems = 'center';
+        d.style.gap = '.55rem';
         c.appendChild(d);
         requestAnimationFrame(()=>{ d.style.opacity='1'; d.style.transform='translateX(0)'; });
         setTimeout(()=>{ d.style.opacity='0'; d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400); },2700);

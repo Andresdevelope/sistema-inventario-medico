@@ -13,7 +13,7 @@
         <div id="toastErrores" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
           <div class="d-flex">
             <div class="toast-body">
-              <strong>¡Corrige los siguientes errores!</strong>
+              <strong><i class="fa fa-triangle-exclamation me-1" aria-hidden="true"></i>¡Corrige los siguientes errores!</strong>
               <ul class="mb-0" id="toastErroresLista">
                 <!-- Errores se insertan por JS -->
               </ul>
@@ -463,7 +463,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const toastEl = document.getElementById('toastNotificacion');
     const toastMsg = document.getElementById('toastMsg');
     if (!toastEl || !toastMsg) return;
-    toastMsg.textContent = mensaje;
+    toastMsg.innerHTML = '';
+    const icon = document.createElement('i');
+    icon.className = exito ? 'fa fa-circle-check me-2' : 'fa fa-triangle-exclamation me-2';
+    icon.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.textContent = mensaje;
+    toastMsg.appendChild(icon);
+    toastMsg.appendChild(text);
     toastEl.classList.remove('bg-success', 'bg-danger');
     toastEl.classList.add(exito ? 'bg-success' : 'bg-danger');
     const t = new bootstrap.Toast(toastEl);

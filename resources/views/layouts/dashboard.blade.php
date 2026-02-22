@@ -341,8 +341,20 @@
 // Utilidad para mostrar toasts globales
 window.showToast = function(msg, tipo='success') {
     const c = document.getElementById('toast-container'); if(!c) return;
-    const d=document.createElement('div'); d.textContent=msg; d.setAttribute('role','alert');
+    const d=document.createElement('div'); d.setAttribute('role','alert');
+    d.setAttribute('aria-live', tipo === 'error' ? 'assertive' : 'polite');
+    d.innerHTML = '';
+    const icon = document.createElement('i');
+    icon.className = tipo === 'success' ? 'fa fa-circle-check' : 'fa fa-triangle-exclamation';
+    icon.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.textContent = msg;
+    d.appendChild(icon);
+    d.appendChild(text);
     d.style.cssText=`background:${tipo==='success'? 'var(--accent)':'#e74c3c'};color:#fff;padding:.75rem .95rem;margin-bottom:.55rem;border-radius:8px;font-size:.68rem;font-weight:600;box-shadow:0 4px 14px -3px rgba(0,0,0,.45);opacity:0;transform:translateY(-6px);transition:.35s;`;
+    d.style.display = 'flex';
+    d.style.alignItems = 'center';
+    d.style.gap = '.55rem';
     c.appendChild(d); requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateY(0)';});
     const duration = tipo === 'error' ? 20000 : 2600;
     setTimeout(()=>{d.style.opacity='0';d.style.transform='translateY(-6px)'; setTimeout(()=>d.remove(),400);}, duration);
