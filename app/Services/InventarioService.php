@@ -13,6 +13,69 @@ use InvalidArgumentException;
 class InventarioService
 {
     /**
+     * Salvaguarda operativa: si un medicamento quedó registrado con fecha de
+     * vencimiento pasada y aún no tiene movimientos, se obliga a corregirlo
+     * en edición de producto antes de operar.
+     */
+    private function validarCorreccionFechaProductoAntesDeMover(Producto $producto): void
+    {
+        if (empty($producto->fecha_vencimiento)) {
+            return;
+        }
+
+        if (!Carbon::parse($producto->fecha_vencimiento)->lt(Carbon::today())) {
+            return;
+        }
+
+        $tieneMovimientos = Movimiento::where('producto_id', $producto->id)->exists();
+        if ($tieneMovimientos) {
+            return;
+        }
+
+        throw new InvalidArgumentException(
+            'Este medicamento fue registrado con fecha de vencimiento pasada. Corrige la fecha en Editar producto antes de registrar movimientos o consumo.'
+        );
+    }
+
+    /**
+     * Determina si un inventario está vencido respecto a hoy.
+     */
+    private function isInventarioVencido(Inventario $inv): bool
+    {
+        if (empty($inv->fecha_vencimiento)) {
+            return false;
+        }
+
+        return Carbon::parse($inv->fecha_vencimiento)->lt(Carbon::today());
+    }
+
+    /**
+     * Define si debe bloquearse el uso de lotes vencidos en un egreso según modalidad.
+     * - consumo: siempre bloqueado (regla sanitaria dura).
+     * - distribucion: configurable.
+     */
+    private function debeBloquearVencidosEnEgreso(?string $modalidad): bool
+    {
+        if ($modalidad === 'consumo') {
+            return true;
+        }
+
+        if ($modalidad === 'distribucion') {
+            return (bool) config('inventario.bloquear_vencidos_distribucion', false);
+        }
+
+        return false;
+    }
+
+    /**
+     * Define si debe bloquearse el uso de lotes vencidos en ajuste negativo.
+     */
+    private function debeBloquearVencidosEnAjusteNeg(): bool
+    {
+        return (bool) config('inventario.bloquear_vencidos_ajuste_neg', false);
+    }
+
+    /**
      * Determina si un inventario es compatible con el tipo de producto.
      * - Medicamento: sólo lotes blister (o null heredado para datos antiguos).
      * - Insumo: sólo lotes unidad (o null heredado para datos antiguos).
@@ -108,6 +171,7 @@ class InventarioService
         DB::transaction(function() use ($data, $tipo, $cantidad) {
             /** @var Producto $producto */
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
+            $this->validarCorreccionFechaProductoAntesDeMover($producto);
             $tipoProd = strtolower($producto->tipo_producto ?? 'medicamento');
             // Sincronizar stock con inventarios cuando existan
             $this->syncProductoStock($producto);
@@ -165,6 +229,7 @@ class InventarioService
 
             // Egresos con modalidad DISTRIBUCIÓN: NO modifican inventarios ni stock, sólo registran el envío.
             if ($tipo === 'egreso' && $modalidad === 'distribucion') {
+                $bloquearVencidos = $this->debeBloquearVencidosEnEgreso($modalidad);
                 // Asegurarnos de que haya saldo suficiente para no "distribuir" más de lo disponible.
                 $totalInv = Inventario::where('producto_id', $producto->id)->sum('cantidad');
                 if ($totalInv <= 0 && ($producto->stock ?? 0) > 0) {
@@ -181,11 +246,23 @@ class InventarioService
                 }
 
                 $inventarios = $this->getInventariosFefoFifo($producto);
-                $saldoTotal = $inventarios->filter(fn (Inventario $inv) => $this->isInventarioCompatibleConTipo($inv, $tipoProd))
+                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd, $bloquearVencidos) {
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) {
+                        return false;
+                    }
+                    if ($bloquearVencidos && $this->isInventarioVencido($inv)) {
+                        return false;
+                    }
+                    return true;
+                })
                     ->sum('cantidad');
 
                 if ($saldoTotal < $cantidad) {
-                    throw new InvalidArgumentException('Stock insuficiente para distribución');
+                    throw new InvalidArgumentException(
+                        $bloquearVencidos
+                            ? 'Stock insuficiente para distribución con lotes vigentes (lotes vencidos bloqueados por política).'
+                            : 'Stock insuficiente para distribución'
+                    );
                 }
 
                 Movimiento::create([
@@ -262,6 +339,7 @@ class InventarioService
                 ]);
             }
             elseif ($tipo === 'egreso') {
+                $bloquearVencidos = $this->debeBloquearVencidosEnEgreso($modalidad);
                 // Si el usuario eligió un lote específico, consumir sólo de ese lote
                 $targetId = $data['inventario_objetivo_id'] ?? null;
                 if ($targetId) {
@@ -281,6 +359,14 @@ class InventarioService
                             throw new InvalidArgumentException('El lote no opera en blíster. Verifique el tipo de producto y el lote.');
                         }
                         throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
+                    }
+
+                    if ($bloquearVencidos && $this->isInventarioVencido($inv)) {
+                        throw new InvalidArgumentException(
+                            $modalidad === 'consumo'
+                                ? 'No se puede registrar consumo con lotes vencidos.'
+                                : 'No se puede registrar egreso con lotes vencidos (bloqueo activo por política).'
+                        );
                     }
 
                     $inv->cantidad -= $cantidad;
@@ -334,17 +420,27 @@ class InventarioService
                     if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) {
                         return false;
                     }
+                    if ($this->debeBloquearVencidosEnEgreso($modalidad ?? null) && $this->isInventarioVencido($inv)) {
+                        return false;
+                    }
                     return true;
                 })->sum('cantidad');
                 // Validar también contra stock agregado del producto por coherencia
                 // Validar sólo contra el saldo real de inventarios (el campo productos.stock puede haber sido editado manualmente)
                 if ($saldoTotal < $porConsumir) {
-                    throw new InvalidArgumentException('Stock insuficiente para egreso');
+                    throw new InvalidArgumentException(
+                        $bloquearVencidos
+                            ? (($modalidad === 'consumo')
+                                ? 'Stock insuficiente en lotes vigentes para consumo (lotes vencidos bloqueados).'
+                                : 'Stock insuficiente en lotes vigentes para egreso (lotes vencidos bloqueados por política).')
+                            : 'Stock insuficiente para egreso'
+                    );
                 }
 
                 foreach ($inventarios as $inv) {
                     if ($porConsumir <= 0) break;
                     if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) { continue; }
+                    if ($bloquearVencidos && $this->isInventarioVencido($inv)) { continue; }
                     $consume = min($inv->cantidad, $porConsumir);
                     $inv->cantidad -= $consume;
                     $inv->save();
@@ -374,6 +470,7 @@ class InventarioService
                 $producto->save();
             }
             elseif ($tipo === 'ajuste_neg') {
+                $bloquearVencidosAjusteNeg = $this->debeBloquearVencidosEnAjusteNeg();
                 // Si el usuario eligió un lote específico, consumir sólo de ese lote
                 $targetId = $data['inventario_objetivo_id'] ?? null;
                 if ($targetId) {
@@ -392,6 +489,10 @@ class InventarioService
                             throw new InvalidArgumentException('El lote no opera en blíster. Verifique el tipo de producto y el lote.');
                         }
                         throw new InvalidArgumentException('El lote no opera en unidad. Verifique el tipo de producto y el lote.');
+                    }
+
+                    if ($bloquearVencidosAjusteNeg && $this->isInventarioVencido($inv)) {
+                        throw new InvalidArgumentException('No se puede aplicar ajuste negativo sobre lotes vencidos (bloqueo activo por política).');
                     }
 
                     $inv->cantidad -= $cantidad;
@@ -423,16 +524,29 @@ class InventarioService
                 $porAjustar = $cantidad;
                 $inventarios = $this->getInventariosFefoFifo($producto);
 
-                $saldoTotal = $inventarios->filter(fn (Inventario $inv) => $this->isInventarioCompatibleConTipo($inv, $tipoProd))
+                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd, $bloquearVencidosAjusteNeg) {
+                    if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) {
+                        return false;
+                    }
+                    if ($bloquearVencidosAjusteNeg && $this->isInventarioVencido($inv)) {
+                        return false;
+                    }
+                    return true;
+                })
                     ->sum('cantidad');
                 // Validar sólo contra inventarios
                 if ($saldoTotal < $porAjustar) {
-                    throw new InvalidArgumentException('Stock insuficiente para ajuste negativo');
+                    throw new InvalidArgumentException(
+                        $bloquearVencidosAjusteNeg
+                            ? 'Stock insuficiente en lotes vigentes para ajuste negativo (lotes vencidos bloqueados por política).'
+                            : 'Stock insuficiente para ajuste negativo'
+                    );
                 }
 
                 foreach ($inventarios as $inv) {
                     if ($porAjustar <= 0) break;
                     if (!$this->isInventarioCompatibleConTipo($inv, $tipoProd)) { continue; }
+                    if ($bloquearVencidosAjusteNeg && $this->isInventarioVencido($inv)) { continue; }
                     $consume = min($inv->cantidad, $porAjustar);
                     $inv->cantidad -= $consume;
                     $inv->save();

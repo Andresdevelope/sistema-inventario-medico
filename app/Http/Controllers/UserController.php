@@ -22,7 +22,8 @@ class UserController extends Controller
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
-                'role' => $u->role
+                'role' => $u->role,
+                'locked_until' => $u->locked_until,
             ];
         }));
     }

@@ -48,6 +48,7 @@
         window.__editFailed = @json(session('edit_failed', false));
         window.__editUserId = @json(session('edit_user_id'));
         window.__createFailed = @json(session('create_failed', false));
+        window.authUserId = @json(auth()->id());
     </script>
     <table class="table table-bordered table-hover mt-3 align-middle">
         <thead>
@@ -351,6 +352,8 @@
                     if (!tbody) return;
                     tbody.innerHTML = '';
                     data.forEach(user => {
+                        const isBlocked = !!user.locked_until;
+                        const canManage = String(window.authUserId) !== String(user.id);
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${user.id}</td>
@@ -358,14 +361,18 @@
                             <td>${user.email}</td>
                             <td><span class="badge ${user.role === 'admin' ? 'bg-dark' : 'bg-secondary'}">${user.role}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                ${isBlocked ? '<span class="badge bg-danger">Bloqueado</span>' : '<span class="badge bg-success">Activo</span>'}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#editUserModal"
                                     data-id="${user.id}"
                                     data-name="${user.name}"
                                     data-email="${user.email}"
                                     data-role="${user.role}">
                                     <i class="fa fa-edit"></i>
                                 </button>
-                                ${(window.authUserId !== user.id ? `<button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-trash"></i></button>` : '')}
+                                ${canManage ? `<button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-trash"></i></button>` : ''}
+                                ${(canManage && isBlocked) ? `<button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#unlockUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-unlock"></i> Desbloquear</button>` : ''}
                             </td>
                         `;
                         tbody.appendChild(tr);
