@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
-Fecha: 05/02/2026 (actualizado)
+Fecha: 25/02/2026 (actualizado)
 Autor: Equipo Servicios Médicos
 
 OBJETIVO
@@ -98,8 +98,9 @@ CU-07 Registrar entrada por lote
 
 CU-08 Registrar distribución (Central → Destinos)
 - Actor: Operador/Administrador
-- Flujo: Selecciona producto y lote(s), elige destino normalizado, ingresa cantidad, valida y descuenta stock, registra movimiento.
+- Flujo: Selecciona producto, elige destino normalizado, ingresa cantidad, valida disponibilidad y registra movimiento de distribución.
 - Validaciones: stock suficiente; requiere destino; en Odontología solo insumos; modalidad registrada como “distribución”.
+- Nota técnica: la distribución registra el envío para trazabilidad y reportes por destino, pero no descuenta inventario físico de lotes en Central (lógica de negocio vigente).
 
 CU-09 Registrar consumo (salida real)
 - Actor: Operador/Administrador
@@ -126,7 +127,9 @@ CU-13 Generar reportes
 - Flujo: Selecciona reporte, aplica filtros, visualiza/descarga.
  - Detalle:
 	 - 10.1 Inventario periódico (matriz por destino): periodo (mensual/trimestral/semestral/anual) o rango de fechas; matriz con columnas por destino + Central a la fecha de corte (“Hasta”); exportar PDF.
-	 - 10.2 Salidas – Farmacia Interna: consumos por destino con Medicamentos/Beneficiarios/F/M/EST/TRAB/COM; columna opcional “Insumos entregados”; exportar CSV del detalle por producto.
+	 - 10.2 Salidas – Farmacia Interna: consumos por destino con Medicamentos/Beneficiarios/F/M/EST/TRAB/PROF/COM; columna opcional “Insumos entregados”; exportar PDF.
+	 - Validaciones recientes: control robusto de rango de fechas (fechas válidas y `Desde <= Hasta`) para vista y exportaciones.
+	 - Optimización reciente: agregaciones SQL y cacheo selectivo para mantener consistencia de conteos por mes/destino y mejorar tiempos de respuesta.
 
 CU-14 Gestión de usuarios y roles (solo admin)
 - Actor: Administrador
@@ -161,15 +164,18 @@ MODELO DE DATOS (RESUMEN)
 
 CONSIDERACIONES NO FUNCIONALES
 - Rendimiento: índices en claves foráneas (producto_id, inventario_id, usuario_id, fecha, tipo); paginación en listados.
+- Rendimiento (reportes): optimización de consultas en `ReportesMovimientosService` (reducción de N+1, agregaciones consolidadas y cacheo de matriz por destino).
 - Seguridad: autenticación obligatoria, autorización por rol (RBAC), CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en endpoints sensibles, reCAPTCHA opcional.
 - Usabilidad: feedback visual (toasts), formularios con old() y mensajes claros, exportación optimizada.
 
 CRITERIOS DE ACEPTACIÓN
-- Los flujos de entrada, distribución, consumo y ajuste actualizan stock y registran movimientos con inventario_id y usuario_id.
+- Los flujos de entrada, consumo y ajuste actualizan stock y registran movimientos con inventario_id y usuario_id; la distribución registra movimiento y trazabilidad por destino según la modalidad vigente.
+- Distribución registra movimiento con modalidad `distribucion`, valida disponibilidad y destino, y mantiene trazabilidad por destino sin alterar lotes físicos de inventario.
 - Consumo exige tipo_identificación y sexo; no se permite desde Central.
 - Odontología solo egresa insumos.
 - Inventario muestra alertas y permite exportar CSV.
 - 10.1 exporta PDF con matriz por destino + Central a la fecha de corte.
+- 10.2 exporta PDF de salidas de farmacia interna e incluye conteo por PROF (profesor).
 - Solo Administrador gestiona usuarios y ajustes críticos.
 
 NOTAS
@@ -195,11 +201,20 @@ TRAZABILIDAD CON IMPLEMENTACIÓN (RESUMEN)
 
 - CU-12 y CU-13 (Historial de Consumo y Reportes)
 	- Servicio de reportes: `app/Services/ReportesMovimientosService.php`.
-		- Método `salidasFarmaciaInterna` implementa el reporte de Salidas – Farmacia Interna usando los campos `modalidad`, `tipo_identificacion` y `sexo` agregados a `movimientos`.
+		- Método `salidasFarmaciaInterna` implementa el reporte de Salidas – Farmacia Interna usando los campos `modalidad`, `tipo_identificacion` y `sexo` agregados a `movimientos` (incluye métrica PROF).
+		- `resumen` y `inventarioMatrizPorDestino` optimizados para consistencia por rango/destino y mejor rendimiento en agregaciones.
+		- Controlador `ReportesController` incorpora validación robusta de fechas para evitar reportes con rangos inválidos.
 
 - CU-15, CU-16, CU-17 y seguridad reforzada
 	- Bitácora, bloqueo por intentos fallidos y recuperación con preguntas de seguridad: modelos y controladores de usuarios (`User`, controladores de auth) y tabla `bitacora`.
 	- Notificaciones de movimientos (campana): tabla `movimiento_user_reads` y lógica asociada para marcar notificaciones leídas por usuario.
 	- reCAPTCHA v2 opcional: configuración en `config/services.php` y variables `.env` (`RECAPTCHA_ENABLED`, claves de sitio y secreto).
 
-Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan en la rama `new-logica-dist-salida` al 05/02/2026.
+VALIDACIÓN TÉCNICA RECIENTE (25/02/2026)
+- Se añadieron pruebas automatizadas de reportes: `tests/Feature/ReportesMovimientosServiceTest.php`.
+- Cobertura funcional validada:
+	1) filtro por mes y destino en Salidas – Farmacia Interna,
+	2) consistencia de resumen por destino (totales y top),
+	3) balance global/central en matriz por destino.
+
+Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan al 25/02/2026.

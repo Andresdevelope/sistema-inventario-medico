@@ -11,6 +11,6 @@ return [
     |
     */
 
-    'bloquear_vencidos_distribucion' => false,
+    'bloquear_vencidos_distribucion' => true,
     'bloquear_vencidos_ajuste_neg' => false,
 ];

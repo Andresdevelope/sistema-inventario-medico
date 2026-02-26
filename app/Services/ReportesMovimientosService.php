@@ -5,11 +5,38 @@ namespace App\Services;
 use App\Models\Movimiento;
 use App\Models\Inventario;
 use App\Models\Destino;
+use App\Models\Producto;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ReportesMovimientosService
 {
+    /**
+     * Normaliza el nombre de destino para presentar etiquetas cortas y consistentes en reportes.
+     */
+    private function normalizarDestinoReporte(string $codigo = '', string $nombre = ''): string
+    {
+        $codigoL = strtolower(trim($codigo));
+        $nombreL = strtolower(trim($nombre));
+        $joined = trim($codigoL . ' ' . $nombreL);
+
+        if (str_contains($joined, 'acinf') || str_contains($joined, 'contadur') || str_contains($joined, 'informat') || str_contains($joined, 'administr')) {
+            return 'ACI';
+        }
+        if (str_contains($joined, 'agro')) {
+            return 'AGRO';
+        }
+        if (str_contains($joined, 'principal')) {
+            return 'AREA PRINCIPAL';
+        }
+        if (str_contains($joined, 'odont')) {
+            return 'ODONTOLOGIA';
+        }
+
+        $base = trim($codigo !== '' ? $codigo : $nombre);
+        return $base !== '' ? strtoupper($base) : 'SIN DESTINO';
+    }
+
     /**
      * Resumen operativo del periodo.
      */
@@ -28,60 +55,76 @@ class ReportesMovimientosService
                 ->sum('cantidad');
             $productosDistintos = (clone $base)->distinct()->count('producto_id');
 
-            $topDestinos = Movimiento::selectRaw('destino_id, SUM(cantidad) as total')
-                ->where('tipo','egreso')
-                ->whereBetween('fecha', [$from,$to])
-                ->groupBy('destino_id')
+            $topDestinos = DB::table('movimientos as m')
+                ->leftJoin('destinos as d', 'd.id', '=', 'm.destino_id')
+                ->where('m.tipo','egreso')
+                ->whereBetween('m.fecha', [$from,$to])
+                ->when($destinoId, fn($q) => $q->where('m.destino_id', $destinoId))
+                ->groupBy('m.destino_id', 'd.nombre', 'd.codigo')
                 ->orderByDesc('total')
                 ->limit(5)
+                ->selectRaw(implode(', ', [
+                    'm.destino_id as destino_id',
+                    'COALESCE(d.codigo, "N/D") as codigo',
+                    'COALESCE(d.nombre, "Sin destino") as nombre',
+                    'SUM(m.cantidad) as total',
+                ]))
                 ->get()
-                ->map(function($r){
-                    $dest = $r->destino_id ? Destino::find($r->destino_id) : null;
-                    return [
-                        'destino_id' => $r->destino_id,
-                        'codigo' => $dest->codigo ?? 'N/D',
-                        'nombre' => $dest->nombre ?? 'Sin destino',
-                        'total' => (int)$r->total
-                    ];
-                });
+                ->map(fn($r) => [
+                    'destino_id' => $r->destino_id,
+                    'codigo' => $r->codigo,
+                    'nombre' => $r->nombre,
+                    'total' => (int)$r->total,
+                ]);
 
-            $topMedicamentos = Movimiento::selectRaw('producto_id, SUM(cantidad) as total')
-                ->where('tipo','egreso')
-                ->whereBetween('fecha',[$from,$to])
-                ->groupBy('producto_id')
+            $topMedicamentos = DB::table('movimientos as m')
+                ->leftJoin('productos as p', 'p.id', '=', 'm.producto_id')
+                ->where('m.tipo','egreso')
+                ->whereBetween('m.fecha',[$from,$to])
+                ->when($destinoId, fn($q) => $q->where('m.destino_id', $destinoId))
+                ->groupBy('m.producto_id', 'p.nombre', 'p.codigo')
                 ->orderByDesc('total')
                 ->limit(5)
+                ->selectRaw(implode(', ', [
+                    'm.producto_id as producto_id',
+                    'COALESCE(p.nombre, "N/D") as nombre',
+                    'COALESCE(p.codigo, "—") as codigo',
+                    'SUM(m.cantidad) as total',
+                ]))
                 ->get()
-                ->map(function($r){
-                    $prod = $r->producto; return [
-                        'producto_id'=>$r->producto_id,
-                        'nombre'=>$prod->nombre ?? 'N/D',
-                        'codigo'=>$prod->codigo ?? '—',
-                        'total'=>(int)$r->total
-                    ];
-                });
+                ->map(fn($r) => [
+                    'producto_id'=>$r->producto_id,
+                    'nombre'=>$r->nombre,
+                    'codigo'=>$r->codigo,
+                    'total'=>(int)$r->total,
+                ]);
 
-            $stockBajo = Inventario::selectRaw('producto_id, SUM(cantidad) as stock')
-                ->groupBy('producto_id')
+            $stockBajo = DB::table('inventarios as i')
+                ->join('productos as p', 'p.id', '=', 'i.producto_id')
+                ->selectRaw('i.producto_id, p.nombre, p.stock_minimo, SUM(i.cantidad) as stock')
+                ->whereNotNull('p.stock_minimo')
+                ->groupBy('i.producto_id', 'p.nombre', 'p.stock_minimo')
+                ->havingRaw('SUM(i.cantidad) < p.stock_minimo')
                 ->get()
-                ->filter(function($r){
-                    $p = $r->producto; return $p && $p->stock_minimo !== null && $r->stock < $p->stock_minimo; })
                 ->map(fn($r)=>[
                     'producto_id'=>$r->producto_id,
-                    'nombre'=>$r->producto->nombre ?? 'N/D',
+                    'nombre'=>$r->nombre ?? 'N/D',
                     'stock'=>(int)$r->stock,
-                    'stock_minimo'=>$r->producto->stock_minimo
+                    'stock_minimo'=>(int)$r->stock_minimo,
                 ])->values();
 
-            $caducidadProxima = Inventario::whereNotNull('fecha_vencimiento')
-                ->where('fecha_vencimiento','<=', now()->addDays(30)->toDateString())
-                ->selectRaw('producto_id, fecha_vencimiento, SUM(cantidad) as cant')
-                ->groupBy('producto_id','fecha_vencimiento')
-                ->orderBy('fecha_vencimiento')
+            $caducidadProxima = DB::table('inventarios as i')
+                ->leftJoin('productos as p', 'p.id', '=', 'i.producto_id')
+                ->whereNotNull('i.fecha_vencimiento')
+                ->where('i.fecha_vencimiento','<=', now()->addDays(30)->toDateString())
+                ->where('i.cantidad', '>', 0)
+                ->selectRaw('i.producto_id, COALESCE(p.nombre, "N/D") as nombre, i.fecha_vencimiento, SUM(i.cantidad) as cant')
+                ->groupBy('i.producto_id','p.nombre','i.fecha_vencimiento')
+                ->orderBy('i.fecha_vencimiento')
                 ->get()
                 ->map(fn($r)=>[
                     'producto_id'=>$r->producto_id,
-                    'nombre'=>$r->producto->nombre ?? 'N/D',
+                    'nombre'=>$r->nombre,
                     'fecha_vencimiento'=>$r->fecha_vencimiento,
                     'cantidad'=>(int)$r->cant
                 ]);
@@ -116,106 +159,139 @@ class ReportesMovimientosService
     public function inventarioMatrizPorDestino(string $cutoffDate, array $opts = []): array
     {
         $cutoff = \Carbon\Carbon::parse($cutoffDate)->endOfDay()->toDateString();
-        $destinos = Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre','codigo']);
-
         // Filtros opcionales
         $tipo = strtolower($opts['tipo'] ?? ''); // 'medicamento' | 'insumo' | ''
         $categoriaId = $opts['categoria_id'] ?? null;
         $subcategoriaId = $opts['subcategoria_id'] ?? null;
 
-        // Productos filtrados
-        $productosQ = \App\Models\Producto::select('id','nombre','codigo','presentacion','unidad_medida','categoria_inventario','categoria_id','subcategoria_id')
-            ->orderBy('nombre');
-        if ($tipo === 'medicamento') {
-            $productosQ->whereRaw("LOWER(COALESCE(categoria_inventario,'')) LIKE 'medicamento%'");
-        } elseif ($tipo === 'insumo') {
-            $productosQ->whereRaw("LOWER(COALESCE(categoria_inventario,'')) LIKE 'insum%'");
-        }
-        if ($categoriaId) { $productosQ->where('categoria_id', (int)$categoriaId); }
-        if ($subcategoriaId) { $productosQ->where('subcategoria_id', (int)$subcategoriaId); }
-        $productos = $productosQ->get();
-        $productoIds = $productos->pluck('id')->all();
+        $cacheKey = implode('_', [
+            'reporte_matriz',
+            $cutoff,
+            $tipo ?: 'all',
+            $categoriaId ?: 'cat-all',
+            $subcategoriaId ?: 'sub-all',
+        ]);
 
-        // Saldos globales por producto a la fecha de corte (filtrando productos)
-        $global = DB::table('movimientos')
-            ->selectRaw("producto_id,
+        return Cache::remember($cacheKey, 600, function () use ($cutoff, $tipo, $categoriaId, $subcategoriaId) {
+            $destinos = Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre','codigo']);
+
+            // Productos filtrados
+            $productosQ = Producto::select('id','nombre','codigo','presentacion','unidad_medida','categoria_inventario','categoria_id','subcategoria_id')
+                ->orderBy('nombre');
+            if ($tipo === 'medicamento') {
+                $productosQ->whereRaw("LOWER(COALESCE(categoria_inventario,'')) LIKE 'medicamento%'");
+            } elseif ($tipo === 'insumo') {
+                $productosQ->whereRaw("LOWER(COALESCE(categoria_inventario,'')) LIKE 'insum%'");
+            }
+            if ($categoriaId) { $productosQ->where('categoria_id', (int)$categoriaId); }
+            if ($subcategoriaId) { $productosQ->where('subcategoria_id', (int)$subcategoriaId); }
+            $productos = $productosQ->get();
+            $productoIds = $productos->pluck('id')->all();
+
+            if (empty($productoIds)) {
+                return [
+                    'cutoff' => $cutoff,
+                    'columnas' => ['Depósito/Central ' . \Carbon\Carbon::parse($cutoff)->format('d/m/y'), 'Total'],
+                    'destinos' => $destinos->map(fn($d)=>[
+                        'id'=>$d->id,
+                        'codigo'=>$d->codigo,
+                        'nombre'=>$this->normalizarDestinoReporte((string)($d->codigo ?? ''), (string)($d->nombre ?? '')),
+                    ])->toArray(),
+                    'rows' => [],
+                    'filters' => [ 'tipo'=>$tipo, 'categoria_id'=>$categoriaId, 'subcategoria_id'=>$subcategoriaId ],
+                ];
+            }
+
+            // Saldos globales por producto a la fecha de corte (filtrando productos)
+            $global = DB::table('movimientos')
+                ->selectRaw("producto_id,
                 SUM(CASE WHEN tipo IN ('ingreso','ajuste_pos') AND fecha <= ? THEN cantidad ELSE 0 END) AS entradas,
                 SUM(CASE WHEN tipo IN ('egreso','ajuste_neg') AND fecha <= ? THEN cantidad ELSE 0 END) AS salidas",
-                [$cutoff, $cutoff])
-            ->when(!empty($productoIds), fn($q)=>$q->whereIn('producto_id', $productoIds))
-            ->groupBy('producto_id')
-            ->get()
-            ->keyBy('producto_id');
-
-        // Preparar mapa de saldos por destino y producto
-        $saldoDestino = [];
-        foreach ($destinos as $d) {
-            $rows = DB::table('movimientos')
-                ->selectRaw("producto_id,
-                    SUM(CASE WHEN fecha <= ? AND destino_id = ? AND (tipo = 'egreso' AND modalidad = 'distribucion' OR tipo = 'ajuste_pos') THEN cantidad ELSE 0 END) AS plus,
-                    SUM(CASE WHEN fecha <= ? AND destino_id = ? AND (tipo = 'egreso' AND modalidad = 'consumo' OR tipo = 'ajuste_neg') THEN cantidad ELSE 0 END) AS minus",
-                    [$cutoff, $d->id, $cutoff, $d->id])
-                ->when(!empty($productoIds), fn($q)=>$q->whereIn('producto_id', $productoIds))
+                    [$cutoff, $cutoff])
+                ->whereIn('producto_id', $productoIds)
+                ->where('fecha', '<=', $cutoff)
                 ->groupBy('producto_id')
-                ->get();
-            foreach ($rows as $r) {
-                $saldoDestino[$r->producto_id][$d->id] = (int)$r->plus - (int)$r->minus;
+                ->get()
+                ->keyBy('producto_id');
+
+            // Preparar mapa de saldos por destino y producto (una sola consulta agregada)
+            $saldoDestino = [];
+            $destinoIds = $destinos->pluck('id')->all();
+            if (!empty($destinoIds)) {
+                $rows = DB::table('movimientos')
+                    ->selectRaw("producto_id, destino_id,
+                        SUM(CASE WHEN ((tipo = 'egreso' AND modalidad = 'distribucion') OR tipo = 'ajuste_pos') THEN cantidad ELSE 0 END) AS plus,
+                        SUM(CASE WHEN ((tipo = 'egreso' AND modalidad = 'consumo') OR tipo = 'ajuste_neg') THEN cantidad ELSE 0 END) AS minus")
+                    ->where('fecha', '<=', $cutoff)
+                    ->whereIn('producto_id', $productoIds)
+                    ->whereIn('destino_id', $destinoIds)
+                    ->groupBy('producto_id', 'destino_id')
+                    ->get();
+                foreach ($rows as $r) {
+                    $saldoDestino[$r->producto_id][$r->destino_id] = (int)$r->plus - (int)$r->minus;
+                }
             }
-        }
 
-        // Construir filas por producto
-        $rows = [];
-        foreach ($productos as $p) {
-            $g = $global->get($p->id);
-            $saldoGlobal = $g ? ((int)$g->entradas - (int)$g->salidas) : 0;
+            // Construir filas por producto
+            $rows = [];
+            foreach ($productos as $p) {
+                $g = $global->get($p->id);
+                $saldoGlobal = $g ? ((int)$g->entradas - (int)$g->salidas) : 0;
 
-            // Columnas por destino
-            $colsDestino = [];
-            $sumDestinos = 0;
+                // Columnas por destino
+                $colsDestino = [];
+                $sumDestinos = 0;
+                foreach ($destinos as $d) {
+                    $sd = $saldoDestino[$p->id][$d->id] ?? 0;
+                    $destinoLabel = $this->normalizarDestinoReporte((string)($d->codigo ?? ''), (string)($d->nombre ?? ''));
+                    $colsDestino[$d->codigo ?: $destinoLabel] = (int)$sd;
+                    $sumDestinos += (int)$sd;
+                }
+                // Central = Global - suma destinos
+                $central = $saldoGlobal - $sumDestinos;
+
+                // UM y presentación
+                $esMedicamento = str_starts_with(strtolower($p->categoria_inventario ?? ''), 'medicamento');
+                $um = $esMedicamento ? 'Blíster' : ($p->unidad_medida ?: 'Unidad');
+                $presentacion = $p->presentacion ?: ($esMedicamento ? 'Blíster' : '');
+
+                // Filtrar filas sin stock total (opcional): incluir si hay algo en cualquier columna
+                $total = $sumDestinos + $central;
+                if ($total <= 0) { continue; }
+
+                $rows[] = [
+                    'producto_id' => $p->id,
+                    'descripcion' => $p->nombre,
+                    'presentacion' => $presentacion,
+                    'um' => $um,
+                    'destinos' => $colsDestino,
+                    'central' => (int)$central,
+                    'total' => (int)$total,
+                ];
+            }
+
+            // Etiquetas de columnas (mostrar fecha de corte abreviada)
+            $fechaLabel = \Carbon\Carbon::parse($cutoff)->format('d/m/y');
+            $columnas = [];
             foreach ($destinos as $d) {
-                $sd = $saldoDestino[$p->id][$d->id] ?? 0;
-                $colsDestino[$d->codigo ?: $d->nombre] = (int)$sd;
-                $sumDestinos += (int)$sd;
+                $destinoLabel = $this->normalizarDestinoReporte((string)($d->codigo ?? ''), (string)($d->nombre ?? ''));
+                $columnas[] = ($destinoLabel ?: 'Destino') . ' ' . $fechaLabel;
             }
-            // Central = Global - suma destinos
-            $central = $saldoGlobal - $sumDestinos;
+            $columnas[] = 'Depósito/Central ' . $fechaLabel;
+            $columnas[] = 'Total';
 
-            // UM y presentación
-            $esMedicamento = str_starts_with(strtolower($p->categoria_inventario ?? ''), 'medicamento');
-            $um = $esMedicamento ? 'Blíster' : ($p->unidad_medida ?: 'Unidad');
-            $presentacion = $p->presentacion ?: ($esMedicamento ? 'Blíster' : '');
-
-            // Filtrar filas sin stock total (opcional): incluir si hay algo en cualquier columna
-            $total = $sumDestinos + $central;
-            if ($total <= 0) { continue; }
-
-            $rows[] = [
-                'producto_id' => $p->id,
-                'descripcion' => $p->nombre,
-                'presentacion' => $presentacion,
-                'um' => $um,
-                'destinos' => $colsDestino,
-                'central' => (int)$central,
-                'total' => (int)$total,
+            return [
+                'cutoff' => $cutoff,
+                'columnas' => $columnas,
+                'destinos' => $destinos->map(fn($d)=>[
+                    'id'=>$d->id,
+                    'codigo'=>$d->codigo,
+                    'nombre'=>$this->normalizarDestinoReporte((string)($d->codigo ?? ''), (string)($d->nombre ?? '')),
+                ])->toArray(),
+                'rows' => $rows,
+                'filters' => [ 'tipo'=>$tipo, 'categoria_id'=>$categoriaId, 'subcategoria_id'=>$subcategoriaId ],
             ];
-        }
-
-        // Etiquetas de columnas (mostrar fecha de corte abreviada)
-        $fechaLabel = \Carbon\Carbon::parse($cutoff)->format('d/m/y');
-        $columnas = [];
-        foreach ($destinos as $d) {
-            $columnas[] = ($d->nombre ?: 'Destino') . ' ' . $fechaLabel;
-        }
-        $columnas[] = 'Depósito/Central ' . $fechaLabel;
-        $columnas[] = 'Total';
-
-        return [
-            'cutoff' => $cutoff,
-            'columnas' => $columnas,
-            'destinos' => $destinos->map(fn($d)=>[ 'id'=>$d->id, 'codigo'=>$d->codigo, 'nombre'=>$d->nombre ])->toArray(),
-            'rows' => $rows,
-            'filters' => [ 'tipo'=>$tipo, 'categoria_id'=>$categoriaId, 'subcategoria_id'=>$subcategoriaId ],
-        ];
+        });
     }
     /** Tabla detallada de consumo por producto */
     public function detalle(string $from, string $to, ?int $destinoId = null)
@@ -237,7 +313,13 @@ class ReportesMovimientosService
                 });
             });
         }
-        return $q->get()->map(function($r){
+        $rows = $q->get();
+        $stockMap = Inventario::selectRaw('producto_id, SUM(cantidad) as stock_final')
+            ->whereIn('producto_id', $rows->pluck('producto_id')->all())
+            ->groupBy('producto_id')
+            ->pluck('stock_final', 'producto_id');
+
+        return $rows->map(function($r) use ($stockMap){
             $p = $r->producto;
             return [
                 'producto_id'=>$r->producto_id,
@@ -246,7 +328,7 @@ class ReportesMovimientosService
                 'entradas'=>(int)$r->entradas,
                 'salidas'=>(int)$r->salidas,
                 'movimientos'=>(int)$r->movimientos,
-                'stock_final'=> (int)Inventario::where('producto_id',$r->producto_id)->sum('cantidad')
+                'stock_final'=> (int)($stockMap[$r->producto_id] ?? 0),
             ];
         });
     }
@@ -254,7 +336,7 @@ class ReportesMovimientosService
     /**
      * Reporte 10.2: Salidas – Farmacia Interna (modalidad=consumo)
      * Devuelve métricas por destino: medicamentos entregados (blíster), beneficiarios,
-     * F, M, EST, TRAB, COM, Total.
+    * F, M, EST, TRAB, PROF, COM, Total.
      */
     public function salidasFarmaciaInterna(string $from, string $to, ?int $destinoId = null): array
     {
@@ -278,6 +360,7 @@ class ReportesMovimientosService
                 "SUM(CASE WHEN m.sexo = 'M' THEN 1 ELSE 0 END) AS M",
                 "SUM(CASE WHEN m.tipo_identificacion = 'estudiante' THEN 1 ELSE 0 END) AS EST",
                 "SUM(CASE WHEN m.tipo_identificacion = 'trabajador' THEN 1 ELSE 0 END) AS TRAB",
+                "SUM(CASE WHEN m.tipo_identificacion = 'profesor' THEN 1 ELSE 0 END) AS PROF",
                 "SUM(CASE WHEN m.tipo_identificacion = 'comunidad' THEN 1 ELSE 0 END) AS COM",
                 'COUNT(*) as total'
             ]));
@@ -288,9 +371,13 @@ class ReportesMovimientosService
 
         // Mapear a arreglo simple
         return $rows->map(function($r){
+            $destinoNormalizado = $this->normalizarDestinoReporte(
+                (string)($r->destino_codigo ?? ''),
+                (string)($r->destino_nombre ?? '')
+            );
             return [
                 'destino_id' => $r->destino_id,
-                'destino' => ($r->destino_nombre ?: 'Sin destino') . ' (' . ($r->destino_codigo ?: 'N/D') . ')',
+                'destino' => $destinoNormalizado,
                 'meds_entregados' => (int)$r->meds_entregados,
                 'insumos_entregados' => (int)$r->insumos_entregados,
                 'beneficiarios' => (int)$r->beneficiarios,
@@ -298,6 +385,7 @@ class ReportesMovimientosService
                 'M' => (int)$r->M,
                 'EST' => (int)$r->EST,
                 'TRAB' => (int)$r->TRAB,
+                'PROF' => (int)$r->PROF,
                 'COM' => (int)$r->COM,
                 'total' => (int)$r->total,
             ];

@@ -10,7 +10,7 @@
 		.meta { color: #6b7280; margin-bottom: 12px; }
 		table { width: 100%; border-collapse: collapse; }
 		th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
-		thead th { background: #f8fafc; font-weight: 600; }
+		thead th { background: #f8fafc; font-weight: 700; text-transform: uppercase; font-size: 12.5px; letter-spacing: .2px; }
 		.text-center { text-align: center; }
 		.text-right { text-align: right; }
 		.pdf-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
@@ -30,25 +30,26 @@
 			<div class="timestamp">Generado: {{ \Carbon\Carbon::now(config('app.timezone'))->format('d/m/Y H:i') }}</div>
 		</div>
 	</div>
-	<h2>Salidas – FARMACIA INTERNA</h2>
+	<h2>SALIDAS – FARMACIA INTERNA</h2>
 	<div class="meta">
 		Modalidad: consumo · Periodo: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} · Destino: {{ $destino }}
 	</div>
 	<table>
 		<thead>
 			<tr>
-				<th>Servicios Médicos</th>
-				<th>Medicamentos entregados (blíster)</th>
+				<th>SERVICIOS MÉDICOS</th>
+				<th>MEDICAMENTOS ENTREGADOS (BLÍSTER)</th>
 				@if($mostrar_insumos)
-				<th>Insumos entregados (unidades)</th>
+				<th>INSUMOS ENTREGADOS (UNIDADES)</th>
 				@endif
-				<th>Beneficiarios</th>
+				<th>BENEFICIARIOS</th>
 				<th>F</th>
 				<th>M</th>
 				<th>EST</th>
 				<th>TRAB</th>
+				<th>PROF</th>
 				<th>COM</th>
-				<th>Total</th>
+				<th>TOTAL</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -64,12 +65,13 @@
 					<td class="text-right">{{ $row['M'] }}</td>
 					<td class="text-right">{{ $row['EST'] }}</td>
 					<td class="text-right">{{ $row['TRAB'] }}</td>
+					<td class="text-right">{{ $row['PROF'] ?? 0 }}</td>
 					<td class="text-right">{{ $row['COM'] }}</td>
 					<td class="text-right">{{ $row['total'] }}</td>
 				</tr>
 			@empty
 				<tr>
-					<td colspan="{{ $mostrar_insumos ? 10 : 9 }}" class="text-center">Sin consumos registrados para el rango solicitado.</td>
+					<td colspan="{{ $mostrar_insumos ? 11 : 10 }}" class="text-center">Sin consumos registrados para el rango solicitado.</td>
 				</tr>
 			@endforelse
 		</tbody>

@@ -9,6 +9,7 @@ use App\Models\Destino;
 use App\Services\ReportesMovimientosService;
 use App\Models\Movimiento;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class ReportesController extends Controller
 {
@@ -29,7 +30,7 @@ class ReportesController extends Controller
         // Si el usuario seleccionó sólo periodo, intentar construir desde/hasta
         if (!$from || !$to) {
             if ($periodo) {
-                $hoy = \Carbon\Carbon::today();
+                $hoy = Carbon::today();
                 switch($periodo){
                     case 'mensual':
                         $from = $hoy->copy()->startOfMonth()->toDateString();
@@ -50,9 +51,15 @@ class ReportesController extends Controller
                 }
             }
         }
+
+        [$from, $to, $rangeError] = $this->normalizeDateRange($from, $to);
+        if ($rangeError) {
+            session()->flash('error', $rangeError);
+        }
+
         $data = null; $detalle = null; $interno = null; // Se eliminó evolución mensual (gráfico)
         $inventarioMatriz = null;
-        if ($from && $to) {
+        if ($from && $to && !$rangeError) {
             $service = new ReportesMovimientosService();
             $data = $service->resumen($from,$to, $destinoId ? (int)$destinoId : null);
             $detalle = $service->detalle($from,$to, $destinoId ? (int)$destinoId : null);
@@ -104,13 +111,17 @@ class ReportesController extends Controller
         $subcategoriaId = $request->input('subcategoria_id');
         // Construir fecha de corte si viene sólo el periodo
         if (!$to && $periodo) {
-            $hoy = \Carbon\Carbon::today();
+            $hoy = Carbon::today();
             switch($periodo){
                 case 'mensual': $to = $hoy->copy()->endOfMonth()->toDateString(); break;
                 case 'trimestral': $to = $hoy->copy()->endOfMonth()->toDateString(); break;
                 case 'semestral': $to = $hoy->copy()->endOfMonth()->toDateString(); break;
                 case 'anual': $to = $hoy->copy()->endOfMonth()->toDateString(); break;
             }
+        }
+        [$to, $cutoffError] = $this->normalizeSingleDate($to, 'fecha de corte');
+        if ($cutoffError) {
+            return redirect()->route('reportes.index')->with('error', $cutoffError);
         }
         if (!$to) { return redirect()->route('reportes.index')->with('error','Debe indicar la fecha de corte (Hasta) o seleccionar un periodo.'); }
         $service = new ReportesMovimientosService();
@@ -137,6 +148,10 @@ class ReportesController extends Controller
     {
         $from = $request->input('from');
         $to = $request->input('to');
+        [$from, $to, $rangeError] = $this->normalizeDateRange($from, $to);
+        if ($rangeError) {
+            return redirect()->route('reportes.index')->with('error', $rangeError);
+        }
         if (!$from || !$to) {
             return redirect()->route('reportes.index')->with('error', 'Debe seleccionar el rango de fechas para exportar.');
         }
@@ -181,6 +196,45 @@ class ReportesController extends Controller
 
         $filename = 'salidas_farmacia_interna_'.$from.'_'.$to.'.pdf';
         return $pdf->download($filename);
+    }
+
+    /**
+     * Normaliza un rango de fechas y devuelve error amigable si es inválido.
+     *
+     * @return array{0:?string,1:?string,2:?string}
+     */
+    private function normalizeDateRange(?string $from, ?string $to): array
+    {
+        [$fromNorm, $fromErr] = $this->normalizeSingleDate($from, 'fecha inicial');
+        [$toNorm, $toErr] = $this->normalizeSingleDate($to, 'fecha final');
+
+        if ($fromErr) {
+            return [null, $toNorm, $fromErr];
+        }
+        if ($toErr) {
+            return [$fromNorm, null, $toErr];
+        }
+        if ($fromNorm && $toNorm && Carbon::parse($fromNorm)->gt(Carbon::parse($toNorm))) {
+            return [$fromNorm, $toNorm, 'La fecha "Desde" no puede ser mayor que la fecha "Hasta".'];
+        }
+
+        return [$fromNorm, $toNorm, null];
+    }
+
+    /**
+     * @return array{0:?string,1:?string}
+     */
+    private function normalizeSingleDate(?string $date, string $label): array
+    {
+        if (!$date) {
+            return [null, null];
+        }
+
+        try {
+            return [Carbon::parse($date)->toDateString(), null];
+        } catch (\Throwable $e) {
+            return [null, "La {$label} indicada no es válida."];
+        }
     }
 
 }

@@ -11,13 +11,13 @@ Leyenda de estado:
 Resumen de puntuación:
 	Total ponderado: 33 / 40
 	Valoración actual: Con correcciones (32–36)
-	Nota: Se han integrado mejoras de seguridad (CSRF, reCAPTCHA, bloqueo, rate limit) y UI; pendientes mediciones de performance y accesibilidad avanzada para alcanzar “Aprobado” (35–40)
+	Nota: Se han integrado mejoras de seguridad (CSRF, reCAPTCHA, bloqueo, rate limit), UI y optimización de reportes (consistencia de conteos, validación de rango de fechas y pruebas automatizadas); pendientes mediciones de performance y accesibilidad avanzada para alcanzar “Aprobado” (35–40)
 
 ------------------------------------------------------------
 Categoría: Requerimiento de validación
 ------------------------------------------------------------
 01. [Si]  (P=1) Los requerimientos han sido recolectados, analizados e implementados correctamente.
-	Observaciones: Documentación actualizada (casos de uso, diagramas ER/relacional, seguridad y notificaciones). Trazabilidad por lote y destino implementadas; exportes y reportes operativos.
+	Observaciones: Documentación actualizada (casos de uso, diagramas ER/relacional, seguridad y notificaciones). Trazabilidad por lote y destino implementadas; exportes y reportes operativos con mejoras recientes en consistencia por destino/mes.
 02. [Med] (P=1) El diseño del sistema debe ser sencillo, básico y robusto.
 	Observaciones: UI limpia en login/dashboard con tema claro/oscuro y toasts; continuar simplificando flujos y reforzar validaciones/errores.
 
@@ -39,11 +39,11 @@ Categoría: UI
 Categoría: Eficiencia y funcionalidad
 ------------------------------------------------------------
 08. [Med] (P=2) Tiempo de respuesta del servidor óptimo.
-	Observaciones: Sin métricas; pendiente profiling, índices y cacheo selectivo.
+	Observaciones: Se optimizaron consultas críticas de reportes (agregaciones, reducción de N+1 y cacheo en matriz de inventario); pendiente medir formalmente con profiling y Lighthouse/Web Vitals.
 09. [No]  (P=1) Hardware adecuado para cargas de trabajo.
 	Observaciones: Infraestructura no documentada; definir entorno productivo.
 10. [Med] (P=2) Aplicación mantenible, escalable, observable y testeable.
-	Observaciones: Estructura y pruebas básicas presentes; servicios centralizan lógica (InventarioService/ReportesMovimientosService); falta CI, monitoreo y métricas.
+	Observaciones: Servicios centralizan lógica (InventarioService/ReportesMovimientosService); se añadieron pruebas específicas de reportes (filtros por mes/destino, farmacia interna y balance central/destino). Falta CI, monitoreo y métricas de observabilidad.
 
 ------------------------------------------------------------
 Categoría: Usabilidad
@@ -90,12 +90,12 @@ Categoría: Seguridad
 ------------------------------------------------------------
 Observaciones generales y tareas sugeridas
 ------------------------------------------------------------
+- Aplicado recientemente (feb-2026): optimización de ReportesMovimientosService, validación robusta de fechas en ReportesController y ajuste de reporte 10.2 para incluir PROF (profesor), con pruebas automatizadas pasando.
 - Medir performance (Lighthouse/Web Vitals) y optimizar LCP (imágenes, CSS crítico, caching).
 - Elevar longitud mínima de contraseñas a ≥16 y reforzar política (sin máximo de almacenamiento).
 - Mejorar accesibilidad (contraste, navegación por teclado, etiquetas ARIA) y validar HTML con W3C.
 - Documentar infraestructura/hardware, políticas de respaldo/recuperación y monitoreo.
 - Activar HTTPS/TLS en producción y revisar CORS.
- - Activar HTTPS/TLS en producción y revisar CORS.
 	 (Aplicado: URLs forzadas a HTTPS en producción, TrustProxies registrado y CORS configurable vía .env/config/cors.php; ajustar APP_URL y CORS_ALLOWED_ORIGINS en despliegue.)
 - Evaluar 2FA (TOTP/email) para autenticación multinivel.
 - Añadir pruebas y CI para mantenibilidad y cobertura.

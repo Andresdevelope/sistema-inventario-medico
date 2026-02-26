@@ -10,7 +10,7 @@
     .small { color: #666; }
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 6px 8px; }
-    thead th { background: #f5f5f5; }
+    thead th { background: #f5f5f5; font-weight: 700; text-transform: uppercase; font-size: 12.5px; letter-spacing: .2px; }
     .text-right { text-align: right; }
     .pdf-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
     .pdf-header .logo { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
@@ -35,14 +35,14 @@
   <table>
     <thead>
       <tr>
-        <th>Descripción</th>
-        <th>Presentación</th>
+        <th>DESCRIPCIÓN</th>
+        <th>PRESENTACIÓN</th>
         <th>UM</th>
         @foreach($destinos as $d)
-          <th>{{ $d['nombre'] }}</th>
+          <th>{{ mb_strtoupper($d['nombre'], 'UTF-8') }}</th>
         @endforeach
-        <th>Depósito/Central</th>
-        <th>Total</th>
+        <th>DEPÓSITO/CENTRAL</th>
+        <th>TOTAL</th>
       </tr>
     </thead>
     <tbody>

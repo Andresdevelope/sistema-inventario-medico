@@ -86,8 +86,8 @@ class MovimientosController extends Controller
             // Modalidad requerida en egresos: distribucion o consumo
             'modalidad' => 'nullable|required_if:tipo,egreso|in:distribucion,consumo',
             // Datos mínimos de beneficiario cuando modalidad = consumo
-            'tipo_identificacion' => 'nullable|required_if:modalidad,consumo|in:estudiante,trabajador,profesor,comunidad',
-            'sexo' => 'nullable|required_if:modalidad,consumo|in:F,M,otro',
+            'tipo_identificacion' => 'nullable|required_if:modalidad,consumo|prohibited_unless:modalidad,consumo|in:estudiante,trabajador,profesor,comunidad',
+            'sexo' => 'nullable|required_if:modalidad,consumo|prohibited_unless:modalidad,consumo|in:F,M',
             'inventario_objetivo_id' => 'nullable|exists:inventarios,id',
             // Campo adicional: contenido por blíster (se validará en servicio según tipo de producto)
             'contenido_por_blister' => 'nullable|integer|min:1',
@@ -98,7 +98,9 @@ class MovimientosController extends Controller
             'destino_id.required_if' => 'Debe seleccionar un destino para egresos',
             'modalidad.required_if' => 'Para egresos indique si es distribución o consumo',
             'tipo_identificacion.required_if' => 'Para consumo debe indicar el tipo de beneficiario',
+            'tipo_identificacion.prohibited_unless' => 'El tipo de beneficiario solo debe enviarse cuando la modalidad es consumo.',
             'sexo.required_if' => 'Para consumo debe indicar el sexo del beneficiario',
+            'sexo.prohibited_unless' => 'El sexo del beneficiario solo debe enviarse cuando la modalidad es consumo.',
             'contenido_por_blister.min' => 'El contenido por blíster debe ser mayor que 0',
         ]);
         if ($validator->fails()) {
@@ -197,27 +199,44 @@ class MovimientosController extends Controller
     public function distribucionesPorProducto(Producto $producto)
     {
         $distribuciones = Movimiento::where('producto_id', $producto->id)
-            ->where('tipo', 'egreso')
-            ->where('modalidad', 'distribucion')
             ->whereNotNull('destino_id')
-            ->selectRaw('destino_id, SUM(cantidad) as total, MAX(fecha) as ultima_fecha')
+            ->selectRaw(implode(', ', [
+                'destino_id',
+                "SUM(CASE WHEN tipo = 'egreso' AND modalidad = 'distribucion' THEN cantidad ELSE 0 END) as total_distribuido",
+                "SUM(CASE WHEN tipo = 'egreso' AND modalidad = 'consumo' THEN cantidad ELSE 0 END) as total_consumido",
+                "SUM(CASE WHEN tipo = 'ajuste_pos' THEN cantidad ELSE 0 END) as total_ajuste_pos",
+                "SUM(CASE WHEN tipo = 'ajuste_neg' THEN cantidad ELSE 0 END) as total_ajuste_neg",
+                'MAX(fecha) as ultima_fecha',
+            ]))
             ->groupBy('destino_id')
             ->with('destino:id,nombre,codigo')
-            ->orderByDesc('total')
+            ->orderByDesc('total_distribuido')
             ->get()
             ->map(function (Movimiento $mov) {
+                $distribuido = (int) $mov->total_distribuido;
+                $consumido = (int) $mov->total_consumido;
+                $ajustePos = (int) $mov->total_ajuste_pos;
+                $ajusteNeg = (int) $mov->total_ajuste_neg;
+                $saldoEstimado = $distribuido + $ajustePos - $consumido - $ajusteNeg;
+
                 return [
                     'destino_id' => $mov->destino_id,
                     'destino' => $mov->destino->nombre ?? 'Sin destino',
                     'codigo' => $mov->destino->codigo ?? null,
-                    'total' => (int) $mov->total,
+                    'total_distribuido' => $distribuido,
+                    'total_consumido' => $consumido,
+                    'saldo_estimado' => $saldoEstimado,
                     'ultimo_movimiento' => $mov->ultima_fecha
                         ? Carbon::parse($mov->ultima_fecha)->translatedFormat('d/m/Y')
                         : null,
                 ];
-            });
+            })
+            ->filter(fn(array $row) => $row['total_distribuido'] > 0 || $row['total_consumido'] > 0 || $row['saldo_estimado'] !== 0)
+            ->values();
 
         $stockReal = (int) Inventario::where('producto_id', $producto->id)->sum('cantidad');
+        $totalDistribuidoHistorico = (int) $distribuciones->sum('total_distribuido');
+        $saldoDestinosEstimado = (int) $distribuciones->sum('saldo_estimado');
 
         return response()->json([
             'producto' => [
@@ -227,7 +246,8 @@ class MovimientosController extends Controller
             ],
             'distribuciones' => $distribuciones,
             'tiene_distribuciones' => $distribuciones->isNotEmpty(),
-            'total_distribuido' => (int) $distribuciones->sum('total'),
+            'total_distribuido_historico' => $totalDistribuidoHistorico,
+            'saldo_destinos_estimado' => $saldoDestinosEstimado,
             'stock_real' => $stockReal,
             'actualizado' => now()->format('d/m/Y H:i'),
         ]);

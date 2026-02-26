@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA ENTIDAD-RELACIÓN (ER)
-Fecha: 05/02/2026 (actualizado)
+Fecha: 26/02/2026 (actualizado)
 
 Este diagrama conceptual refleja las entidades principales del dominio, sus atributos y relaciones. Está alineado con las migraciones actuales y la trazabilidad por lote.
 
@@ -13,7 +13,7 @@ RESUMEN DE ENTIDADES Y RELACIONES
 RELACIONES PRINCIPALES
 - CATEGORIA tiene muchas SUBCATEGORIAS y PRODUCTOS.
 - SUBCATEGORIA agrupa PRODUCTOS.
-- PROVEEDOR provee PRODUCTOS.
+- PROVEEDOR provee PRODUCTOS (relación lógica/modelo; sin FK física activa en migración de `productos`).
 - PRODUCTO se divide en LOTES y participa en MOVIMIENTOS.
 - LOTE se afecta por MOVIMIENTOS.
 - USUARIO registra MOVIMIENTOS, genera REPORTES y realiza acciones en BITÁCORA.
@@ -25,18 +25,18 @@ ATRIBUTOS CLAVE POR ENTIDAD
 - CATEGORIA: id, nombre
 - SUBCATEGORIA: id, nombre
 - PROVEEDOR: id, nombre, contacto, teléfono, dirección, email
-- PRODUCTO: id, nombre, código, presentación, unidad_medida, tipo_producto (medicamento|insumo), stock_mínimo
+- PRODUCTO: id, nombre, código, descripción, categoría, subcategoría, presentación, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario, stock, stock_mínimo, proveedor_id, created_by, updated_by, fechas
 - INVENTARIO_LOTE: id, lote, cantidad, fecha_vencimiento, um_operativa, contenido_por_blister, estado
 - MOVIMIENTO: id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), cantidad, fecha, área/salida, destino_id, origen/entrada, motivo, observaciones, tipo_identificacion, sexo
-- USUARIO: id, nombre, email, rol
-- REPORTE: id, nombre, tipo
+- USUARIO: id, nombre, email, rol, login_attempts, locked_until, notif_mov_last_seen_id
+- REPORTE: id, nombre, tipo, parámetros/filtros (json; columna física actual: `para  metros`)
 - BITÁCORA: id, acción, fecha_hora
  - DESTINO: id, codigo, nombre, activo, tipo
  - MOVIMIENTO_USER_READS (pivot): movimiento_id, user_id, read_at
 
 CARDINALIDADES
 - Un Producto puede tener 0..N Lotes.
-- Un Movimiento afecta 1 Producto y 1 Lote (trazabilidad).
+- Un Movimiento afecta 1 Producto y 0..1 Lote (inventario_id nullable; se recomienda 1 lote en egresos/ajustes para trazabilidad).
 - Un Usuario registra 0..N Movimientos, genera 0..N Reportes y tiene 0..N registros en Bitácora.
 - Un Proveedor suministra 0..N Productos.
  - Un Destino recibe 0..N egresos (distribución y consumo); la modalidad se define por movimiento.
@@ -64,6 +64,11 @@ ACTUALIZACIÓN 05/02/2026
 ACTUALIZACIÓN 08/02/2026
 - Se incorporó en la capa de presentación el helper `mov_formatear_destino()` para normalizar cadenas complejas de destino antes de mostrarlas. Esto no modifica el ER pero refuerza el concepto de DESTINO como entidad única y evita que alias manuales afecten la trazabilidad documentada.
 - La vista de movimientos ahora define internamente `tipo` y `modalidad` con valores por defecto (cuando no son suministrados por el controlador), asegurando que las relaciones MOVIMIENTO → DESTINO/USUARIO se mantengan coherentes en todo el flujo descrito por este diagrama conceptual.
+
+ACTUALIZACIÓN 26/02/2026
+- Se incorpora en el ER el atributo `users.notif_mov_last_seen_id` para seguimiento de notificaciones de movimientos.
+- Se aclara que `productos.proveedor_id`, `productos.created_by` y `productos.updated_by` existen a nivel de atributo y modelo, pero actualmente no tienen FK física declarada en migraciones.
+- Se ajusta cardinalidad conceptual de MOVIMIENTO → INVENTARIO_LOTE a 0..1 para reflejar nulabilidad real de `inventario_id`.
 
 EJEMPLO VISUAL (MERMAID)
 

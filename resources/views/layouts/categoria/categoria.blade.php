@@ -91,13 +91,17 @@
 
 @push('styles')
 <style>
+:root{
+    --sys-orange: #ff7a1a;
+    --sys-orange-hover: #ff9a50;
+}
 .modal {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:flex;justify-content:center;align-items:center;z-index:2000;}
 .modal-content {background:#fff;border-radius:12px;box-shadow:0 10px 35px -5px rgba(0,0,0,.25);} 
 .list-group-item-action {cursor:pointer;}
 .list-group-item-action.active {background:#e8f2ff;color:#0d6efd;border-left:4px solid #0d6efd;font-weight:600;}
 .list-group-item-action .badge {float:right;}
-.subcat-row-actions button {border:none;background:transparent;color:#ff9800 !important;}
-.subcat-row-actions button:hover {color:#fb8c00 !important;}
+.subcat-row-actions button {border:none;background:transparent;color:var(--sys-orange) !important;}
+.subcat-row-actions button:hover {color:var(--sys-orange-hover) !important;}
 .table-subcats tbody tr:hover {background:#fafbfd;}
 #detalle-categoria-container .card-header {background:#fff;border-bottom:1px solid #eef2f5;}
 .badge-soft {background:#eef7ff;color:#0d6efd;font-weight:500;border-radius:20px;padding:.3rem .65rem;font-size:.7rem;}
@@ -105,28 +109,40 @@
 /* Nota: Se evita modificar .text-primary global. Solo se estiliza dentro del header y botones específicos. */
 .card-header h6,
 .mb-3 h3.text-primary,
-.card-header h5.text-primary { color: #ff9800 !important; }
+.card-header h5.text-primary { color: var(--sys-orange) !important; }
 .card-header h5.text-primary i { color: inherit !important; }
-.btn-primary { background-color: #ff9800 !important; border-color: #ff9800 !important; color: #fff !important; }
-.list-group-item-action.active { background: #fff3e0 !important; color: #ff9800 !important; border-left: 4px solid #ff9800 !important; }
-.badge-soft { background: #fff3e0 !important; color: #ff9800 !important; }
+.btn-primary {
+    background-color: var(--sys-orange) !important;
+    border-color: var(--sys-orange) !important;
+    color: #fff !important;
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--sys-orange-hover) !important;
+    border-color: var(--sys-orange-hover) !important;
+    color: #fff !important;
+}
+.list-group-item-action.active { background: #fff3e0 !important; color: var(--sys-orange) !important; border-left: 4px solid var(--sys-orange) !important; }
+.badge-soft { background: #fff3e0 !important; color: var(--sys-orange) !important; }
 
 /* Botones del header de categoría: Editar y Subcategoría con fondo blanco y hover naranja */
-.modal-content #modal-titulo.text-primary { color: #ff9800 !important; }
+.modal-content #modal-titulo.text-primary { color: var(--sys-orange) !important; }
 /* Título del modal Editar Subcategoría en naranja */
-#modalEditarSubcategoria .modal-content h5.text-primary { color: #ff9800 !important; }
+#modalEditarSubcategoria .modal-content h5.text-primary { color: var(--sys-orange) !important; }
 .card-header button[data-action="editar-categoria"],
 .card-header button[data-action="nueva-sub"] {
     background-color: #ffffff !important;
-    border-color: #ff9800 !important;
-    color: #ff9800 !important;
+    border-color: var(--sys-orange) !important;
+    color: var(--sys-orange) !important;
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
 }
 .card-header button[data-action="editar-categoria"]:hover,
 .card-header button[data-action="nueva-sub"]:hover,
 .card-header button[data-action="editar-categoria"]:focus,
 .card-header button[data-action="nueva-sub"]:focus {
-    background-color: #ff9800 !important;
-    border-color: #ff9800 !important;
+    background-color: var(--sys-orange) !important;
+    border-color: var(--sys-orange) !important;
     color: #ffffff !important;
     box-shadow: none !important;
 }

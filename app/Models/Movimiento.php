@@ -14,7 +14,7 @@ class Movimiento extends Model
         'tipo', // ingreso, egreso, ajuste_pos, ajuste_neg
         'modalidad', // distribucion, consumo (solo para egreso)
         'tipo_identificacion', // estudiante|trabajador|profesor|comunidad (consumo)
-        'sexo', // F|M|otro (consumo)
+        'sexo', // F|M (consumo)
         'salida', // area o punto de salida (general, odontologia, etc)
         'destino_id', // FK destinos (normalizado)
         'inventario_id',

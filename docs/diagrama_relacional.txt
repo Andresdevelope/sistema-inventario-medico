@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA RELACIONAL
-Fecha: 05/02/2026 (actualizado)
+Fecha: 26/02/2026 (actualizado)
 
 Este diagrama refleja las tablas y relaciones actuales según las migraciones del proyecto (MySQL/XAMPP), e incorpora la política “solo blíster” para sólidos y el reporte de salidas (Farmacia Interna). Mantiene trazabilidad por lote en movimientos (inventario_id) y control por destinos.
 
@@ -7,22 +7,22 @@ TABLAS PRINCIPALES Y CAMPOS CLAVE
 - CATEGORIAS: id (PK), nombre (único), created_at, updated_at
 - SUBCATEGORIAS: id (PK), nombre, categoria_id (FK), created_at, updated_at
 - PROVEEDORES: id (PK), nombre, contacto, teléfono, dirección, email, created_at, updated_at
-- PRODUCTOS: id (PK), nombre, código (único), descripción, categoria_id (FK), subcategoria_id (FK), presentación, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario (segmento: general|odontologia), stock, stock_mínimo, proveedor_id, fecha_ingreso, fecha_vencimiento, created_by, updated_by, created_at, updated_at
+- PRODUCTOS: id (PK), nombre, código (único), descripción, categoria_id (FK), subcategoria_id (FK), presentación, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario (segmento: general|odontologia), stock, stock_mínimo, proveedor_id (sin FK física en migración), fecha_ingreso, fecha_vencimiento, created_by (nullable, sin FK física), updated_by (nullable, sin FK física), created_at, updated_at
   (Nota catálogo: cada forma farmacéutica y UM es un producto distinto; no mezclar jarabe/crema/blíster bajo el mismo producto.)
 - INVENTARIOS (por lote): id (PK), producto_id (FK), lote, cantidad (operativa), fecha_vencimiento, um_operativa, contenido_por_blister (nullable), stock_mínimo, estado, created_at, updated_at
   (Política operativa implementada: para sólidos, `um_operativa = 'blister'` y `contenido_por_blister` > 0; para insumos, `um_operativa = 'unidad'` y `contenido_por_blister` es NULL. `cantidad` siempre está en la unidad operativa del lote.)
 - MOVIMIENTOS: id (PK), producto_id (FK), tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), salida (área), destino_id (FK, NULL), inventario_id (FK, NULL), entrada (origen), cantidad (operativa), motivo, fecha, usuario_id (FK, NULL), observaciones, tipo_identificacion (string, 20, nullable), sexo (string, 10, nullable), created_at, updated_at
   (Interpretación: cantidad = blíster para medicamentos sólidos; = unidad para insumos. Los campos `modalidad`, `tipo_identificacion` y `sexo` se usan para el reporte de salidas tipo Farmacia Interna.)
-- USERS: id (PK), name, email (único), email_verified_at, password, security_color_answer, security_animal_answer, security_padre_answer, login_attempts, locked_until, role, remember_token, created_at, updated_at
+- USERS: id (PK), name, email (único), email_verified_at, password, security_color_answer, security_animal_answer, security_padre_answer, login_attempts, locked_until, notif_mov_last_seen_id (nullable), role, remember_token, created_at, updated_at
 - BITACORA: id (PK), user_id (FK), acción, detalles, fecha_hora
-- REPORTES: id (PK), nombre, tipo (inventario_periodico|salidas_farmacia_interna|...), parámetros, usuario_id (FK, NULL), created_at, updated_at
+- REPORTES: id (PK), nombre, tipo (inventario_periodico|salidas_farmacia_interna|...), `para  metros` (json nullable; nombre físico actual de columna), usuario_id (FK, NULL), created_at, updated_at
 - DESTINOS: id (PK), codigo (único), nombre, activo, tipo, created_at, updated_at
 - MOVIMIENTO_USER_READS (pivot): id (PK), movimiento_id (FK), user_id (FK), read_at, created_at, updated_at
 
 RELACIONES PRINCIPALES
 - CATEGORIAS contiene SUBCATEGORIAS y clasifica PRODUCTOS.
 - SUBCATEGORIAS agrupa PRODUCTOS.
-- PROVEEDORES provee PRODUCTOS.
+- PROVEEDORES provee PRODUCTOS (relación lógica/modelo; FK de base no forzada en migración actual).
 - PRODUCTOS tiene INVENTARIOS (por lote) y afecta MOVIMIENTOS.
 - INVENTARIOS registra MOVIMIENTOS (trazabilidad por inventario_id/lote).
 - USERS realiza MOVIMIENTOS, genera REPORTES y registra BITÁCORA.
@@ -32,6 +32,7 @@ RELACIONES PRINCIPALES
 NOTAS
 - Política “solo blíster”: el sistema opera en blíster para sólidos; no registra ni descuenta pastillas individuales. Insumos operan en UM “unidad”.
 - MOVIMIENTOS.inventario_id es NULLABLE para cubrir excepciones, pero en la práctica los egresos por consumo quedan enlazados al lote afectado, siguiendo FEFO/FIFO implementado en el servicio de dominio.
+- `movimiento_user_reads` impone unicidad por par (`movimiento_id`, `user_id`) para evitar lecturas duplicadas por usuario.
 - Odontología: solo insumos. Validar por `productos.tipo_producto`; transacciones que intenten medicamentos → rechazadas (consumo y distribución) tanto a nivel de validación como en la capa de servicio.
 - Áreas/destinos controlados: principal/ppal, aci, agroalimentacion/agro, odontologia. Se recomienda normalizar códigos en `DESTINOS` y permitir alias visibles en reportes (p. ej. “BÁSICO”, “ÁREA”, “E. BRACHO”).
 - Índices recomendados: producto_id, inventario_id, destino_id, usuario_id, fecha, tipo, modalidad, tipo_identificacion, sexo, categoria_id, subcategoria_id.

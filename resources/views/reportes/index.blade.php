@@ -13,7 +13,14 @@
       <div class="row g-3 report-mode-grid" role="radiogroup" aria-label="Seleccionar modalidad de reporte">
         <div class="col-md-6">
           <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-inventario" value="inventario" autocomplete="off" @checked($modalidadSeleccionada==='inventario')>
-          <label class="report-mode-card" for="modo-inventario">
+          <label
+            class="report-mode-card"
+            for="modo-inventario"
+            style="transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;"
+            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 22px rgba(249,115,22,.22)'"
+            onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none';this.style.filter='brightness(1)'"
+            onmousedown="this.style.transform='scale(.98)'"
+            onmouseup="this.style.transform='translateY(-2px)';this.style.filter='brightness(1.03)'">
             <div class="report-mode-card__icon">
               <i class="fa fa-warehouse"></i>
             </div>
@@ -24,9 +31,17 @@
             </div>
           </label>
         </div>
+
         <div class="col-md-6">
           <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-consumo" value="consumo" autocomplete="off" @checked($modalidadSeleccionada==='consumo')>
-          <label class="report-mode-card" for="modo-consumo">
+          <label
+            class="report-mode-card"
+            for="modo-consumo"
+            style="transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;"
+            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 22px rgba(249,115,22,.22)'"
+            onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='none';this.style.filter='brightness(1)'"
+            onmousedown="this.style.transform='scale(.98)'"
+            onmouseup="this.style.transform='translateY(-2px)';this.style.filter='brightness(1.03)'">
             <div class="report-mode-card__icon">
               <i class="fa fa-user-nurse"></i>
             </div>
@@ -97,9 +112,23 @@
       <label class="form-check-label" for="mostrar_insumos">Mostrar columna "Insumos entregados" en 10.2</label>
     </div>
     <div class="col-md-3 d-flex gap-2 flex-wrap">
-      <button class="btn btn-primary flex-grow-1"><i class="fa fa-chart-bar me-1"></i> Generar</button>
+      <button
+        class="btn flex-grow-1"
+        style="background: linear-gradient(90deg, #ff8a00, #f97316); color:#fff; border:none; transition: all .2s ease;"
+        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 18px rgba(249,115,22,.35)'"
+        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <i class="fa fa-chart-bar me-1"></i> Generar
+      </button>
+
       @if($hasResultados)
-        <a href="{{ route('reportes.index') }}" class="btn btn-light border"><i class="fa fa-rotate-left me-1"></i> Limpiar</a>
+        <a
+          href="{{ route('reportes.index') }}"
+          class="btn"
+          style="background: linear-gradient(90deg, #ff8a00, #f97316); color:#fff; border:none; transition: all .2s ease;"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 18px rgba(249,115,22,.35)';this.style.filter='brightness(1.05)'"
+          onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none';this.style.filter='brightness(1)'">
+          <i class="fa fa-rotate-left me-1"></i> Limpiar
+        </a>
       @endif
     </div>
   </form>
@@ -132,14 +161,14 @@
         <table class="table table-hover table-bordered align-middle report-table">
           <thead class="table-light">
             <tr>
-              <th>Descripción</th>
-              <th>Presentación</th>
+              <th>DESCRIPCIÓN</th>
+              <th>PRESENTACIÓN</th>
               <th>UM</th>
               @foreach(($inventario_matriz['destinos'] ?? []) as $d)
-                <th>{{ $d['nombre'] }} {{ \Carbon\Carbon::parse($inventario_matriz['cutoff'])->format('d/m/y') }}</th>
+                <th>{{ mb_strtoupper($d['nombre'], 'UTF-8') }} {{ \Carbon\Carbon::parse($inventario_matriz['cutoff'])->format('d/m/y') }}</th>
               @endforeach
-              <th>Depósito/Central {{ \Carbon\Carbon::parse($inventario_matriz['cutoff'])->format('d/m/y') }}</th>
-              <th>Total</th>
+              <th>DEPÓSITO/CENTRAL {{ \Carbon\Carbon::parse($inventario_matriz['cutoff'])->format('d/m/y') }}</th>
+              <th>TOTAL</th>
             </tr>
           </thead>
           <tbody>
@@ -304,18 +333,19 @@
           <table class="table table-hover table-bordered align-middle report-table">
             <thead class="table-light">
               <tr>
-                <th>Servicios Médicos</th>
-                <th>Medicamentos entregados (blíster)</th>
+                <th>SERVICIOS MÉDICOS</th>
+                <th>MEDICAMENTOS ENTREGADOS (BLÍSTER)</th>
                 @if(($mostrar_insumos ?? false))
-                <th>Insumos entregados (unidades)</th>
+                <th>INSUMOS ENTREGADOS (UNIDADES)</th>
                 @endif
-                <th>Beneficiarios</th>
+                <th>BENEFICIARIOS</th>
                 <th>F</th>
                 <th>M</th>
                 <th>EST</th>
                 <th>TRAB</th>
+                <th>PROF</th>
                 <th>COM</th>
-                <th>Total</th>
+                <th>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -331,11 +361,12 @@
                   <td>{{ $row['M'] }}</td>
                   <td>{{ $row['EST'] }}</td>
                   <td>{{ $row['TRAB'] }}</td>
+                  <td>{{ $row['PROF'] ?? 0 }}</td>
                   <td>{{ $row['COM'] }}</td>
                   <td>{{ $row['total'] }}</td>
                 </tr>
               @empty
-                <tr><td colspan="{{ ($mostrar_insumos ?? false) ? 10 : 9 }}" class="text-center text-muted">Sin consumos en el rango.</td></tr>
+                <tr><td colspan="{{ ($mostrar_insumos ?? false) ? 11 : 10 }}" class="text-center text-muted">Sin consumos en el rango.</td></tr>
               @endforelse
             </tbody>
           </table>
@@ -505,6 +536,9 @@
   background: var(--slate-surface-soft, #f4f7fa);
   color: var(--txt, #1f2937);
   font-weight: 700;
+  font-size: .98rem;
+  text-transform: uppercase;
+  letter-spacing: .02em;
   border-bottom: 1px solid var(--slate-border, #d9e0e6);
   white-space: nowrap;
 }

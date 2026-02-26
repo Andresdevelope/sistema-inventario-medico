@@ -173,6 +173,7 @@ class InventarioService
             $producto = Producto::lockForUpdate()->findOrFail($data['producto_id']);
             $this->validarCorreccionFechaProductoAntesDeMover($producto);
             $tipoProd = strtolower($producto->tipo_producto ?? 'medicamento');
+
             // Sincronizar stock con inventarios cuando existan
             $this->syncProductoStock($producto);
             $destinoId = $data['destino_id'] ?? null;
@@ -288,6 +289,9 @@ class InventarioService
             if (in_array($tipo, ['ingreso','ajuste_pos'])) {
                 // Agrupar por lote + fecha de vencimiento
                 $fv = !empty($data['fecha_vencimiento']) ? Carbon::parse($data['fecha_vencimiento'])->toDateString() : null;
+                if ($fv && Carbon::parse($fv)->lt(Carbon::today())) {
+                    throw new InvalidArgumentException('No se puede registrar entrada/ajuste positivo con fecha de vencimiento pasada. Cree un lote vigente.');
+                }
                 $lote = $data['lote'] ?? null;
                 $inv = $this->findOrCreateInventario($producto, $lote, $fv);
                 // Reglas por tipo de producto: Medicamento => blíster con contenido obligatorio; Insumo => unidad
@@ -364,8 +368,8 @@ class InventarioService
                     if ($bloquearVencidos && $this->isInventarioVencido($inv)) {
                         throw new InvalidArgumentException(
                             $modalidad === 'consumo'
-                                ? 'No se puede registrar consumo con lotes vencidos.'
-                                : 'No se puede registrar egreso con lotes vencidos (bloqueo activo por política).'
+                                ? 'Medicamento o insumo vencido: no se puede registrar consumo con lotes vencidos. Regularice el lote vencido o use un lote vigente.'
+                                : 'Medicamento o insumo vencido: no se puede registrar distribución con lotes vencidos. Regularice el lote vencido o use un lote vigente.'
                         );
                     }
 
@@ -413,14 +417,14 @@ class InventarioService
                 $inventarios = $this->getInventariosFefoFifo($producto);
 
                 // Saldo total sólo considerando inventarios compatibles con la unidad operativa del producto
-                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd) {
+                $saldoTotal = $inventarios->filter(function (Inventario $inv) use ($tipoProd, $bloquearVencidos) {
                     if ($tipoProd === 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'blister')) {
                         return false;
                     }
                     if ($tipoProd !== 'medicamento' && (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad')) {
                         return false;
                     }
-                    if ($this->debeBloquearVencidosEnEgreso($modalidad ?? null) && $this->isInventarioVencido($inv)) {
+                    if ($bloquearVencidos && $this->isInventarioVencido($inv)) {
                         return false;
                     }
                     return true;
@@ -431,8 +435,8 @@ class InventarioService
                     throw new InvalidArgumentException(
                         $bloquearVencidos
                             ? (($modalidad === 'consumo')
-                                ? 'Stock insuficiente en lotes vigentes para consumo (lotes vencidos bloqueados).'
-                                : 'Stock insuficiente en lotes vigentes para egreso (lotes vencidos bloqueados por política).')
+                                ? 'Stock insuficiente en lotes vigentes para consumo. Los lotes vencidos no se pueden usar; regularice vencidos o registre lote nuevo.'
+                                : 'Stock insuficiente en lotes vigentes para distribución. Los lotes vencidos no se pueden usar; regularice vencidos o registre lote nuevo.')
                             : 'Stock insuficiente para egreso'
                     );
                 }

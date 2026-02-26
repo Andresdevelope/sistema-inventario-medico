@@ -202,10 +202,14 @@
             </select>
         </div>
         <div class="col-md-1">
-            <button type="submit" class="btn btn-sm inv-btn-primary w-100">Buscar</button>
+            <button type="submit" class="btn btn-sm inv-btn-primary w-100">
+            <i class="fa fa-search me-1"></i> Buscar
+            </button>
         </div>
         <div class="col-md-1">
-            <a href="{{ route('inventario.index') }}" class="btn btn-sm inv-btn-outline w-100">Limpiar</a>
+            <a href="{{ route('inventario.index') }}" class="btn btn-sm inv-btn-outline w-100">
+            <i class="fa fa-eraser me-1"></i> Limpiar
+            </a>
         </div>
     </form>
     <div class="card shadow-sm">
@@ -302,29 +306,40 @@
 
 @push('styles')
 <style>
+:root {
+    --sys-orange: #ff7a1a;
+    --sys-orange-hover: #ff9a50;
+}
+
 .inv-btn-primary {
-    background-color: #ff9800;
-    border-color: #ff9800;
+    background-color: var(--sys-orange);
+    border-color: var(--sys-orange);
     color: #ffffff;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
 }
 
 .inv-btn-primary:hover,
 .inv-btn-primary:focus {
-    background-color: #fb8c00;
-    border-color: #fb8c00;
+    background-color: var(--sys-orange-hover);
+    border-color: var(--sys-orange-hover);
     color: #ffffff;
+}
+
+.inv-btn-primary:active {
+    transform: translateY(1px);
 }
 
 .inv-btn-outline {
     background-color: #ffffff;
-    border-color: #ff9800;
-    color: #ff9800;
+    border-color: var(--sys-orange);
+    color: var(--sys-orange);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .inv-btn-outline:hover,
 .inv-btn-outline:focus {
-    background-color: #ff9800;
-    border-color: #ff9800;
+    background-color: var(--sys-orange);
+    border-color: var(--sys-orange);
     color: #ffffff;
 }
 
@@ -363,7 +378,7 @@
 }
 
 .inv-badge-stock-ok {
-    background-color: #ff9800;
+    background-color: var(--sys-orange);
     color: #ffffff;
 }
 
@@ -391,7 +406,7 @@
 }
 
 .inv-badge-exp-success {
-    background-color: #ff9800; /* naranja del sistema para estados lejanos a vencer */
+    background-color: var(--sys-orange); /* naranja del sistema para estados lejanos a vencer */
     color: #ffffff;
 }
 
@@ -486,7 +501,7 @@
             <div class="modal-body">
                 <div class="alert alert-info d-flex align-items-center gap-2 py-2 small">
                     <i class="fa fa-info-circle"></i>
-                    <span>Las distribuciones registran la salida administrativa pero el stock real se mantiene. Este resumen muestra cuántos lotes fueron asignados a cada destino.</span>
+                    <span>Este panel separa <b>histórico distribuido</b> y <b>pendiente por reportar en destino</b>. El valor distribuido no siempre representa stock actual en Central.</span>
                 </div>
                 <div class="table-responsive mb-3">
                     <table class="table table-sm align-middle mb-0">
@@ -494,26 +509,34 @@
                             <tr>
                                 <th style="width: 60px;">#</th>
                                 <th>Destino</th>
-                                <th class="text-end">Total distribuido</th>
+                                <th class="text-end">Distribuido (hist.)</th>
+                                <th class="text-end">Consumido</th>
+                                <th class="text-end">Pendiente destino</th>
                             </tr>
                         </thead>
                         <tbody id="modalDistribucionBody">
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-4">Selecciona un producto para ver su distribución.</td>
+                                <td colspan="5" class="text-center text-muted py-4">Selecciona un producto para ver su distribución.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="inv-distrib-summary h-100">
-                            <div class="inv-distrib-summary__label">Total distribuido</div>
+                            <div class="inv-distrib-summary__label">Distribuido histórico</div>
                             <div class="inv-distrib-summary__value" id="modalDistribucionTotal">—</div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="inv-distrib-summary h-100">
-                            <div class="inv-distrib-summary__label">Stock real disponible</div>
+                            <div class="inv-distrib-summary__label">Pendiente por reportar en destinos</div>
+                            <div class="inv-distrib-summary__value" id="modalDistribucionSaldo">—</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="inv-distrib-summary h-100">
+                            <div class="inv-distrib-summary__label">Stock real en Central</div>
                             <div class="inv-distrib-summary__value" id="modalDistribucionStock">—</div>
                         </div>
                     </div>
@@ -537,20 +560,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = new bootstrap.Modal(modalEl);
     const bodyEl = modalEl.querySelector('#modalDistribucionBody');
     const totalEl = modalEl.querySelector('#modalDistribucionTotal');
+    const saldoEl = modalEl.querySelector('#modalDistribucionSaldo');
     const stockEl = modalEl.querySelector('#modalDistribucionStock');
     const productoEl = modalEl.querySelector('#modalDistribucionProducto');
     const updatedEl = modalEl.querySelector('#modalDistribucionUpdated');
 
     const setLoading = () => {
-        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-muted"><div class="spinner-border spinner-border-sm inv-spinner me-2" role="status"></div>Consultando distribuciones...</td></tr>`;
+        bodyEl.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-muted"><div class="spinner-border spinner-border-sm inv-spinner me-2" role="status"></div>Consultando distribuciones...</td></tr>`;
         totalEl.textContent = '—';
+        saldoEl.textContent = '—';
         stockEl.textContent = '—';
         updatedEl.textContent = 'Sincronizando...';
     };
 
     const setError = (message) => {
-        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-danger">${message}</td></tr>`;
+        bodyEl.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-danger">${message}</td></tr>`;
         totalEl.textContent = '—';
+        saldoEl.textContent = '—';
         stockEl.textContent = '—';
         updatedEl.textContent = 'Intento fallido';
     };
@@ -574,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then((data) => {
                     const distribuciones = data.distribuciones ?? [];
                     if (distribuciones.length === 0) {
-                        bodyEl.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-muted">No hay distribuciones registradas para este producto.</td></tr>`;
+                        bodyEl.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-muted">No hay distribuciones registradas para este producto.</td></tr>`;
                     } else {
                         bodyEl.innerHTML = distribuciones.map((destino, index) => `
                             <tr>
@@ -584,13 +610,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <small class="text-muted">Último movimiento: ${destino.ultimo_movimiento ?? '—'}</small>
                                 </td>
                                 <td class="text-end">
-                                    <span class="badge bg-dark-subtle text-dark">${formatNumber(destino.total)}</span>
+                                    <span class="badge bg-dark-subtle text-dark">${formatNumber(destino.total_distribuido)}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-secondary-subtle text-dark">${formatNumber(destino.total_consumido)}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge ${(Number(destino.saldo_estimado) < 0 ? 'bg-danger-subtle' : 'bg-success-subtle')} text-dark">${formatNumber(destino.saldo_estimado)}</span>
                                 </td>
                             </tr>
                         `).join('');
                     }
 
-                    totalEl.textContent = formatNumber(data.total_distribuido ?? 0);
+                    totalEl.textContent = formatNumber(data.total_distribuido_historico ?? 0);
+                    saldoEl.textContent = formatNumber(data.saldo_destinos_estimado ?? 0);
                     stockEl.textContent = formatNumber(data.stock_real ?? 0);
                     updatedEl.textContent = `Actualizado: ${data.actualizado ?? 'Hace un momento'}`;
                 })

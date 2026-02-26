@@ -103,7 +103,7 @@
           <label class="form-label">Sexo</label>
           <select name="sexo" class="form-select">
             <option value="">Todos</option>
-            @foreach(['F','M','otro'] as $sx)
+            @foreach(['F','M'] as $sx)
               <option value="{{ $sx }}" @selected(request('sexo') === $sx)>{{ strtoupper($sx) }}</option>
             @endforeach
           </select>

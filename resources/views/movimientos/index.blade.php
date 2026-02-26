@@ -387,6 +387,13 @@
     .table-mov-ultimos .badge.bg-primary { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #93c5fd; }
     .table-mov-ultimos .badge.bg-secondary { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1; }
     .table-mov-ultimos .badge.bg-dark { background: #1f2937 !important; color: #f9fafb !important; border: 1px solid #374151; }
+
+    /* Badge naranja para el chip de tipo de producto */
+    .badge.bg-orange {
+      background: var(--color-orange-600, #FF7300) !important;
+      color: #fff !important;
+      border: 1px solid var(--color-orange-700, #E56200);
+    }
   </style>
 
   {{-- Enlace al Historial de Consumo: visible solo cuando la pestaña Consumo está activa --}}
@@ -396,7 +403,7 @@
 
   @php
     $allErrors = $errors->messages();
-    $otherErrors = collect($allErrors)->except('destino_id')->flatten();
+    $otherErrors = collect($allErrors)->except(['destino_id', 'tipo_identificacion', 'sexo'])->flatten();
   @endphp
   @if ($otherErrors->isNotEmpty())
     {{-- Mensajes de validación del formulario (excluye destino_id, que va por toast) --}}
@@ -414,6 +421,26 @@
       document.addEventListener('DOMContentLoaded', function() {
         if (typeof showToast === 'function') {
           showToast(@json($errors->first('destino_id')), 'error');
+        }
+      });
+    </script>
+  @endif
+  @if ($errors->has('tipo_identificacion'))
+    {{-- Error específico de tipo de beneficiario para consumo como toast --}}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof showToast === 'function') {
+          showToast(@json($errors->first('tipo_identificacion')), 'error');
+        }
+      });
+    </script>
+  @endif
+  @if ($errors->has('sexo'))
+    {{-- Error específico de sexo para consumo como toast --}}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof showToast === 'function') {
+          showToast(@json($errors->first('sexo')), 'error');
         }
       });
     </script>
@@ -522,7 +549,7 @@
                 </select>
                 <select name="sexo" id="sexo" class="form-select" style="max-width: 140px;">
                   <option value="">Sexo...</option>
-                  @foreach(['F','M','otro'] as $sx)
+                  @foreach(['F','M'] as $sx)
                     <option value="{{ $sx }}" @selected(old('sexo')===$sx)>{{ strtoupper($sx) }}</option>
                   @endforeach
                 </select>
@@ -571,7 +598,9 @@
         </div>
 
         <div class="col-12" id="banner-blister" style="display:none;">
-          <div class="alert alert-info py-2 mb-0" id="banner-blister-text"><strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.</div>
+          <div class="alert py-2 mb-0" id="banner-blister-text" style="background: var(--color-orange-100, #FFF7ED); color: var(--color-orange-700, #B45309); border: 1px solid var(--color-orange-300, #FDBA74);">
+            <strong>Nota:</strong> Operamos solo en blíster (sólidos). No se registran pastillas sueltas.
+          </div>
         </div>
 
         <div class="col-12 d-flex justify-content-end">
@@ -615,6 +644,24 @@
             <tr><td colspan="6" class="text-muted">Seleccione un medicamento para ver sus lotes...</td></tr>
           </tbody>
         </table>
+      </div>
+      <div id="expired-action-guide" class="alert mt-3 mb-0" style="display:none; border:1px solid var(--color-orange-300, #FDBA74); background:var(--color-orange-100, #FFF7ED); color:var(--color-orange-700, #B45309);">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+          <div>
+            <strong>Lote vencido con stock detectado.</strong>
+            <div class="small mt-1">
+              Para volver a operar este producto:
+              <ol class="mb-0 mt-1">
+                <li>Abre <b>Ajuste -</b> y deja en cero el lote vencido (motivo sugerido: <i>Baja por vencimiento</i>).</li>
+                <li>Registra una <b>Entrada</b> con lote nuevo y fecha vigente.</li>
+                <li>Luego podrás hacer <b>Distribución</b> y <b>Consumo</b> normalmente.</li>
+              </ol>
+            </div>
+          </div>
+          <button type="button" id="btn-go-ajuste-neg" class="btn btn-sm btn-outline-danger">
+            Ir a Ajuste -
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -808,6 +855,8 @@
   const inputCantidad = document.querySelector('input[name="cantidad"]');
   const contenidoBlisterInput = document.querySelector('input[name="contenido_por_blister"]');
   const btnClearLote = document.getElementById('btn-clear-lote');
+  const expiredActionGuide = document.getElementById('expired-action-guide');
+  const btnGoAjusteNeg = document.getElementById('btn-go-ajuste-neg');
   let selectedInventarioId = null; // selección negativa (ajuste −)
   let selectionByQuick = false; // true si proviene del botón "−"
   let prevTipoValue = tipoSel.value; // almacena el tipo antes de forzar egreso
@@ -1115,6 +1164,28 @@
     return true;
   }
 
+  function hasExpiredInventarioWithStock() {
+    if (!Array.isArray(inventariosActuales) || !inventariosActuales.length) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    return inventariosActuales.some(r => {
+      const fv = (r.fecha_vencimiento || '').toString().slice(0, 10);
+      return fv && Number(r.cantidad || 0) > 0 && fv < today;
+    });
+  }
+
+  function updateExpiredActionGuide() {
+    if (!expiredActionGuide) return;
+    const hasExpired = hasExpiredInventarioWithStock();
+    expiredActionGuide.style.display = hasExpired ? 'block' : 'none';
+  }
+
+  function showExpiredLotsHint() {
+    const hasExpired = hasExpiredInventarioWithStock();
+    if (!hasExpired) return;
+    if (typeof showToast !== 'function') return;
+    showToast('Hay lotes vencidos con stock. Usa Ajuste - para dejar el lote vencido en cero y luego registra un lote vigente.', 'error');
+  }
+
   function toggleExtras(){
     // Muestra/oculta campos de lote y vencimiento según tipo de movimiento
     const esIngresoOPos = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos');
@@ -1156,6 +1227,7 @@
     // Sincronizar el estado visual del tab y el indicador cuando el cambio no proviene de un click de tab
     updateTabActiveFromState();
     updateSectionIndicatorFromCurrent();
+    updateExpiredActionGuide();
   }
   document.addEventListener('DOMContentLoaded', toggleExtras);
   // tipoSel es oculto; toggleExtras se invoca desde setActiveTab
@@ -1250,6 +1322,8 @@
       if (!resp.ok) throw new Error('Error al cargar inventarios');
       const data = await resp.json();
       inventariosActuales = (data.inventarios || []);
+      showExpiredLotsHint();
+      updateExpiredActionGuide();
       // Actualizar chip de tipo y banner según producto
       actualizarTipoChipYBanner();
       // Si el lote seleccionado ya no está en la lista, limpiar selección
@@ -1262,11 +1336,18 @@
       if (typeof updateLoteAdvice === 'function') { updateLoteAdvice(); }
     } catch (e) {
       invTableBody.innerHTML = `<tr><td colspan="5" class="text-danger">${e.message}</td></tr>`;
+      if (expiredActionGuide) expiredActionGuide.style.display = 'none';
     }
   }
   productoSel.addEventListener('change', () => { cargarInventariosProducto(); if (typeof updateLoteAdvice === 'function') { updateLoteAdvice(); } });
   document.addEventListener('DOMContentLoaded', cargarInventariosProducto);
   btnClearLote.addEventListener('click', clearSelection);
+  if (btnGoAjusteNeg) {
+    btnGoAjusteNeg.addEventListener('click', () => {
+      setActiveTab('ajuste_neg');
+      if (inputCantidad) inputCantidad.focus();
+    });
+  }
     // === Búsqueda incremental conectada al backend + atajos visuales ===
     const productosSearchUrl = @json(route('productos.search'));
     const quickTopProductos = @json($productosFrecuentes ?? []);
@@ -1787,7 +1868,7 @@
     chip.style.display='inline-block';
     chip.className = 'badge';
     let text = '—';
-    if (tipo === 'medicamento') { chip.classList.add('bg-primary'); text = 'MEDICAMENTO'; }
+    if (tipo === 'medicamento') { chip.classList.add('bg-orange'); text = 'MEDICAMENTO'; }
     else if (tipo === 'insumo') { chip.classList.add('bg-dark'); text = 'INSUMO'; }
     else { chip.classList.add('bg-secondary'); }
     chip.textContent = text;
