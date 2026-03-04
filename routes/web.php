@@ -99,6 +99,7 @@ Route::get('/consumo/historial', [\App\Http\Controllers\MovimientosController::c
 Route::get('/reportes', [\App\Http\Controllers\ReportesController::class, 'index'])->middleware('auth')->name('reportes.index');
 Route::get('/reportes/export-pdf/inventario', [\App\Http\Controllers\ReportesController::class, 'exportInventarioPdf'])->middleware('auth')->name('reportes.export.pdf.inventario');
 Route::get('/reportes/export-pdf/consumo', [\App\Http\Controllers\ReportesController::class, 'exportConsumoPdf'])->middleware('auth')->name('reportes.export.pdf.consumo');
+Route::get('/reportes/export-pdf/detalle-consumo', [\App\Http\Controllers\ReportesController::class, 'exportDetalleConsumoPdf'])->middleware('auth')->name('reportes.export.pdf.detalle');
 
 // ================= NOTIFICACIONES (campana) =================
 // Throttle para evitar consultas excesivas y proteger backend ante ráfagas

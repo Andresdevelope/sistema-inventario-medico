@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Salidas – Farmacia Interna</title>
+	<title>Detalle de consumo</title>
 	<style>
 		@page { margin: 40px 30px 60px 30px; }
 		body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #111827; }
@@ -30,53 +30,39 @@
 			<div class="timestamp">Generado: {{ \Carbon\Carbon::now(config('app.timezone'))->format('d/m/Y H:i') }}</div>
 		</div>
 	</div>
-	<h2>SALIDAS – FARMACIA INTERNA</h2>
+	<h2>DETALLE DE CONSUMO</h2>
 	<div class="meta">
-		Modalidad: consumo · Periodo: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} · Destino: {{ $destino }}
+		Periodo: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} · Destino: {{ $destino }}
 	</div>
 	<table>
 		<thead>
 			<tr>
-				<th>SERVICIOS MÉDICOS</th>
-				<th>MEDICAMENTOS ENTREGADOS (BLÍSTER)</th>
-				@if($mostrar_insumos)
-				<th>INSUMOS ENTREGADOS (UNIDADES)</th>
-				@endif
-				<th>BENEFICIARIOS</th>
-				<th>F</th>
-				<th>M</th>
-				<th>EST</th>
-				<th>TRAB</th>
-				<th>PROF</th>
-				<th>COM</th>
-				<th>TOTAL</th>
+				<th>CÓDIGO</th>
+				<th>MEDICAMENTO</th>
+				<th>ENTRADAS</th>
+				<th>SALIDAS</th>
+				<th>MOVIMIENTOS</th>
+				<th>STOCK FINAL</th>
 			</tr>
 		</thead>
 		<tbody>
 			@forelse($rows as $row)
 				<tr>
-					<td>{{ $row['destino'] }}</td>
-					<td class="text-right">{{ $row['meds_entregados'] }}</td>
-					@if($mostrar_insumos)
-					<td class="text-right">{{ $row['insumos_entregados'] }}</td>
-					@endif
-					<td class="text-right">{{ $row['beneficiarios'] }}</td>
-					<td class="text-right">{{ $row['F'] }}</td>
-					<td class="text-right">{{ $row['M'] }}</td>
-					<td class="text-right">{{ $row['EST'] }}</td>
-					<td class="text-right">{{ $row['TRAB'] }}</td>
-					<td class="text-right">{{ $row['PROF'] ?? 0 }}</td>
-					<td class="text-right">{{ $row['COM'] }}</td>
-					<td class="text-right">{{ $row['total'] }}</td>
+					<td>{{ $row['codigo'] }}</td>
+					<td>{{ $row['nombre'] }}</td>
+					<td class="text-right">{{ $row['entradas'] }}</td>
+					<td class="text-right">{{ $row['salidas'] }}</td>
+					<td class="text-right">{{ $row['movimientos'] }}</td>
+					<td class="text-right">{{ $row['stock_final'] }}</td>
 				</tr>
 			@empty
 				<tr>
-					<td colspan="{{ $mostrar_insumos ? 11 : 10 }}" class="text-center">Sin consumos registrados para el rango solicitado.</td>
+					<td colspan="6" class="text-center">Sin datos en el rango solicitado.</td>
 				</tr>
 			@endforelse
 		</tbody>
 	</table>
-	<p class="meta" style="margin-top:12px;">Las cifras consideran movimientos tipo egreso con modalidad consumo en el rango indicado.</p>
+	<p class="meta" style="margin-top:12px;">Las cifras corresponden al detalle consolidado por producto dentro del periodo indicado.</p>
 
 	<script type="text/php">
 		if (isset($pdf)) {

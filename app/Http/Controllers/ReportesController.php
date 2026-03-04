@@ -198,6 +198,57 @@ class ReportesController extends Controller
         return $pdf->download($filename);
     }
 
+    public function exportDetalleConsumoPdf(Request $request)
+    {
+        $from = $request->input('from');
+        $to = $request->input('to');
+        [$from, $to, $rangeError] = $this->normalizeDateRange($from, $to);
+        if ($rangeError) {
+            return redirect()->route('reportes.index')->with('error', $rangeError);
+        }
+        if (!$from || !$to) {
+            return redirect()->route('reportes.index')->with('error', 'Debe seleccionar el rango de fechas para exportar.');
+        }
+
+        $destinoId = $request->input('destino_id');
+        $service = new ReportesMovimientosService();
+        $detalle = $service->detalle($from, $to, $destinoId ? (int)$destinoId : null);
+
+        $destinoEtiqueta = 'Todos los destinos';
+        if ($destinoId) {
+            $destino = Destino::find((int)$destinoId);
+            if ($destino) {
+                $destinoEtiqueta = trim(($destino->nombre ?? 'Sin destino') . ' (' . ($destino->codigo ?? 'N/D') . ')');
+            }
+        }
+
+        $pdf = Pdf::loadView('reportes.detalle_consumo_pdf', [
+            'rows' => $detalle,
+            'from' => $from,
+            'to' => $to,
+            'destino' => $destinoEtiqueta,
+        ])->setPaper('a4', 'landscape');
+
+        try {
+            if (Auth::check()) {
+                Bitacora::create([
+                    'user_id' => Auth::id(),
+                    'accion' => 'reportes.export.pdf.detalle',
+                    'detalles' => json_encode([
+                        'from' => $from,
+                        'to' => $to,
+                        'destino_id' => $destinoId,
+                        'rows' => count($detalle),
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'fecha_hora' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
+        $filename = 'detalle_consumo_'.$from.'_'.$to.'.pdf';
+        return $pdf->download($filename);
+    }
+
     /**
      * Normaliza un rango de fechas y devuelve error amigable si es inválido.
      *

@@ -22,7 +22,7 @@
 </head>
 <body>
   <div class="pdf-header">
-    <img src="{{ public_path('logouptag.png') }}" alt="Logo Servicios Médicos" class="logo">
+    <img src="{{ public_path('Logo IUTAG.jpg') }}" alt="Logo Servicios Médicos" class="logo">
     <div class="title-block">
       <div class="org">SERVICIOS MÉDICOS · UPTAG</div>
       <div class="system">Sistema de Inventario Médico</div>

@@ -68,14 +68,27 @@ class ProductoController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge($this->normalizarCamposTextoProducto($request));
+
         $rules = [
-            'nombre' => 'required|string|max:255',
-            'codigo' => 'required|string|max:100|unique:productos,codigo',
-            'descripcion' => 'nullable|string',
+            'nombre' => [
+                'required',
+                'string',
+                'min:3',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
+                function ($attribute, $value, $fail) {
+                    if (! $this->nombreMedicamentoPareceValido((string) $value)) {
+                        $fail('Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números ni texto inválido.');
+                    }
+                },
+            ],
+            'codigo' => 'required|string|min:3|max:30|regex:/^[A-Z0-9\-\.\/]+$/|unique:productos,codigo',
+            'descripcion' => 'nullable|string|min:10|max:500',
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
-            'presentacion' => 'required|string|max:100',
-            'unidad_medida' => 'required|string|max:50',
+            'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
+            'unidad_medida' => 'required|string|min:2|max:20|regex:/^[\pL\pN\s\-\.,\/]+$/u',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:0',
@@ -108,15 +121,6 @@ class ProductoController extends Controller
         return redirect()->route('productos.index')->with('success', 'Producto creado correctamente.');
     }
 
-    /**
-     * Devuelve un código candidato basado en el nombre (AJAX)
-     */
-    public function generarCodigo(Request $request)
-    {
-        $request->validate([ 'nombre' => 'required|string' ]);
-        $codigo = \App\Models\Producto::generateUniqueCodigo($request->input('nombre'));
-        return response()->json(['codigo' => $codigo]);
-    }
 
     /**
      * Endpoint AJAX para búsquedas incrementales desde el módulo de movimientos.
@@ -190,14 +194,27 @@ class ProductoController extends Controller
      */
     public function update(Request $request, Producto $producto)
     {
+        $request->merge($this->normalizarCamposTextoProducto($request));
+
         $rules = [
-            'nombre' => 'required|string|max:255',
-            'codigo' => 'required|string|max:100|unique:productos,codigo,' . $producto->id,
-            'descripcion' => 'nullable|string',
+            'nombre' => [
+                'required',
+                'string',
+                'min:3',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
+                function ($attribute, $value, $fail) {
+                    if (! $this->nombreMedicamentoPareceValido((string) $value)) {
+                        $fail('Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números ni texto inválido.');
+                    }
+                },
+            ],
+            'codigo' => 'required|string|min:3|max:30|regex:/^[A-Z0-9\-\.\/]+$/|unique:productos,codigo,' . $producto->id,
+            'descripcion' => 'nullable|string|min:10|max:500',
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
-            'presentacion' => 'required|string|max:100',
-            'unidad_medida' => 'required|string|max:50',
+            'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
+            'unidad_medida' => 'required|string|min:2|max:20|regex:/^[\pL\pN\s\-\.,\/]+$/u',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:0',
@@ -272,14 +289,20 @@ class ProductoController extends Controller
         return [
             'nombre.required' => 'El nombre es obligatorio.',
             'nombre.string' => 'El nombre debe ser un texto válido.',
-            'nombre.max' => 'El nombre no puede superar los 255 caracteres.',
+            'nombre.min' => 'El nombre debe tener al menos 3 caracteres.',
+            'nombre.max' => 'El nombre no puede superar los 80 caracteres.',
+            'nombre.regex' => 'El nombre solo puede contener letras, números y signos permitidos (.-,()/+%).',
 
             'codigo.required' => 'El código es obligatorio.',
             'codigo.string' => 'El código debe ser un texto válido.',
-            'codigo.max' => 'El código no puede superar los 100 caracteres.',
+            'codigo.min' => 'El código debe tener al menos 3 caracteres.',
+            'codigo.max' => 'El código no puede superar los 30 caracteres.',
+            'codigo.regex' => 'El código solo puede contener letras, números y los símbolos - . /',
             'codigo.unique' => 'El código ingresado ya existe en otro producto.',
 
             'descripcion.string' => 'La descripción debe ser un texto válido.',
+            'descripcion.min' => 'La descripción debe tener al menos 10 caracteres si se indica.',
+            'descripcion.max' => 'La descripción no puede superar los 500 caracteres.',
 
             'categoria_id.required' => 'Debes seleccionar una categoría.',
             'categoria_id.exists' => 'La categoría seleccionada no es válida.',
@@ -289,11 +312,15 @@ class ProductoController extends Controller
 
             'presentacion.required' => 'La presentación es obligatoria.',
             'presentacion.string' => 'La presentación debe ser un texto válido.',
-            'presentacion.max' => 'La presentación no puede superar los 100 caracteres.',
+            'presentacion.min' => 'La presentación debe tener al menos 2 caracteres.',
+            'presentacion.max' => 'La presentación no puede superar los 60 caracteres.',
+            'presentacion.regex' => 'La presentación contiene caracteres no permitidos.',
 
             'unidad_medida.required' => 'La unidad de medida es obligatoria.',
             'unidad_medida.string' => 'La unidad de medida debe ser un texto válido.',
-            'unidad_medida.max' => 'La unidad de medida no puede superar los 50 caracteres.',
+            'unidad_medida.min' => 'La unidad de medida debe tener al menos 2 caracteres.',
+            'unidad_medida.max' => 'La unidad de medida no puede superar los 20 caracteres.',
+            'unidad_medida.regex' => 'La unidad de medida contiene caracteres no permitidos.',
 
             'tipo_producto.required' => 'Debes seleccionar el tipo de producto.',
             'tipo_producto.string' => 'El tipo de producto debe ser un texto válido.',
@@ -321,5 +348,105 @@ class ProductoController extends Controller
             'fecha_vencimiento.date' => 'La fecha de vencimiento debe tener un formato válido.',
             'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a la fecha de ingreso y al día actual.',
         ];
+    }
+
+    private function normalizarCamposTextoProducto(Request $request): array
+    {
+        $campos = ['nombre', 'codigo', 'presentacion', 'unidad_medida', 'descripcion'];
+        $normalizados = [];
+
+        foreach ($campos as $campo) {
+            if (! $request->has($campo)) {
+                continue;
+            }
+
+            $valor = $request->input($campo);
+            if (! is_string($valor)) {
+                continue;
+            }
+
+            $texto = trim($valor);
+
+            if ($campo === 'descripcion') {
+                $texto = strip_tags($texto);
+            }
+
+            $texto = preg_replace('/\s+/u', ' ', $texto) ?? $texto;
+
+            if ($campo === 'codigo') {
+                $texto = mb_strtoupper($texto);
+            }
+
+            if ($campo === 'nombre') {
+                $texto = $this->capitalizarPalabras($texto);
+            }
+
+            if ($campo === 'presentacion') {
+                $texto = $this->capitalizarPrimeraLetra($texto);
+            }
+
+            if ($campo === 'unidad_medida' && preg_match('/\pL/u', $texto)) {
+                $texto = $this->capitalizarPrimeraLetra($texto);
+            }
+
+            $normalizados[$campo] = $texto;
+        }
+
+        return $normalizados;
+    }
+
+    private function capitalizarPrimeraLetra(string $texto): string
+    {
+        $texto = trim($texto);
+        if ($texto === '') {
+            return $texto;
+        }
+
+        $primera = mb_substr($texto, 0, 1, 'UTF-8');
+        $resto = mb_substr($texto, 1, null, 'UTF-8');
+
+        return mb_strtoupper($primera, 'UTF-8') . $resto;
+    }
+
+    private function capitalizarPalabras(string $texto): string
+    {
+        $texto = trim($texto);
+        if ($texto === '') {
+            return $texto;
+        }
+
+        return mb_convert_case($texto, MB_CASE_TITLE, 'UTF-8');
+    }
+
+    private function nombreMedicamentoPareceValido(string $nombre): bool
+    {
+        $texto = trim(mb_strtolower($nombre));
+
+        if ($texto === '') {
+            return false;
+        }
+
+        // No permitir entradas compuestas solo por números.
+        if (preg_match('/^\d+$/u', $texto)) {
+            return false;
+        }
+
+        // Debe contener al menos una letra y una vocal.
+        if (! preg_match('/\pL/u', $texto) || ! preg_match('/[aeiouáéíóú]/u', $texto)) {
+            return false;
+        }
+
+        // Debe tener al menos 3 letras reales (sin contar espacios ni símbolos).
+        $soloLetras = preg_replace('/[^\pL]/u', '', $texto) ?? '';
+        if (mb_strlen($soloLetras) < 3) {
+            return false;
+        }
+
+        // Evitar basura tipo "aaaaaa" o secuencias consonánticas excesivas.
+        if (preg_match('/(.)\1{4,}/u', $texto) || preg_match('/[bcdfghjklmnñpqrstvwxyz]{6,}/u', $texto)) {
+            return false;
+        }
+
+        return true;
     }
 }

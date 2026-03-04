@@ -23,19 +23,19 @@
           @csrf
           <div class="mb-3">
             <label for="proveedor_nombre" class="form-label">Nombre De la Empresa</label>
-            <input type="text" class="form-control" id="proveedor_nombre" name="nombre" required>
+            <input type="text" class="form-control" id="proveedor_nombre" name="nombre" minlength="3" maxlength="120" required>
           </div>
           <div class="mb-3">
             <label for="proveedor_contacto" class="form-label">Contacto</label>
-            <input type="text" class="form-control" id="proveedor_contacto" name="contacto">
+            <input type="text" class="form-control" id="proveedor_contacto" name="contacto" minlength="3" maxlength="80">
           </div>
           <div class="mb-3">
             <label for="proveedor_direccion" class="form-label">Dirección</label>
-            <input type="text" class="form-control" id="proveedor_direccion" name="direccion">
+            <input type="text" class="form-control" id="proveedor_direccion" name="direccion" minlength="5" maxlength="180">
           </div>
           <div class="mb-3">
             <label for="proveedor_email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="proveedor_email" name="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
+            <input type="email" class="form-control" id="proveedor_email" name="email" maxlength="120" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
           </div>
           <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-med-primary">Guardar</button>
@@ -60,19 +60,19 @@
           @csrf
           <div class="mb-3">
             <label for="editar_proveedor_nombre" class="form-label">Nombre De la Empresa</label>
-            <input type="text" class="form-control" id="editar_proveedor_nombre" name="nombre" required>
+            <input type="text" class="form-control" id="editar_proveedor_nombre" name="nombre" minlength="3" maxlength="120" required>
           </div>
           <div class="mb-3">
             <label for="editar_proveedor_contacto" class="form-label">Contacto</label>
-            <input type="text" class="form-control" id="editar_proveedor_contacto" name="contacto">
+            <input type="text" class="form-control" id="editar_proveedor_contacto" name="contacto" minlength="3" maxlength="80">
           </div>
             <div class="mb-3">
             <label for="editar_proveedor_direccion" class="form-label">Dirección</label>
-            <input type="text" class="form-control" id="editar_proveedor_direccion" name="direccion">
+            <input type="text" class="form-control" id="editar_proveedor_direccion" name="direccion" minlength="5" maxlength="180">
           </div>
           <div class="mb-3">
             <label for="editar_proveedor_email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="editar_proveedor_email" name="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
+            <input type="email" class="form-control" id="editar_proveedor_email" name="email" maxlength="120" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
           </div>
           <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-med-primary">Guardar Cambios</button>

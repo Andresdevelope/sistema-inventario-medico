@@ -27,35 +27,35 @@
         <div class="row g-4">
                     <div class="col-md-6">
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" required>
+                            <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" minlength="3" maxlength="80" pattern="(?=.*[A-Za-zÁÉÍÓÚáéíóúÑñ])[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s\-\.,\(\)/\+%]{3,80}" title="Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números." required>
                             <label for="nombre"><i class="fas fa-capsules me-2"></i> Nombre</label>
                         </div>
                         @error('nombre')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="codigo" id="codigo" class="form-control ps-5 @error('codigo') is-invalid @enderror" placeholder="Código" value="{{ old('codigo') }}" required>
+                            <input type="text" name="codigo" id="codigo" class="form-control ps-5 @error('codigo') is-invalid @enderror" placeholder="Código" value="{{ old('codigo') }}" minlength="3" maxlength="30" required>
                             <label for="codigo"><i class="fas fa-barcode me-2"></i> Código</label>
                         </div>
                         @error('codigo')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <textarea name="descripcion" id="descripcion" class="form-control ps-5 @error('descripcion') is-invalid @enderror" placeholder="Descripción" style="height: 80px;">{{ old('descripcion') }}</textarea>
+                            <textarea name="descripcion" id="descripcion" class="form-control ps-5 @error('descripcion') is-invalid @enderror" placeholder="Descripción" minlength="10" maxlength="500" style="height: 80px;">{{ old('descripcion') }}</textarea>
                             <label for="descripcion"><i class="fas fa-align-left me-2"></i> Descripción</label>
                         </div>
                         @error('descripcion')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="presentacion" id="presentacion" class="form-control ps-5 @error('presentacion') is-invalid @enderror" placeholder="Presentación" value="{{ old('presentacion') }}" required>
+                            <input type="text" name="presentacion" id="presentacion" class="form-control ps-5 @error('presentacion') is-invalid @enderror" placeholder="Presentación" value="{{ old('presentacion') }}" minlength="2" maxlength="60" required>
                             <label for="presentacion"><i class="fas fa-box-open me-2"></i> Presentación</label>
                         </div>
                         @error('presentacion')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="text" name="unidad_medida" id="unidad_medida" class="form-control ps-5 @error('unidad_medida') is-invalid @enderror" placeholder="Unidad de Medida" value="{{ old('unidad_medida') }}" required>
+              <input type="text" name="unidad_medida" id="unidad_medida" class="form-control ps-5 @error('unidad_medida') is-invalid @enderror" placeholder="Unidad de Medida" value="{{ old('unidad_medida') }}" minlength="2" maxlength="20" required>
               <label for="unidad_medida"><i class="fas fa-ruler me-2"></i> Unidad de Medida</label>
             </div>
             @error('unidad_medida')

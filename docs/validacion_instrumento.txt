@@ -33,7 +33,7 @@ Categoría: UI
 06. [Med] (P=1) Cumplimiento de estándares W3C.
 	Observaciones: Verificación parcial; mejorar semántica y atributos ARIA.
 07. [Si]  (P=2) Mensajes de ayuda al usuario.
-	Observaciones: Mensajes claros en login/recuperación, feedback de éxito/error, toasts globales.
+	Observaciones: Mensajes claros en login/recuperación, feedback de éxito/error, toasts globales. 
 
 ------------------------------------------------------------
 Categoría: Eficiencia y funcionalidad

@@ -13,49 +13,27 @@
     <title>SERVICIOS MEDICOS - Dashboard</title>
     {{-- Carga de estilos y scripts principales con Vite --}}
     @vite(['resources/css/app.css','resources/js/app.js'])
-        {{--
-                Solución al bug de parpadeo del tema claro/oscuro:
-                Se aplica la clase 'theme-light' directamente en <head> mediante un script inline,
-                antes de que se renderice el contenido visual. Esto asegura que el fondo claro
-                se muestre instantáneamente si el usuario tiene el modo claro guardado en localStorage,
-                evitando el flash de fondo oscuro al navegar entre secciones o recargar.
-                La clase se aplica tanto a <html> como a <body> para máxima compatibilidad CSS.
-        --}}
-        <script>
-        // Aplicar tema claro/oscuro ANTES del renderizado visual para evitar parpadeo
-        (function(){
-            try {
-                var mode = localStorage.getItem('dashTheme');
-                if(mode==='light') {
-                    document.documentElement.classList.add('theme-light');
-                    document.body.classList.add('theme-light');
-                }
-            } catch(e){}
-        })();
-        </script>
     <style>
         /*
             Variables CSS para paleta Slate Accent y layout general
             - Usar :root para definir colores, radios, sombras y animaciones
         */
         :root {
-            --slate-bg:#10151B; /* fondo general */
-            --slate-surface:#182129; /* paneles */
-            --slate-surface-soft:#1F2933; /* hover suavizado */
-            --slate-border:#2A3742; /* bordes */
-            --slate-line:#33424E; /* divisores */
+            --slate-bg:#F5F7FA; /* fondo general */
+            --slate-surface:#FFFFFF; /* paneles */
+            --slate-surface-soft:#F0F3F6; /* hover suavizado */
+            --slate-border:#D9E0E6; /* bordes */
+            --slate-line:#CBD4DC; /* divisores */
             --accent:#FF6A17; /* acento principal */
             --accent-soft:#FFA057; /* acento hover */
-            --txt:#F5F7FA; /* texto principal */
-            --txt-sec:#C4CFD6; /* texto secundario */
-            --txt-dim:#7D888F; /* texto tenue */
+            --txt:#1A1F24; /* texto principal */
+            --txt-sec:#4B5A65; /* texto secundario */
+            --txt-dim:#7A8690; /* texto tenue */
             --r-sm:6px; --r-md:10px; --r-lg:18px; --speed:160ms cubic-bezier(.25,.4,.25,1);
-            --shadow-deep:0 8px 28px -6px rgba(0,0,0,.45);
+            --shadow-deep:0 8px 28px -6px rgba(120,140,160,.25);
         }
         * { box-sizing:border-box; }
         body { margin:0; font-family:'Inter','Roboto',Arial,sans-serif; background:var(--slate-bg); color:var(--txt); min-height:100vh; -webkit-font-smoothing:antialiased; font-size:14px; }
-        /* Tema claro alternativo */
-        .theme-light { --slate-bg:#F5F7FA; --slate-surface:#FFFFFF; --slate-surface-soft:#F0F3F6; --slate-border:#D9E0E6; --slate-line:#CBD4DC; --txt:#1A1F24; --txt-sec:#4B5A65; --txt-dim:#7A8690; --shadow-deep:0 8px 28px -6px rgba(120,140,160,.25); }
         a { text-decoration:none; color:inherit; }
         .layout-shell { display:flex; min-height:100vh; flex-direction:column; }
         /*
@@ -216,7 +194,6 @@
             Servicios Médicos
         </div>
         <div class="topbar-actions" role="navigation" aria-label="Acciones de usuario">
-            <button id="themeToggle" type="button" class="icon-btn" aria-label="Cambiar tema"><i class="fa fa-sun" id="themeIcon"></i></button>
             <div class="notif-wrapper">
                 <button id="notifBell" type="button" class="icon-btn" aria-label="Abrir notificaciones" aria-haspopup="true" aria-expanded="false"><i class="fa fa-bell" aria-hidden="true"></i><span id="notifCount">0</span></button>
                 <div id="notifPanel" class="notif-panel" aria-live="polite" aria-label="Panel de notificaciones">
@@ -368,43 +345,6 @@ if(items && empty){ empty.style.display='block'; items.innerHTML=''; }
 if(badge){ badge.style.display='none'; badge.textContent='0'; }
 // Toggle de accesos rápidos (tiles)
 const toggleTilesBtn=document.getElementById('toggleTiles'); const tilesGrid=document.getElementById('tilesGrid'); if(toggleTilesBtn&&tilesGrid){ toggleTilesBtn.addEventListener('click',()=>{ const hidden=tilesGrid.classList.toggle('tiles-hidden'); toggleTilesBtn.setAttribute('aria-expanded', hidden?'false':'true'); toggleTilesBtn.textContent= hidden? '+' : '−'; toggleTilesBtn.title = hidden? 'Mostrar accesos' : 'Ocultar accesos'; }); }
-// Toggle de tema claro/oscuro
-const themeBtn=document.getElementById('themeToggle');
-const themeIcon=document.getElementById('themeIcon');
-function applyTheme(mode){
-    if(mode==='light'){
-        document.documentElement.classList.add('theme-light');
-        document.body.classList.add('theme-light');
-        themeIcon.classList.remove('fa-sun');
-        themeIcon.classList.add('fa-moon');
-    } else {
-        document.documentElement.classList.remove('theme-light');
-        document.body.classList.remove('theme-light');
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-sun');
-    }
-    localStorage.setItem('dashTheme', mode);
-}
-const stored=localStorage.getItem('dashTheme');
-if(stored==='light'){
-    document.documentElement.classList.add('theme-light');
-    document.body.classList.add('theme-light');
-}else{
-    document.documentElement.classList.remove('theme-light');
-    document.body.classList.remove('theme-light');
-}
-applyTheme(stored||'dark');
-themeBtn?.addEventListener('click',()=>{
-    const current=document.body.classList.contains('theme-light')?'light':'dark';
-    applyTheme(current==='light'?'dark':'light');
-    // Sincroniza ambas clases tras el cambio
-    if(document.body.classList.contains('theme-light')){
-        document.documentElement.classList.add('theme-light');
-    }else{
-        document.documentElement.classList.remove('theme-light');
-    }
-});
-
 // Transición visual al cerrar sesión (evita pantallazo brusco antes del login)
 (function(){
     const overlay = document.getElementById('logout-loader-overlay');

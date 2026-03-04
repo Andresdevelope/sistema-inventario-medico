@@ -282,7 +282,19 @@
       @endif
     </div>
     <div class="bg-white p-3 rounded shadow-sm border mb-4">
-      <h6 class="border-bottom pb-2 mb-3">Detalle de consumo</h6>
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h6 class="m-0">Detalle de consumo</h6>
+        @php
+          $paramsDetalle = array_filter([
+            'from' => $from,
+            'to' => $to,
+            'destino_id' => $destino_id,
+          ], fn($v) => !is_null($v) && $v !== '');
+        @endphp
+        <a href="{{ route('reportes.export.pdf.detalle', $paramsDetalle) }}" class="btn btn-sm btn-export-pdf">
+          <i class="fa fa-file-pdf me-1"></i> Exportar PDF
+        </a>
+      </div>
       <div class="table-responsive">
         <table class="table table-hover table-bordered align-middle report-table">
           <thead class="table-light">
