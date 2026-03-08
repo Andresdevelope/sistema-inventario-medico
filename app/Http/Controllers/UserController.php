@@ -3,15 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Permission;
 use App\Models\Movimiento;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+    private function maxAdminsAllowed(): int
+    {
+        return (int) config('inventario.max_admins', 2);
+    }
+
+    private function adminLimitReached(?int $excludeUserId = null): bool
+    {
+        $query = User::where('role', 'admin');
+        if ($excludeUserId !== null) {
+            $query->where('id', '!=', $excludeUserId);
+        }
+        return $query->count() >= $this->maxAdminsAllowed();
+    }
+
+    private function superAdminId(): ?int
+    {
+        return User::orderBy('id')->value('id');
+    }
+
+    private function isSuperAdmin(User $user): bool
+    {
+        $superAdminId = $this->superAdminId();
+        return $superAdminId !== null && (int) $user->id === (int) $superAdminId;
+    }
+
     // Retornar lista de usuarios en formato JSON para AJAX
     public function listaAjax()
     {
@@ -31,7 +58,107 @@ class UserController extends Controller
     public function index()
     {
         $users = User::all();
-        return view('usuarios.index', compact('users'));
+        $permissionCatalog = config('permissions.catalog', []);
+        $superAdminId = $this->superAdminId();
+        return view('usuarios.index', compact('users', 'permissionCatalog', 'superAdminId'));
+    }
+
+    public function permissions($id)
+    {
+        $target = User::findOrFail($id);
+
+        if ($target->role !== 'operador') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden gestionar permisos granulares para usuarios operadores.'
+            ], 422);
+        }
+
+        $slugs = $target->permissions()->pluck('slug')->values();
+
+        $this->logBitacora('usuario.permisos.ver', [
+            'target_user_id' => $target->id,
+            'target_role' => $target->role,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'permissions' => $slugs,
+            'catalog' => config('permissions.catalog', []),
+            'target' => [
+                'id' => $target->id,
+                'name' => $target->name,
+                'role' => $target->role,
+            ],
+        ]);
+    }
+
+    public function updatePermissions(Request $request, $id)
+    {
+        $target = User::findOrFail($id);
+        $actor = Auth::user();
+
+        if ($target->role !== 'operador') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden gestionar permisos granulares para usuarios operadores.'
+            ], 422);
+        }
+
+        if (!$request->filled('admin_password') || !$actor || !Hash::check($request->input('admin_password'), $actor->password)) {
+            $this->logBitacora('usuario.permisos.actualizar_denegado', [
+                'target_user_id' => $target->id,
+                'motivo' => 'admin_password_invalida_o_ausente',
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Debes confirmar tu contraseña de administrador para guardar permisos.'
+            ], 422);
+        }
+
+        $catalogItems = collect(config('permissions.catalog', []))
+            ->flatMap(fn($group) => array_keys($group['items'] ?? []))
+            ->values();
+
+        $request->validate([
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+        ], [
+            'permissions.array' => 'El listado de permisos no tiene un formato válido.',
+        ]);
+
+        $requestedSlugs = collect($request->input('permissions', []))
+            ->map(fn($p) => trim((string) $p))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $invalid = $requestedSlugs->diff($catalogItems);
+        if ($invalid->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Se detectaron permisos inválidos en la solicitud.',
+                'invalid' => $invalid->values(),
+            ], 422);
+        }
+
+        $permissionIds = Permission::whereIn('slug', $requestedSlugs)->pluck('id');
+        $before = $target->permissions()->pluck('slug')->values();
+        $target->permissions()->sync($permissionIds);
+        $after = $target->permissions()->pluck('slug')->values();
+
+        $this->logBitacora('usuario.permisos.actualizar', [
+            'target_user_id' => $target->id,
+            'before' => $before,
+            'after' => $after,
+            'added' => $after->diff($before)->values(),
+            'removed' => $before->diff($after)->values(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permisos actualizados correctamente.',
+        ]);
     }
 
     // Crear usuario (admin)
@@ -79,6 +206,41 @@ class UserController extends Controller
                 ->with('create_failed', true);
         }
 
+        if ($request->input('role') === 'admin' && $this->adminLimitReached()) {
+            $msg = 'No se pueden crear más administradores. El máximo permitido es '.$this->maxAdminsAllowed().'.';
+            $this->logBitacora('usuario.admin_creacion_bloqueada_limite', [
+                'target_email' => $request->input('email'),
+                'max_admins' => $this->maxAdminsAllowed(),
+            ]);
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => ['role' => [$msg]]], 422);
+            }
+            return redirect()
+                ->route('usuarios.index')
+                ->withErrors(['role' => $msg])
+                ->withInput()
+                ->with('create_failed', true);
+        }
+
+        if ($request->input('role') === 'admin') {
+            $admin = Auth::user();
+            if (!$request->filled('admin_password') || !$admin || !Hash::check($request->input('admin_password'), $admin->password)) {
+                $msg = 'Debes confirmar tu contraseña de administrador para crear otro administrador.';
+                $this->logBitacora('usuario.admin_creacion_bloqueada_autorizacion', [
+                    'target_email' => $request->input('email'),
+                    'motivo' => 'admin_password_invalida_o_ausente',
+                ]);
+                if ($request->expectsJson()) {
+                    return response()->json(['errors' => ['admin_password' => [$msg]]], 422);
+                }
+                return redirect()
+                    ->route('usuarios.index')
+                    ->withErrors(['admin_password' => $msg])
+                    ->withInput()
+                    ->with('create_failed', true);
+            }
+        }
+
         $user = User::create([
             'name' => $request->input('name'),
             'email' => $request->input('email'),
@@ -113,6 +275,22 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $actor = Auth::user();
+
+        if ($this->isSuperAdmin($user) && (!$actor || !$this->isSuperAdmin($actor))) {
+            $this->logBitacora('usuario.superadmin_modificacion_denegada', [
+                'target_user_id' => $user->id,
+                'target_role' => $user->role,
+                'motivo' => 'actor_no_superadmin',
+            ]);
+            return redirect()
+                ->route('usuarios.index')
+                ->withErrors(['role' => 'Solo el superadmin puede modificar las credenciales o rol del superadmin.'])
+                ->withInput()
+                ->with('edit_failed', true)
+                ->with('edit_user_id', $user->id);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
@@ -134,6 +312,40 @@ class UserController extends Controller
                 ->withInput()
                 ->with('edit_failed', true)
                 ->with('edit_user_id', $user->id);
+        }
+
+        $nuevoRol = $request->input('role');
+        $promocionAAdmin = $nuevoRol === 'admin' && $user->role !== 'admin';
+        if ($promocionAAdmin && $this->adminLimitReached()) {
+            $this->logBitacora('usuario.admin_promocion_bloqueada_limite', [
+                'target_user_id' => $user->id,
+                'target_email' => $request->input('email'),
+                'max_admins' => $this->maxAdminsAllowed(),
+            ]);
+            return redirect()
+                ->route('usuarios.index')
+                ->withErrors(['role' => 'No se puede asignar rol administrador. El máximo permitido es '.$this->maxAdminsAllowed().'.'])
+                ->withInput()
+                ->with('edit_failed', true)
+                ->with('edit_user_id', $user->id);
+        }
+
+        $operacionAdminSensible = ($user->id !== Auth::id()) && ($user->role === 'admin' || $nuevoRol === 'admin');
+        if ($operacionAdminSensible) {
+            if (!$request->filled('admin_password') || !$actor || !Hash::check($request->input('admin_password'), $actor->password)) {
+                $this->logBitacora('usuario.admin_modificacion_bloqueada_autorizacion', [
+                    'target_user_id' => $user->id,
+                    'target_role_actual' => $user->role,
+                    'target_role_nuevo' => $nuevoRol,
+                    'motivo' => 'admin_password_invalida_o_ausente',
+                ]);
+                return redirect()
+                    ->route('usuarios.index')
+                    ->withErrors(['admin_password' => 'Debes confirmar tu contraseña de administrador para modificar usuarios con rol administrador.'])
+                    ->withInput()
+                    ->with('edit_failed', true)
+                    ->with('edit_user_id', $user->id);
+            }
         }
 
         $old = $user->only(['name','email','role']);
@@ -167,6 +379,21 @@ class UserController extends Controller
 
         $user->save();
 
+        if ($promocionAAdmin) {
+            $actorName = $actor?->name ?: 'Un administrador';
+            Cache::put(
+                'role_notice_user_'.$user->id,
+                "Tu rol fue actualizado a administrador por {$actorName}.",
+                now()->addDays(30)
+            );
+            $this->logBitacora('usuario.rol_promovido_admin', [
+                'target_user_id' => $user->id,
+                'target_email' => $user->email,
+                'actor_user_id' => $actor?->id,
+                'actor_name' => $actorName,
+            ]);
+        }
+
         $this->logBitacora('usuario.actualizar', [
             'target_user_id' => $user->id,
             'antes' => $old,
@@ -181,12 +408,30 @@ class UserController extends Controller
     public function destroy(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $admin = Auth::user();
+
+        if ($this->isSuperAdmin($user)) {
+            $this->logBitacora('usuario.superadmin_eliminacion_denegada', [
+                'target_user_id' => $user->id,
+                'motivo' => 'superadmin_protegido',
+            ]);
+            return redirect()->route('usuarios.index')->with('error', 'El superadmin no puede ser eliminado.');
+        }
+
+        if ($user->role === 'admin' && (!$admin || !$this->isSuperAdmin($admin))) {
+            $this->logBitacora('usuario.admin_eliminacion_denegada', [
+                'target_user_id' => $user->id,
+                'target_role' => $user->role,
+                'motivo' => 'solo_superadmin_puede_eliminar_admin',
+            ]);
+            return redirect()->route('usuarios.index')->with('error', 'Solo el superadmin puede eliminar cuentas con rol administrador.');
+        }
+
         if (Auth::id() == $user->id) {
             return redirect()->route('usuarios.index')->with('error', 'No puedes eliminar tu propio usuario.');
         }
 
         // Validar contraseña del admin actual (segunda capa)
-        $admin = Auth::user();
         if (!$request->filled('admin_password') || !\Illuminate\Support\Facades\Hash::check($request->input('admin_password'), $admin->password)) {
             return redirect()->route('usuarios.index')->with('error', 'Debes ingresar tu contraseña correctamente para eliminar un usuario.');
         }

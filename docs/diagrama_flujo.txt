@@ -1,0 +1,218 @@
+SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA DE FLUJO (INTEGRAL)
+Fecha: 08/03/2026
+
+Objetivo
+- Documentar el flujo completo del sistema (autenticación, autorización, módulos operativos, auditoría y reportes), con versión Mermaid y versión texto plano dentro del mismo archivo.
+
+============================================================
+1) FLUJO INTEGRAL DEL SISTEMA (MERMAID)
+============================================================
+
+flowchart TD
+     A[Inicio / Usuario abre aplicación] --> B{Sesión activa?}
+
+     B -->|No| C[Auth: Login / Registro / Recuperación]
+     C --> C1[Validación frontend]
+     C1 --> C2[Validación backend + seguridad\nCSRF, throttle, reCAPTCHA opcional]
+     C2 --> C3{Resultado}
+     C3 -->|Error| C4[Respuesta en español\ncontrol de intentos y bloqueo]
+     C3 -->|OK| D[Entrar a Dashboard]
+
+     B -->|Sí| D
+
+     D --> E{Rol y permisos}
+     E -->|admin| F[Acceso funcional total]
+     E -->|operador| G[Acceso por checklist de permisos]
+
+     F --> H[Menú de módulos]
+     G --> H
+
+     H --> I{Módulo seleccionado}
+     I --> I1[Perfil]
+     I --> I2[Usuarios]
+     I --> I3[Categorías/Subcategorías]
+     I --> I4[Productos]
+     I --> I5[Inventario]
+     I --> I6[Movimientos]
+     I --> I7[Reportes]
+     I --> I8[Bitácora]
+     I --> I9[Notificaciones]
+
+     I2 --> U0[Middleware auth + is_admin]
+     U0 --> U1{Operación sensible?}
+     U1 -->|Sí| U2[Confirmar contraseña admin]
+     U2 --> U3{Regla superadmin / límite admins}
+     U3 -->|No cumple| U4[Denegar + bitácora]
+     U3 -->|Cumple| U5[Crear/Editar/Eliminar/Desbloquear/Permisos]
+     U1 -->|No| U5
+     U5 --> U6[Respuesta en español + actualización UI]
+
+     I3 --> K0[Middleware permission:categorias.*]
+     K0 --> K1[Validación frontend\nmax 35 + anti-basura]
+     K1 --> K2[Validación backend + sanitización + unicidad]
+     K2 --> K3{Válido?}
+     K3 -->|No| K4[Error en español]
+     K3 -->|Sí| K5[Guardar categoría/subcategoría]
+     K5 --> K6[Bitácora + refresco de listado]
+
+     I4 --> P0[Middleware permission:medicamentos.*]
+     P0 --> P1[Validación frontend]
+     P1 --> P2[Validación backend\nformato, reglas de negocio, fechas]
+     P2 --> P3{Válido?}
+     P3 -->|No| P4[Error en español]
+     P3 -->|Sí| P5[Persistir producto]
+     P5 --> P6[Bitácora]
+
+     I5 --> V0[Middleware permission:inventario.ver]
+     V0 --> V1[Consultar stock por filtros]
+     V1 --> V2[KPIs + próximos a vencer + distribución]
+     V2 --> V3[Bitácora de acceso]
+
+     I6 --> M0[Auth + control por tipo de movimiento]
+     M0 --> M1{Tipo}
+     M1 -->|Ingreso| M2[permission:movimientos.entrada]
+     M1 -->|Egreso distribución| M3[permission:movimientos.distribucion]
+     M1 -->|Egreso consumo| M4[permission:movimientos.consumo]
+     M1 -->|Ajuste +| M5[permission:movimientos.ajuste_positivo]
+     M1 -->|Ajuste -| M6[permission:movimientos.ajuste_negativo]
+     M2 --> M7
+     M3 --> M7
+     M4 --> M7
+     M5 --> M7
+     M6 --> M7
+     M7[Validación + InventarioService\nFEFO/FIFO y reglas de destino] --> M8{Éxito?}
+     M8 -->|No| M9[Error en español + bitácora error]
+     M8 -->|Sí| M10[Guardar movimiento + bitácora]
+
+     I7 --> R0[Auth + permission:reportes.*]
+     R0 --> R1[Validar rango fechas/filtros]
+     R1 --> R2[ReportesMovimientosService]
+     R2 --> R3{Salida}
+     R3 -->|Vista| R4[Resumen + detalle + matriz inventario]
+     R3 -->|Exportación| R5[PDF/Detalle + bitácora]
+
+     I8 --> B0[Consulta de auditoría]
+     I9 --> N0[Campana + marca de leídos]
+
+     I1 --> PF0[Validar seguridad del usuario]
+     PF0 --> PF1[Cambio de contraseña]
+
+     D --> L0[Logout]
+     L0 --> L1[Bitácora logout]
+     L1 --> L2[Fin]
+
+============================================================
+2) FLUJOS ESPECÍFICOS COMPLEMENTARIOS (MERMAID)
+============================================================
+
+2.1 Flujo de recuperación de contraseña
+
+flowchart TD
+     RA[Usuario va a Recover] --> RB[Ingresa correo]
+     RB --> RC[Validación backend + throttle + reCAPTCHA opcional]
+     RC --> RD{Correo válido?}
+     RD -->|No| RE[Mensaje en español]
+     RD -->|Sí| RF[Preguntas de seguridad\n(color, animal, padre según flujo)]
+     RF --> RG{Respuestas válidas?}
+     RG -->|No| RH[Denegar + mensaje en español]
+     RG -->|Sí| RI[Nueva contraseña]
+     RI --> RJ[Validaciones robustas]
+     RJ --> RK{Cumple política?}
+     RK -->|No| RL[Mensaje en español]
+     RK -->|Sí| RM[Guardar contraseña + éxito]
+
+2.2 Flujo de asignación de permisos a operador
+
+flowchart TD
+     PA[Admin abre módulo Usuarios] --> PB[Abre modal de permisos]
+     PB --> PC[GET permisos actuales del operador]
+     PC --> PD[Checklist por grupos]
+     PD --> PE[Seleccionar/deseleccionar permisos]
+     PE --> PF[Confirmar contraseña admin]
+     PF --> PG[PUT actualizar permisos]
+     PG --> PH{Validación OK?}
+     PH -->|No| PI[Error en español]
+     PH -->|Sí| PJ[Sync permission_user + bitácora]
+
+============================================================
+3) NOTAS OPERATIVAS
+============================================================
+
+- Para solicitudes no-GET/AJAX denegadas por permisos, se responde 401/403 en JSON para evitar redirecciones con método HTTP incorrecto.
+- Admin mantiene acceso funcional total; operador accede según checklist granular.
+- Superadmin (usuario inicial) está protegido en operaciones críticas de gestión de usuarios.
+- Validaciones clave están duplicadas en frontend y backend (defensa en profundidad).
+
+============================================================
+4) VERSIÓN EN TEXTO PLANO (SIN MERMAID)
+============================================================
+
+4.1 Flujo general del sistema
+
+1) Inicio
+    -> Usuario abre la aplicación.
+    -> El sistema verifica si hay sesión activa.
+
+2) Si NO hay sesión
+    -> Usuario entra por Login/Registro/Recuperación.
+    -> Frontend valida campos.
+    -> Backend valida + aplica seguridad (CSRF, throttle, reCAPTCHA opcional).
+    -> Si falla: mensaje en español (y bloqueo por intentos cuando aplica).
+    -> Si pasa: redirección a Dashboard.
+
+3) Si SÍ hay sesión
+    -> Va directo a Dashboard.
+
+4) Control de acceso
+    -> Si rol admin: acceso funcional total a módulos.
+    -> Si rol operador: acceso según permisos granulares del checklist.
+
+5) Navegación por módulos
+    -> Perfil: validación de seguridad y cambio de contraseña.
+    -> Usuarios (solo admin):
+        - crear/editar/eliminar/desbloquear/asignar permisos.
+        - operaciones sensibles exigen contraseña admin.
+        - se aplican reglas de superadmin y límite de admins.
+        - todo queda en bitácora.
+    -> Categorías/Subcategorías:
+        - validación frontend (max 35 + anti-basura).
+        - validación backend equivalente + unicidad.
+        - guardar y registrar bitácora.
+    -> Productos:
+        - validaciones de formato, negocio y fechas.
+        - persistencia y bitácora.
+    -> Inventario:
+        - consulta por filtros, KPIs, vencimientos.
+        - bitácora de acceso.
+    -> Movimientos:
+        - autorización por tipo (entrada/distribución/consumo/ajustes).
+        - lógica de servicio de inventario (FEFO/FIFO y reglas de destino).
+        - éxito/error con mensajes en español y bitácora.
+    -> Reportes:
+        - permisos por tipo de reporte.
+        - validación de rangos/filtros.
+        - generación de vistas/exportes + bitácora.
+    -> Bitácora:
+        - consulta de acciones críticas.
+    -> Notificaciones:
+        - lectura de movimientos y marca de leídos.
+
+6) Recuperación de contraseña (resumen)
+    -> validar correo -> validar respuestas de seguridad -> validar nueva contraseña -> guardar.
+
+7) Cierre de sesión
+    -> registrar logout en bitácora -> terminar sesión.
+
+4.2 Flujo detallado de categorías/subcategorías
+
+1) Usuario abre formulario crear/editar.
+2) Frontend sanitiza (trim + colapso de espacios).
+3) Frontend valida:
+    - longitud <= 35
+    - formato permitido
+    - no patrones sospechosos (111111, aaaaaa, texto basura)
+4) Si falla: bloquea envío y muestra mensaje en español.
+5) Si pasa: envía al backend.
+6) Backend repite sanitización y validación robusta + unicidad.
+7) Si falla: responde error en español.
+8) Si pasa: guarda cambios, registra bitácora y refresca UI.

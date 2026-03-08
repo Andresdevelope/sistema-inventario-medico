@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,8 +16,8 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        $adminEmail = 'admin@example.com';
-        $adminPassword = 'admin12345';
+        $adminEmail = env('SEED_ADMIN_EMAIL', 'admin@example.com');
+        $adminPassword = env('SEED_ADMIN_PASSWORD', Str::random(24));
         $admin = User::where('email', $adminEmail)->first();
         if (!$admin) {
             $admin = User::factory()->create([
@@ -27,16 +28,16 @@ class DatabaseSeeder extends Seeder
                 'security_animal_answer' => 'perro',
                 'role' => 'admin',
             ]);
-            echo "\nUsuario ADMIN creado (name=admin)\nEmail: $adminEmail\nContraseña: $adminPassword\n";
+            echo "\nUsuario ADMIN creado (name=admin)\nEmail: $adminEmail\n";
         } else {
             // Asegurar nombre y rol
             $admin->update(['name' => 'admin','role' => 'admin']);
-            echo "\nUsuario ADMIN actualizado/confirmado (name=admin)\nEmail: $adminEmail\nContraseña: $adminPassword\n";
+            echo "\nUsuario ADMIN actualizado/confirmado (name=admin)\nEmail: $adminEmail\n";
         }
 
         // Usuario operador demo
-        $opEmail = 'operador@example.com';
-        $opPassword = 'operador123';
+        $opEmail = env('SEED_OPERADOR_EMAIL', 'operador@example.com');
+        $opPassword = env('SEED_OPERADOR_PASSWORD', Str::random(24));
         $operador = User::where('email', $opEmail)->first();
         if (!$operador) {
             $operador = User::factory()->create([
@@ -47,10 +48,10 @@ class DatabaseSeeder extends Seeder
                 'security_animal_answer' => 'gato',
                 'role' => 'operador',
             ]);
-            echo "\nUsuario OPERADOR creado (name=operador)\nEmail: $opEmail\nContraseña: $opPassword\n";
+            echo "\nUsuario OPERADOR creado (name=operador)\nEmail: $opEmail\n";
         } else {
             $operador->update(['name' => 'operador','role' => 'operador']);
-            echo "\nUsuario OPERADOR actualizado/confirmado (name=operador)\nEmail: $opEmail\nContraseña: $opPassword\n";
+            echo "\nUsuario OPERADOR actualizado/confirmado (name=operador)\nEmail: $opEmail\n";
         }
 
         // Destinos base (para egresos)

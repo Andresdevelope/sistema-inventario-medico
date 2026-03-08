@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
-Fecha: 25/02/2026 (actualizado)
+Fecha: 08/03/2026 (actualizado)
 Autor: Equipo Servicios Médicos
 
 OBJETIVO
@@ -11,17 +11,19 @@ ALCANCE
 - Registro de entradas, salidas por área y ajustes.
 - Consultas, KPIs, filtros y exportación CSV.
 - Reportes operativos y administración de usuarios, roles y bitácora de auditoría.
+- Autorización granular por permisos para operadores (checklist por módulo/acción).
 
 ACTORES
 - Administrador: acceso total, gestiona usuarios, roles, reglas, ajustes críticos, bitácora y reportes.
-- Operador/Almacén: opera catálogo, inventario y movimientos; consulta reportes.
-- Auditor/Visor: solo lectura a inventario, movimientos y reportes.
+- Operador/Almacén: acceso por permisos asignados; opera catálogo, inventario y movimientos según checklist; consulta reportes habilitados.
+- Auditor/Visor: perfil lógico de lectura implementable mediante permisos granulares (sin rol dedicado fijo).
 - Sistema externo (futuro): integraciones para import/export.
 
 SUPUESTOS Y CONTEXTO TÉCNICO
 - Laravel 10+, Blade + Bootstrap, MySQL (XAMPP).
 - Migraciones activas y versionadas.
-- Autenticación por usuario/contraseña. Roles: admin, operador, auditor.
+- Autenticación por usuario/contraseña. Roles activos: admin y operador.
+- Autorización mixta: RBAC (rol) + permisos granulares para operadores (`permissions`, `permission_user`).
 - Inventario por lotes: los movimientos referencian inventario_id para trazabilidad.
 - Validaciones con feedback visual tipo toast.
 - Exportación CSV de inventario disponible.
@@ -58,6 +60,10 @@ REGLAS DE NEGOCIO CLAVE
 11. Exportaciones: CSV/PDF respetan filtros y no exponen datos sensibles.
 12. Auditoría: cambios críticos (usuarios, stock, ajustes, reportes) se registran en bitácora.
 13. Seguridad: protección CSRF, autorización por rol, sanitización de entrada, control de intentos de login y bloqueo temporal, rate limiting y reCAPTCHA v2 (opcional).
+14. Gobernanza de administradores: máximo de administradores configurable (por defecto 2).
+15. Superadmin protegido: el usuario inicial del sistema tiene protección especial en operaciones críticas de cuentas.
+16. Operaciones sensibles de usuarios: requieren confirmación de contraseña admin (crear/promover/modificar/eliminar/desbloquear según caso).
+17. Validación reforzada de categorías/subcategorías: frontend y backend bloquean entradas sospechosas (ej. 111111, aaaaaa, texto basura) y aplican tope frontend de 35 caracteres.
 
 CASOS DE USO PRINCIPALES
 
@@ -76,6 +82,7 @@ CU-03 Gestión de categorías y subcategorías
 - Actor: Operador/Administrador
 - Flujo: Crear/editar/eliminar categoría y subcategoría, listar y filtrar.
 - Reglas: nombres únicos (case-insensitive), subcategoría requiere categoría válida; endpoints AJAX para listar y verificar dependencias antes de eliminar.
+- Validaciones nuevas: sanitización frontend/backend, bloqueo de patrones sospechosos y límite de 35 caracteres en frontend.
 
 CU-04 Gestión de proveedores
 - Actor: Operador/Administrador
@@ -134,7 +141,7 @@ CU-13 Generar reportes
 CU-14 Gestión de usuarios y roles (solo admin)
 - Actor: Administrador
 - Flujo: Crear/editar/eliminar usuarios, asignar rol.
-- Reglas: sólo admin; eliminación y desbloqueo requieren contraseña del admin actual; no auto-deshabilitar único admin.
+- Reglas: sólo admin; eliminación y desbloqueo requieren contraseña del admin actual; límite máximo de admins configurable; protección de superadmin; controles de promoción y modificación de cuentas admin con bitácora.
 
 CU-15 Bitácora y auditoría
 - Actor: Administrador/Auditor
@@ -154,18 +161,30 @@ CU-18 Configuración de stock mínimo
 - Actor: Operador/Administrador
 - Flujo: Definir/editar stock_mínimo por producto, ver alertas.
 
+CU-19 Gestión de permisos granulares de operador
+- Actor: Administrador
+- Flujo: Desde Gestión de Usuarios, abrir modal de permisos del operador, cargar permisos actuales, marcar/desmarcar checklist por grupo y guardar cambios.
+- Reglas: solo aplica a usuarios con rol operador; guardar cambios exige contraseña del admin; validar slugs contra catálogo; registrar alta/baja de permisos en bitácora.
+
+CU-20 Protección y gobierno de cuentas privilegiadas
+- Actor: Administrador / Superadmin
+- Flujo: Ejecutar acciones sobre cuentas privilegiadas con validaciones de seguridad (superadmin protegido, confirmación de contraseña, límite de admins).
+- Reglas: solo superadmin puede eliminar cuentas admin; superadmin no se elimina; denegaciones y acciones críticas quedan auditadas.
+
 MODELO DE DATOS (RESUMEN)
 - productos: id, nombre, codigo, categoria_id, subcategoria_id, proveedor_id, presentacion, unidad_medida, tipo_producto (medicamento|insumo), categoria_inventario (segmento), stock, stock_minimo, ...
 - inventarios (por lote): id, producto_id, lote, cantidad, fecha_vencimiento, um_operativa (blister|unidad), contenido_por_blister (entero sólo para blíster), stock_minimo, estado, timestamps.
 - movimientos: id, producto_id, inventario_id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo, solo para egreso), cantidad (en la UM operativa), motivo, fecha, usuario_id, observaciones, salida/area, destino_id, entrada/origen, tipo_identificacion, sexo, timestamps.
 - destinos: id, codigo, nombre, activo, tipo.
 - reportes, categorias, subcategorias, proveedores, users, bitácora.
+- permissions: id, slug, name, group.
+- permission_user (pivot): permission_id, user_id, timestamps.
 - movimiento_user_reads (pivot): movimiento_id, user_id, read_at, timestamps.
 
 CONSIDERACIONES NO FUNCIONALES
 - Rendimiento: índices en claves foráneas (producto_id, inventario_id, usuario_id, fecha, tipo); paginación en listados.
 - Rendimiento (reportes): optimización de consultas en `ReportesMovimientosService` (reducción de N+1, agregaciones consolidadas y cacheo de matriz por destino).
-- Seguridad: autenticación obligatoria, autorización por rol (RBAC), CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en endpoints sensibles, reCAPTCHA opcional.
+- Seguridad: autenticación obligatoria, autorización por rol + permisos granulares (RBAC + checklist), CSRF activo, sanitización de input, control de intentos de login y bloqueo temporal, rate limiting en endpoints sensibles, reCAPTCHA opcional.
 - Usabilidad: feedback visual (toasts), formularios con old() y mensajes claros, exportación optimizada.
 
 CRITERIOS DE ACEPTACIÓN
@@ -177,6 +196,8 @@ CRITERIOS DE ACEPTACIÓN
 - 10.1 exporta PDF con matriz por destino + Central a la fecha de corte.
 - 10.2 exporta PDF de salidas de farmacia interna e incluye conteo por PROF (profesor).
 - Solo Administrador gestiona usuarios y ajustes críticos.
+- Operadores solo pueden acceder a módulos/acciones autorizados en su checklist de permisos.
+- Categorías y subcategorías rechazan entradas sospechosas en frontend/backend y respetan tope frontend de 35 caracteres.
 
 NOTAS
 - Áreas de salida: principal, acinf, agroalimentacion, odontologia.
@@ -190,6 +211,14 @@ ACTUALIZACIÓN 08/02/2026 — FORMULARIO DE MOVIMIENTOS "MOSAICO"
 - El formulario administra de forma interna los valores `tipo` y `modalidad` usando `old()` como fallback; esto evita errores cuando se regresa desde validaciones y mantiene consistencia en la navegación por pestañas.
 - CU-11 (consulta de movimientos) incorpora en la tabla de últimos registros el helper `mov_formatear_destino`, que normaliza los nombres/cadenas complejas de destino (p. ej. "Central -> Odontología" se presenta como "Central · Odontología"). Esta normalización ayuda en la lectura de reportes y coincide con el modelo de destinos documentado.
 - Se documentan estos cambios para facilitar capacitaciones y mantener trazabilidad UX/UI dentro del proyecto.
+
+ACTUALIZACIÓN 08/03/2026 — SEGURIDAD, PERMISOS Y GOBERNANZA
+- Se incorporó autorización granular para operadores mediante catálogo de permisos y tabla pivote (`permissions`, `permission_user`), con middleware por acción (`permission:slug`).
+- Se añadió gestión de permisos por checklist desde Usuarios (solo admin), con carga/guardado por AJAX, confirmación de contraseña admin y bitácora de cambios.
+- Se reforzó gobierno de cuentas privilegiadas: límite máximo de admins configurable, protección de superadmin y controles adicionales para modificar/eliminar cuentas sensibles.
+- Se armonizó el manejo de denegación de permisos para solicitudes no-GET/AJAX devolviendo 401/403 JSON (evita errores de redirección con métodos como DELETE).
+- Se endureció validación de categorías/subcategorías en frontend y backend: sanitización, anti-patrones sospechosos y límite de 35 caracteres en frontend.
+- Se estandarizaron mensajes de error y feedback en español en flujos críticos de autenticación, recuperación y gestión.
 
 TRAZABILIDAD CON IMPLEMENTACIÓN (RESUMEN)
 
@@ -218,3 +247,10 @@ VALIDACIÓN TÉCNICA RECIENTE (25/02/2026)
 	3) balance global/central en matriz por destino.
 
 Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan al 25/02/2026.
+
+VALIDACIÓN TÉCNICA RECIENTE (08/03/2026)
+- Se aplicaron validaciones y sanitización reforzadas en usuarios, recuperación, categorías y subcategorías.
+- Se validó operación de permisos granulares por operador en backend (catálogo, sync, validación de slugs) y frontend (modal checklist con carga/guardado).
+- Se verificó estabilidad funcional con pruebas automatizadas (`php artisan test`) en verde tras cada bloque de cambios.
+
+Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan al 08/03/2026.

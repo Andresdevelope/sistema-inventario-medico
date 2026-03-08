@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class, // por si queremos sobrescribir / asegurar
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
+            'permission' => \App\Http\Middleware\PermissionMiddleware::class,
+            'no.cache' => \App\Http\Middleware\NoCacheHeaders::class,
+        ]);
+
+        // Evitar cache para respuestas web autenticadas (ver middleware NoCacheHeaders)
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\NoCacheHeaders::class,
         ]);
 
         // Si en el futuro necesitas añadir a grupos:

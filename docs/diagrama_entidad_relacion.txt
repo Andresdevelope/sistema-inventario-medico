@@ -9,6 +9,7 @@ RESUMEN DE ENTIDADES Y RELACIONES
 - Un USUARIO puede registrar muchos MOVIMIENTOS.
  - Un DESTINO normaliza salidas y puede tener muchos MOVIMIENTOS.
  - Un MOVIMIENTO puede estar “leído” por muchos USUARIOS (pivot de lecturas para notificaciones).
+ - Un USUARIO puede tener muchos PERMISOS y un PERMISO puede pertenecer a muchos USUARIOS (N:N).
 
 RELACIONES PRINCIPALES
 - CATEGORIA tiene muchas SUBCATEGORIAS y PRODUCTOS.
@@ -20,6 +21,7 @@ RELACIONES PRINCIPALES
  - DESTINO agrupa salidas (egresos) por área/unidad.
  - MOVIMIENTO <-> USUARIO (N:N) a través de movimiento_user_reads para marcar notificaciones leídas.
  - MOVIMIENTO (egreso) lleva una MODALIDAD: distribución (Central → Destinos) o consumo (entrega real).
+ - USUARIO <-> PERMISO (N:N) a través de permission_user para autorización granular por módulo/acción.
 
 ATRIBUTOS CLAVE POR ENTIDAD
 - CATEGORIA: id, nombre
@@ -29,15 +31,18 @@ ATRIBUTOS CLAVE POR ENTIDAD
 - INVENTARIO_LOTE: id, lote, cantidad, fecha_vencimiento, um_operativa, contenido_por_blister, estado
 - MOVIMIENTO: id, tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), cantidad, fecha, área/salida, destino_id, origen/entrada, motivo, observaciones, tipo_identificacion, sexo
 - USUARIO: id, nombre, email, rol, login_attempts, locked_until, notif_mov_last_seen_id
+- PERMISO: id, slug, nombre, grupo
 - REPORTE: id, nombre, tipo, parámetros/filtros (json; columna física actual: `para  metros`)
 - BITÁCORA: id, acción, fecha_hora
  - DESTINO: id, codigo, nombre, activo, tipo
  - MOVIMIENTO_USER_READS (pivot): movimiento_id, user_id, read_at
+ - PERMISSION_USER (pivot): permission_id, user_id, created_at, updated_at
 
 CARDINALIDADES
 - Un Producto puede tener 0..N Lotes.
 - Un Movimiento afecta 1 Producto y 0..1 Lote (inventario_id nullable; se recomienda 1 lote en egresos/ajustes para trazabilidad).
 - Un Usuario registra 0..N Movimientos, genera 0..N Reportes y tiene 0..N registros en Bitácora.
+- Un Usuario tiene 0..N permisos granulares (si es operador).
 - Un Proveedor suministra 0..N Productos.
  - Un Destino recibe 0..N egresos (distribución y consumo); la modalidad se define por movimiento.
 
@@ -70,6 +75,14 @@ ACTUALIZACIÓN 26/02/2026
 - Se aclara que `productos.proveedor_id`, `productos.created_by` y `productos.updated_by` existen a nivel de atributo y modelo, pero actualmente no tienen FK física declarada en migraciones.
 - Se ajusta cardinalidad conceptual de MOVIMIENTO → INVENTARIO_LOTE a 0..1 para reflejar nulabilidad real de `inventario_id`.
 
+ACTUALIZACIÓN 08/03/2026
+- Se incorporan las entidades de autorización granular: `PERMISO` y pivote `PERMISSION_USER`.
+- Se formaliza en el modelo conceptual que:
+	- `admin` mantiene acceso total por política del sistema.
+	- `operador` accede por permisos de checklist (categorías, medicamentos, inventario, movimientos, reportes).
+- Se documenta la protección de superadmin (primer usuario del sistema) para operaciones críticas de gestión de usuarios.
+- Se añade validación reforzada en categorías/subcategorías con sanitización y filtros anti-entrada sospechosa (backend + frontend).
+
 EJEMPLO VISUAL (MERMAID)
 
 PRODUCTO ||--o{ INVENTARIO_LOTE : tiene
@@ -79,6 +92,8 @@ DESTINO ||--o{ MOVIMIENTO : agrupa
 MOVIMIENTO ||--o{ DESTINO : egreso_modalidad
 MOVIMIENTO ||--o{ MOVIMIENTO_USER_READS : tiene
 USUARIO ||--o{ MOVIMIENTO_USER_READS : marca
+USUARIO ||--o{ PERMISSION_USER : posee
+PERMISO ||--o{ PERMISSION_USER : asigna
 
 CATEGORIA ||--o{ SUBCATEGORIA : tiene
 CATEGORIA ||--o{ PRODUCTO : clasifica

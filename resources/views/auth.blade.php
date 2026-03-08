@@ -136,17 +136,17 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         @csrf
         <h1>Crear Cuenta</h1>
         <div id="register-alert" class="alert-box" role="alert"></div>
-        <input type="text" name="username" placeholder="Usuario" required />
-        <input type="email" name="email" placeholder="Correo" required />
+        <input type="text" name="username" placeholder="Usuario" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre de usuario: solo letras y espacios (máx. 40)." />
+        <input type="email" name="email" placeholder="Correo" required maxlength="60" title="Correo válido, máximo 60 caracteres." />
         <div class="input-with-eye">
-          <input type="password" name="password" id="register_password" placeholder="Contraseña (mínimo 16 caracteres)" required minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" />
+          <input type="password" name="password" id="register_password" placeholder="Contraseña" required minlength="16" maxlength="30" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: 16 a 30 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." />
           <span class="toggle-pwd" data-target="register_password">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
         </div>
-        <input type="text" name="color" placeholder="¿Color favorito?" required />
-        <input type="text" name="animal" placeholder="¿Animal favorito?" required />
-        <input type="text" name="padre" placeholder="¿Nombre del padre?" required />
+        <input type="text" name="color" placeholder="¿Color favorito?" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Color favorito: solo letras y espacios (máx. 40)." />
+        <input type="text" name="animal" placeholder="¿Animal favorito?" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Animal favorito: solo letras y espacios (máx. 40)." />
+        <input type="text" name="padre" placeholder="¿Nombre del padre?" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre del padre: solo letras y espacios (máx. 40)." />
         {{-- reCAPTCHA v2 para registro (solo si está habilitado) --}}
         @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
           <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
@@ -234,12 +234,89 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
     registerForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (registerAlert) { registerAlert.style.display = 'none'; registerAlert.textContent = ''; registerAlert.className = 'alert-box'; }
-      // Validación previa de contraseña (UX)
+      const onlyLettersRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$/;
+      const typoDomains = ['gmai.com', 'gmial.com', 'gmal.com', 'hotnail.com', 'yaho.com'];
+      const sanitizeText = (value) => (value || '').trim().replace(/\s+/g, ' ');
+      const isSuspiciousText = (value) => {
+        const clean = sanitizeText(value);
+        const compact = clean.replace(/\s+/g, '');
+        if (!clean) return true;
+        if (/(.)\1{3,}/u.test(compact)) return true;
+        if (!clean.includes(' ') && compact.length > 12) return true;
+        return false;
+      };
+      const isSuspiciousEmail = (value) => {
+        const email = (value || '').trim().toLowerCase();
+        const parts = email.split('@');
+        if (parts.length !== 2) return true;
+        const localPart = parts[0] || '';
+        const domain = parts[1] || '';
+        if (typoDomains.includes(domain)) return true;
+        if (!localPart || /^\d+$/.test(localPart)) return true;
+        if (/(.)\1{4,}/.test(localPart)) return true;
+        if (localPart.length > 18 && !/[._-]/.test(localPart)) return true;
+        return false;
+      };
+
+      const usernameInput = registerForm.querySelector('input[name="username"]');
+      const emailInput = registerForm.querySelector('input[name="email"]');
       const pwdInput = registerForm.querySelector('input[name="password"]');
-      const pwdVal = pwdInput?.value || '';
-      const strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
-      if (pwdVal.length < 16 || !strongRegex.test(pwdVal)){
-        registerAlert.textContent = 'La contraseña debe tener al menos 16 caracteres e incluir letras y números.';
+      const colorInput = registerForm.querySelector('input[name="color"]');
+      const animalInput = registerForm.querySelector('input[name="animal"]');
+      const padreInput = registerForm.querySelector('input[name="padre"]');
+
+      const usernameVal = sanitizeText(usernameInput?.value || '');
+      const emailVal = (emailInput?.value || '').trim().toLowerCase();
+      const pwdVal = (pwdInput?.value || '').trim();
+      const colorVal = sanitizeText(colorInput?.value || '');
+      const animalVal = sanitizeText(animalInput?.value || '');
+      const padreVal = sanitizeText(padreInput?.value || '');
+
+      if (usernameInput) usernameInput.value = usernameVal;
+      if (emailInput) emailInput.value = emailVal;
+      if (pwdInput) pwdInput.value = pwdVal;
+      if (colorInput) colorInput.value = colorVal;
+      if (animalInput) animalInput.value = animalVal;
+      if (padreInput) padreInput.value = padreVal;
+
+      if (usernameVal.length < 3 || usernameVal.length > 40 || !onlyLettersRegex.test(usernameVal) || isSuspiciousText(usernameVal)) {
+        registerAlert.textContent = 'Nombre de usuario inválido: solo texto real, sin números, máximo 40 caracteres.';
+        registerAlert.style.display = 'block';
+        usernameInput?.focus();
+        return;
+      }
+
+      if (!emailVal || emailVal.length > 60 || isSuspiciousEmail(emailVal)) {
+        registerAlert.textContent = 'Correo inválido: verifica formato/dominio y máximo 60 caracteres.';
+        registerAlert.style.display = 'block';
+        emailInput?.focus();
+        return;
+      }
+
+      const questionValues = [
+        { input: colorInput, value: colorVal, label: 'Color favorito' },
+        { input: animalInput, value: animalVal, label: 'Animal favorito' },
+        { input: padreInput, value: padreVal, label: 'Nombre del padre' },
+      ];
+      for (const field of questionValues) {
+        if (field.value.length < 2 || field.value.length > 40 || !onlyLettersRegex.test(field.value) || isSuspiciousText(field.value)) {
+          registerAlert.textContent = `${field.label} inválido: solo texto real, sin números, máximo 40 caracteres.`;
+          registerAlert.style.display = 'block';
+          field.input?.focus();
+          return;
+        }
+      }
+
+      // Validación previa de contraseña (UX)
+      const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+$/;
+      const suspiciousPassword = (value) => {
+        if (/^\d+$/.test(value)) return true;
+        if (/(.)\1{4,}/u.test(value)) return true;
+        if (new Set(value.split('')).size < 4) return true;
+        return false;
+      };
+      if (pwdVal.length < 16 || pwdVal.length > 30 || !strongRegex.test(pwdVal) || suspiciousPassword(pwdVal)) {
+        registerAlert.textContent = 'Contraseña inválida: usa 16-30 caracteres, con mayúscula, minúscula, número, símbolo y sin patrones repetitivos.';
         registerAlert.style.display = 'block';
         pwdInput?.focus();
         return;
@@ -407,6 +484,11 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
       if (lockInterval) { clearInterval(lockInterval); lockInterval = null; }
       // Éxito: redirigir
       if (data?.success && data?.redirect){
+        if (typeof data?.notice === 'string' && data.notice.trim() !== '') {
+          try {
+            sessionStorage.setItem('post_login_notice', data.notice);
+          } catch(_){ }
+        }
         redirecting = true;
         window.location.href = data.redirect;
       } else {

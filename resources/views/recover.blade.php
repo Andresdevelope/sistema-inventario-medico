@@ -72,6 +72,43 @@ button:hover{ background:var(--accentH); }
  .modal .actions button:last-child { background: transparent; border:1px solid var(--accent); color: var(--accent); }
 .link{ color:var(--accent); text-decoration:none; }
 .link:hover{ color:var(--accentH); }
+
+/* Toasts de recuperación */
+.recover-toast-wrap{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:12000;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  pointer-events:none;
+  width:min(92vw, 380px);
+}
+.recover-toast{
+  width:100%;
+  background:#1f2937;
+  color:#f9fafb;
+  border:1px solid rgba(255,255,255,.18);
+  border-left:6px solid var(--accent);
+  border-radius:12px;
+  box-shadow:0 14px 30px rgba(0,0,0,.35);
+  padding:14px 16px;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.45;
+  opacity:0;
+  transition:opacity .22s ease;
+}
+.recover-toast.show{ opacity:1; }
+.recover-toast.error{ border-left-color:#ef4444; background:#7f1d1d; color:#fee2e2; }
+.recover-toast.success{ border-left-color:#22c55e; background:#14532d; color:#dcfce7; }
+.recover-toast.info{ border-left-color:#f59e0b; background:#78350f; color:#fef3c7; }
+.recover-toast-content{ display:flex; align-items:flex-start; gap:10px; }
+.recover-toast-icon{ font-size:18px; line-height:1; margin-top:1px; }
+.recover-toast-message{ flex:1; }
+.recover-toast-details{ margin:6px 0 0 16px; padding:0; }
+.recover-toast-details li{ margin:2px 0; }
 </style>
 @endpush
 
@@ -88,7 +125,7 @@ button:hover{ background:var(--accentH); }
     <p>Ingresa tu correo registrado para continuar</p>
     <form id="recover-email-form">
       @csrf
-  <input type="email" id="recover-email" placeholder="Correo registrado" required autocomplete="username" />
+  <input type="email" id="recover-email" placeholder="Correo registrado" required autocomplete="username" maxlength="60" title="Correo válido, máximo 60 caracteres." />
       {{-- reCAPTCHA v2 para recuperación (paso de correo, solo si está habilitado) --}}
       @if(config('services.recaptcha.enabled') && config('services.recaptcha.site_key'))
         <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px auto 14px;display:inline-block;"></div>
@@ -104,10 +141,10 @@ button:hover{ background:var(--accentH); }
       <h3>Verificación de seguridad</h3>
       <form id="security-recover-form">
         <div id="security-recover-alert" class="alert-box" role="alert" style="margin-bottom:8px;"></div>
-  <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" />
-  <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" />
+  <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Color favorito: solo letras y espacios (máx. 40)." />
+  <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Animal favorito: solo letras y espacios (máx. 40)." />
         <div id="padre-container" style="display:none;">
-          <input type="text" name="padre" placeholder="¿Nombre del padre?" autocomplete="off" />
+          <input type="text" name="padre" placeholder="¿Nombre del padre?" autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre del padre: solo letras y espacios (máx. 40)." />
         </div>
         <div class="actions">
           <button type="submit">Verificar</button>
@@ -122,7 +159,7 @@ button:hover{ background:var(--accentH); }
       <form id="change-password-form">
         <!-- Campo nueva contraseña con ojito -->
         <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
-          <input type="password" name="new_password" id="new_password" placeholder="Nueva contraseña (mínimo 16 caracteres)" required autocomplete="new-password" minlength="16" pattern="(?=.*[A-Za-z])(?=.*\d).+" style="padding-right:40px;" />
+          <input type="password" name="new_password" id="new_password" placeholder="Nueva contraseña" required autocomplete="new-password" minlength="16" maxlength="30" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: 16 a 30 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." style="padding-right:40px;" />
           <span class="toggle-pwd" data-target="new_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -135,7 +172,7 @@ button:hover{ background:var(--accentH); }
         </div>
         <!-- Campo confirmar contraseña con ojito -->
         <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
-          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" style="padding-right:40px;" />
+          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" maxlength="30" title="Debe coincidir exactamente con la nueva contraseña." style="padding-right:40px;" />
           <span class="toggle-pwd" data-target="confirm_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -155,7 +192,7 @@ button:hover{ background:var(--accentH); }
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endif
 <script>
-let recoverUserId = null;
+let recoverFlowToken = null;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const recoverAlert = document.getElementById('recover-alert');
 
@@ -164,6 +201,123 @@ const routeCheckEmail = "{{ url('/recover/check-email') }}";
 const routeCheckSecurity = "{{ url('/recover/check-security') }}";
 const routeChangePassword = "{{ url('/recover/change-password') }}";
 const routeLogin = "{{ url('/login') }}";
+const typoDomains = ['gmai.com', 'gmial.com', 'gmal.com', 'hotnail.com', 'yaho.com'];
+const onlyLettersRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$/;
+
+function sanitizeText(value){ return (value || '').trim().replace(/\s+/g, ' '); }
+function isSuspiciousText(value){
+  const clean = sanitizeText(value);
+  const compact = clean.replace(/\s+/g, '');
+  if (!clean) return true;
+  if (/(.)\1{3,}/u.test(compact)) return true;
+  if (!clean.includes(' ') && compact.length > 12) return true;
+  return false;
+}
+function isSuspiciousEmail(value){
+  const email = (value || '').trim().toLowerCase();
+  const parts = email.split('@');
+  if (parts.length !== 2) return true;
+  const localPart = parts[0] || '';
+  const domain = parts[1] || '';
+  if (typoDomains.includes(domain)) return true;
+  if (!localPart || /^\d+$/.test(localPart)) return true;
+  if (/(.)\1{4,}/.test(localPart)) return true;
+  if (localPart.length > 18 && !/[._-]/.test(localPart)) return true;
+  return false;
+}
+function isSuspiciousPassword(value){
+  const pwd = (value || '').trim();
+  if (/^\d+$/.test(pwd)) return true;
+  if (/(.)\1{4,}/u.test(pwd)) return true;
+  if (new Set(pwd.split('')).size < 4) return true;
+  return false;
+}
+
+function getPasswordFeedback(password){
+  const pwd = (password || '').trim();
+  const missing = [];
+  if (pwd.length < 16 || pwd.length > 30) missing.push('Debe tener entre 16 y 30 caracteres.');
+  if (!/[A-Z]/.test(pwd)) missing.push('Debe incluir al menos una letra mayúscula.');
+  if (!/[a-z]/.test(pwd)) missing.push('Debe incluir al menos una letra minúscula.');
+  if (!/\d/.test(pwd)) missing.push('Debe incluir al menos un número.');
+  if (!/[^A-Za-z0-9]/.test(pwd)) missing.push('Debe incluir al menos un símbolo.');
+  if (/\s/.test(pwd)) missing.push('No debe contener espacios.');
+  if (/^\d+$/.test(pwd) || /(.)\1{4,}/u.test(pwd) || new Set(pwd.split('')).size < 4) {
+    missing.push('Evita secuencias o repeticiones simples.');
+  }
+  return { valid: missing.length === 0, missing };
+}
+
+function showRecoverToast(message, type = 'error', timeout = 3600, details = []){
+  let wrap = document.getElementById('recover-toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'recover-toast-wrap';
+    wrap.className = 'recover-toast-wrap';
+    document.body.appendChild(wrap);
+  }
+
+  let toast = document.getElementById('recover-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'recover-toast';
+    wrap.appendChild(toast);
+  }
+  toast.className = `recover-toast ${type}`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+
+  const iconMap = {
+    error: '❌',
+    success: '✅',
+    info: '⚠️',
+  };
+
+  const content = document.createElement('div');
+  content.className = 'recover-toast-content';
+
+  const icon = document.createElement('span');
+  icon.className = 'recover-toast-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = iconMap[type] || 'ℹ️';
+
+  const messageWrap = document.createElement('div');
+  messageWrap.className = 'recover-toast-message';
+
+  const messageNode = document.createElement('div');
+  messageNode.textContent = message;
+  messageWrap.appendChild(messageNode);
+
+  if (Array.isArray(details) && details.length > 0) {
+    const list = document.createElement('ul');
+    list.className = 'recover-toast-details';
+    details.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      list.appendChild(li);
+    });
+    messageWrap.appendChild(list);
+  }
+
+  content.appendChild(icon);
+  content.appendChild(messageWrap);
+  toast.innerHTML = '';
+  toast.appendChild(content);
+
+  if (window.recoverToastTimer) {
+    clearTimeout(window.recoverToastTimer);
+    window.recoverToastTimer = null;
+  }
+
+  toast.classList.add('show');
+  window.recoverToastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, timeout);
+}
+
+let lastPwdToastSignature = '';
+let lastPwdToastAt = 0;
+let pwdSuccessShown = false;
 
 window.addEventListener('load', () => {
   const params = new URLSearchParams(window.location.search);
@@ -177,8 +331,20 @@ window.addEventListener('load', () => {
 
 document.getElementById('recover-email-form').addEventListener('submit', function(e){
   e.preventDefault();
-  const email = document.getElementById('recover-email').value.trim();
+  const emailInput = document.getElementById('recover-email');
+  const email = (emailInput.value || '').trim().toLowerCase();
+  emailInput.value = email;
   if (recoverAlert){ recoverAlert.style.display='none'; recoverAlert.textContent=''; recoverAlert.className='alert-box'; }
+
+  if (!email || email.length > 60 || isSuspiciousEmail(email)) {
+    if (recoverAlert) {
+      recoverAlert.textContent = 'Correo inválido: verifica formato/dominio y máximo 60 caracteres.';
+      recoverAlert.style.display = 'block';
+    }
+    emailInput.focus();
+    return;
+  }
+
   // Validación reCAPTCHA para el paso de correo (si está activo)
   let captchaToken = null;
   try {
@@ -202,7 +368,7 @@ document.getElementById('recover-email-form').addEventListener('submit', functio
   }).then(async r => {
   const data = await r.json().catch(() => null);
     if (data && data.success){
-      recoverUserId = data.user_id;
+      recoverFlowToken = data.flow_token || null;
       document.getElementById('security-recover-modal').style.display = 'flex';
     } else {
       if (recoverAlert){
@@ -226,15 +392,47 @@ document.getElementById('recover-email-form').addEventListener('submit', functio
 
 document.getElementById('security-recover-form').addEventListener('submit', function(e){
   e.preventDefault();
-  const color = this.color.value.trim();
-  const animal = this.animal.value.trim();
+  const color = sanitizeText(this.color.value);
+  const animal = sanitizeText(this.animal.value);
   const padreInput = this.querySelector('input[name="padre"]');
-  const padre = padreInput ? padreInput.value.trim() : '';
+  const padre = padreInput ? sanitizeText(padreInput.value) : '';
   const alertBox = document.getElementById('security-recover-alert');
   if (alertBox) { alertBox.style.display = 'none'; alertBox.textContent = ''; alertBox.className = 'alert-box'; }
+
+  this.color.value = color;
+  this.animal.value = animal;
+  if (padreInput) padreInput.value = padre;
+
+  const baseFields = [
+    { value: color, input: this.color, label: 'Color favorito' },
+    { value: animal, input: this.animal, label: 'Animal favorito' },
+  ];
+  for (const field of baseFields) {
+    if (field.value.length < 2 || field.value.length > 40 || !onlyLettersRegex.test(field.value) || isSuspiciousText(field.value)) {
+      if (alertBox) {
+        alertBox.textContent = `${field.label} inválido: solo texto real, sin números, máximo 40 caracteres.`;
+        alertBox.style.display = 'block';
+      }
+      field.input?.focus();
+      return;
+    }
+  }
+
+  const padreVisible = document.getElementById('padre-container')?.style.display === 'block';
+  if (padreVisible && padreInput) {
+    if (padre.length < 2 || padre.length > 40 || !onlyLettersRegex.test(padre) || isSuspiciousText(padre)) {
+      if (alertBox) {
+        alertBox.textContent = 'Nombre del padre inválido: solo texto real, sin números, máximo 40 caracteres.';
+        alertBox.style.display = 'block';
+      }
+      padreInput.focus();
+      return;
+    }
+  }
+
   fetch(routeCheckSecurity, {
     method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
-    body: JSON.stringify({ user_id: recoverUserId, color, animal, padre })
+    body: JSON.stringify({ flow_token: recoverFlowToken, color, animal, padre })
   }).then(r => r.json()).then(data => {
     if (data && data.success){
       document.getElementById('security-recover-modal').style.display = 'none';
@@ -284,9 +482,11 @@ document.getElementById('security-recover-form').addEventListener('submit', func
 
 document.getElementById('change-password-form').addEventListener('submit', function(e){
   e.preventDefault();
-  const newPassword = this.new_password.value;
-  const confirmPassword = this.confirm_password.value;
-  const strongRegex = /(?=.*[A-Za-z])(?=.*\d).+/;
+  const newPassword = (this.new_password.value || '').trim();
+  const confirmPassword = (this.confirm_password.value || '').trim();
+  this.new_password.value = newPassword;
+  this.confirm_password.value = confirmPassword;
+  const pwdFeedback = getPasswordFeedback(newPassword || '');
   // Medidor visual
   (function(){
     const fill = document.getElementById('recover-pwd-fill');
@@ -295,21 +495,21 @@ document.getElementById('change-password-form').addEventListener('submit', funct
     const sc = score(newPassword||''); let pct = Math.round((sc/6)*100);
     let label='Débil', color='#dc3545';
     if ((newPassword||'').length >= 16) { label='Fuerte'; color='#28a745'; pct = 100; }
-    if(sc===6){ label='Excelente'; color:'#20c997'; pct = 100; }
+    if(sc===6){ label='Excelente'; color='#20c997'; pct = 100; }
     if (fill) fill.style.width = pct+'%';
     if (fill) fill.style.background=color; if (hint) hint.textContent='Fortaleza: '+label;
   })();
-  if ((newPassword||'').length < 16 || !strongRegex.test(newPassword||'')){
-    alert('La contraseña debe tener al menos 16 caracteres e incluir letras y números.');
+  if (!pwdFeedback.valid || isSuspiciousPassword(newPassword||'')){
+    showRecoverToast('Tu contraseña aún no cumple los requisitos.', 'error', 5200, pwdFeedback.missing);
     return;
   }
   if (newPassword !== confirmPassword){
-    alert('Las contraseñas no coinciden');
+    showRecoverToast('Las contraseñas no coinciden.', 'error');
     return;
   }
   fetch(routeChangePassword, {
     method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
-    body: JSON.stringify({ user_id: recoverUserId, password: newPassword })
+    body: JSON.stringify({ flow_token: recoverFlowToken, password: newPassword })
   }).then(r => r.json()).then(data => {
     if (data && data.success){
       document.getElementById('change-password-modal').style.display = 'none';
@@ -332,9 +532,9 @@ document.getElementById('change-password-form').addEventListener('submit', funct
       }
       setTimeout(() => { window.location.href = routeLogin; }, 2200);
     } else {
-      alert('Error al cambiar la contraseña');
+      showRecoverToast((data && data.message) ? data.message : 'No se pudo cambiar la contraseña. Intenta nuevamente.', 'error');
     }
-  }).catch(() => alert('Error de red.'));
+  }).catch(() => showRecoverToast('Error de red. Verifica tu conexión e intenta nuevamente.', 'error'));
 });
 
 document.getElementById('cancel-security').addEventListener('click', ()=>{
@@ -352,9 +552,33 @@ document.querySelector('#change-password-form input[name="new_password"]').addEv
   const sc = score(p); let pct = Math.round((sc/6)*100);
   let label='Débil', color='#dc3545';
   if (p.length >= 16) { label='Fuerte'; color:'#28a745'; pct = 100; }
-  if(sc===6){label='Excelente';color:'#20c997'; pct = 100; }
+  if(sc===6){label='Excelente';color='#20c997'; pct = 100; }
   if (fill) fill.style.width = pct+'%';
   if (fill) fill.style.background=color; if (hint) hint.textContent='Fortaleza: '+label;
+
+  if (!p) {
+    lastPwdToastSignature = '';
+    pwdSuccessShown = false;
+    return;
+  }
+
+  const feedback = getPasswordFeedback(p);
+  const signature = feedback.missing.join('|');
+  const now = Date.now();
+
+  if (!feedback.valid) {
+    pwdSuccessShown = false;
+    if (signature !== lastPwdToastSignature && (now - lastPwdToastAt) > 1200) {
+      showRecoverToast('Te falta cumplir estos requisitos de contraseña:', 'info', 3400, feedback.missing);
+      lastPwdToastSignature = signature;
+      lastPwdToastAt = now;
+    }
+  } else if (!pwdSuccessShown) {
+    showRecoverToast('¡Perfecto! La contraseña cumple todos los requisitos.', 'success', 2200);
+    pwdSuccessShown = true;
+    lastPwdToastSignature = '';
+    lastPwdToastAt = now;
+  }
 });
 // Mostrar/ocultar contraseña
 if (window.addEventListener) {

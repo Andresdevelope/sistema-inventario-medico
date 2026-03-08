@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use App\Models\Bitacora;
 use App\Models\Destino;
 use App\Services\ReportesMovimientosService;
@@ -13,6 +14,19 @@ use Carbon\Carbon;
 
 class ReportesController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('permission:reportes.inventario')->only(['exportInventarioPdf']);
+        $this->middleware('permission:reportes.salida')->only(['exportConsumoPdf', 'exportDetalleConsumoPdf']);
+    }
+
+    private function currentUser(): ?User
+    {
+        $user = Auth::user();
+        return $user instanceof User ? $user : null;
+    }
+
     public function index(Request $request)
     {
         $from = $request->input('from');
@@ -26,6 +40,12 @@ class ReportesController extends Controller
         $modalidadReporte = $request->input('modalidad_reporte', 'inventario');
         if (!in_array($modalidadReporte, ['inventario', 'consumo'])) {
             $modalidadReporte = 'inventario';
+        }
+
+        $requiredPermission = $modalidadReporte === 'consumo' ? 'reportes.salida' : 'reportes.inventario';
+        $user = $this->currentUser();
+        if (!$user || !$user->hasPermission($requiredPermission)) {
+            return redirect('/dashboard')->with('error', 'Acceso restringido: no tienes permisos para consultar ese tipo de reporte.');
         }
         // Si el usuario seleccionó sólo periodo, intentar construir desde/hasta
         if (!$from || !$to) {
@@ -104,6 +124,11 @@ class ReportesController extends Controller
 
     public function exportInventarioPdf(Request $request)
     {
+        $user = $this->currentUser();
+        if (!$user || !$user->hasPermission('reportes.inventario')) {
+            return redirect()->route('reportes.index')->with('error', 'No tienes permisos para exportar reportes de inventario.');
+        }
+
         $to = $request->input('to');
         $periodo = $request->input('periodo');
         $tipo = $request->input('tipo');
@@ -146,6 +171,11 @@ class ReportesController extends Controller
 
     public function exportConsumoPdf(Request $request)
     {
+        $user = $this->currentUser();
+        if (!$user || !$user->hasPermission('reportes.salida')) {
+            return redirect()->route('reportes.index')->with('error', 'No tienes permisos para exportar reportes de salidas.');
+        }
+
         $from = $request->input('from');
         $to = $request->input('to');
         [$from, $to, $rangeError] = $this->normalizeDateRange($from, $to);
@@ -200,6 +230,11 @@ class ReportesController extends Controller
 
     public function exportDetalleConsumoPdf(Request $request)
     {
+        $user = $this->currentUser();
+        if (!$user || !$user->hasPermission('reportes.salida')) {
+            return redirect()->route('reportes.index')->with('error', 'No tienes permisos para exportar el detalle de consumo.');
+        }
+
         $from = $request->input('from');
         $to = $request->input('to');
         [$from, $to, $rangeError] = $this->normalizeDateRange($from, $to);

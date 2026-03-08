@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\Auth;
 
 class InventarioController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:inventario.ver')->only(['index']);
+    }
+
     /**
      * Muestra el inventario consolidado con filtros y KPIs.
      * Permite buscar por nombre, categoría, categoría de inventario y fecha de ingreso.

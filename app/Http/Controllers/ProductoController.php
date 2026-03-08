@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 
 class ProductoController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:medicamentos.ver')->only(['index','show','buscarAjax']);
+        $this->middleware('permission:medicamentos.crear')->only(['create','store']);
+        $this->middleware('permission:medicamentos.editar')->only(['edit','update']);
+        $this->middleware('permission:medicamentos.eliminar')->only(['destroy']);
+    }
+
     /**
      * Display a listing of the products.
      */
@@ -120,7 +128,6 @@ class ProductoController extends Controller
 
         return redirect()->route('productos.index')->with('success', 'Producto creado correctamente.');
     }
-
 
     /**
      * Endpoint AJAX para búsquedas incrementales desde el módulo de movimientos.

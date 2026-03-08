@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Producto;
 use App\Models\Bitacora;
 use App\Models\Movimiento;
@@ -15,8 +16,48 @@ use Illuminate\Support\Facades\DB;
 
 class MovimientosController extends Controller
 {
+    private function canAccessMovimientosModule(?User $user = null): bool
+    {
+        $user = $user ?: $this->currentUser();
+        return (bool) ($user && $user->hasAnyPermission([
+            'movimientos.entrada',
+            'movimientos.distribucion',
+            'movimientos.consumo',
+            'movimientos.ajuste_positivo',
+            'movimientos.ajuste_negativo',
+        ]));
+    }
+
+    private function canAccessMovimientosSupportData(?User $user = null): bool
+    {
+        $user = $user ?: $this->currentUser();
+        if (!$user) {
+            return false;
+        }
+
+        // Se permite soporte de datos si puede operar movimientos o al menos consultar inventario.
+        return $this->canAccessMovimientosModule($user) || $user->hasPermission('inventario.ver');
+    }
+
+    private function currentUser(): ?User
+    {
+        $user = Auth::user();
+        return $user instanceof User ? $user : null;
+    }
+
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index(Request $request)
     {
+        $user = $this->currentUser();
+        $canAccess = $this->canAccessMovimientosModule($user);
+        if (!$canAccess) {
+            return redirect('/dashboard')->with('error', 'Acceso restringido: no tienes permisos para usar el módulo de movimientos.');
+        }
+
         // Incluir tipo_producto para auto-clasificación en la vista (Medicamento/Insumo)
         // Limitamos el set inicial para evitar renderizar cientos de opciones; el resto se consulta vía AJAX.
         $productos = Producto::orderBy('nombre')
@@ -70,6 +111,20 @@ class MovimientosController extends Controller
 
     public function store(Request $request, InventarioService $service)
     {
+        $tipo = (string) $request->input('tipo');
+        $modalidad = (string) $request->input('modalidad');
+        $requiredPermission = match ($tipo) {
+            'ingreso' => 'movimientos.entrada',
+            'ajuste_pos' => 'movimientos.ajuste_positivo',
+            'ajuste_neg' => 'movimientos.ajuste_negativo',
+            'egreso' => $modalidad === 'consumo' ? 'movimientos.consumo' : 'movimientos.distribucion',
+            default => null,
+        };
+        $user = $this->currentUser();
+        if (!$requiredPermission || !$user || !$user->hasPermission($requiredPermission)) {
+            return back()->with('error', 'No tienes permisos para registrar este tipo de movimiento.')->withInput();
+        }
+
         $data = $request->all();
         $validator = Validator::make($data, [
             'producto_id' => 'required|exists:productos,id',
@@ -179,6 +234,13 @@ class MovimientosController extends Controller
      */
     public function inventariosPorProducto(int $productoId)
     {
+        if (! $this->canAccessMovimientosSupportData()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso restringido: no tienes permisos para consultar lotes de movimientos.',
+            ], 403);
+        }
+
         $inventarios = \App\Models\Inventario::where('producto_id', $productoId)
             // Mostrar primero los inventarios con cantidad > 0; los agotados al final
             ->orderByRaw('CASE WHEN cantidad <= 0 THEN 1 ELSE 0 END ASC')
@@ -198,6 +260,13 @@ class MovimientosController extends Controller
      */
     public function distribucionesPorProducto(Producto $producto)
     {
+        if (! $this->canAccessMovimientosSupportData()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Acceso restringido: no tienes permisos para consultar distribuciones por producto.',
+            ], 403);
+        }
+
         $distribuciones = Movimiento::where('producto_id', $producto->id)
             ->whereNotNull('destino_id')
             ->selectRaw(implode(', ', [
@@ -259,6 +328,11 @@ class MovimientosController extends Controller
      */
     public function historialConsumo(Request $request)
     {
+        $user = $this->currentUser();
+        if (!$user || !$user->hasPermission('movimientos.consumo')) {
+            return redirect('/dashboard')->with('error', 'Acceso restringido: no tienes permisos para ver el historial de consumo.');
+        }
+
         $query = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,lote,fecha_vencimiento', 'destino:id,nombre'])
             ->where('tipo', 'egreso')
             ->where('modalidad', 'consumo');

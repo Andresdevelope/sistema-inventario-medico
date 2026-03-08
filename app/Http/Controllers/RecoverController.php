@@ -6,14 +6,35 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class RecoverController extends Controller
 {
     // Verifica si el correo existe y retorna el id del usuario
     public function checkEmail(Request $request)
     {
+        $request->merge([
+            'email' => mb_strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $request->validate([
-            'email' => 'required|email',
+            'email' => [
+                'required',
+                'string',
+                'max:60',
+                'email:rfc',
+                function ($attribute, $value, $fail) {
+                    if (self::isSuspiciousEmail($value)) {
+                        $fail('El correo ingresado no parece válido. Verifica el formato y dominio.');
+                    }
+                },
+            ],
+        ], [
+            'email.required' => 'El correo es obligatorio.',
+            'email.string' => 'El correo debe ser texto válido.',
+            'email.max' => 'El correo no puede superar 60 caracteres.',
+            'email.email' => 'El formato del correo no es válido.',
         ]);
 
         // reCAPTCHA v2 para recuperación (si está habilitado y configurado)
@@ -55,13 +76,23 @@ class RecoverController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
-        if ($user) {
-            return response()->json(['success' => true, 'user_id' => $user->id]);
-        }
-        // Mensaje claro si no existe el correo
+
+        // Token opaco temporal para evitar exponer IDs de usuario en el front.
+        $flowToken = Str::random(64);
+        Cache::put(
+            $this->recoverFlowCacheKey($flowToken),
+            [
+                'user_id' => $user?->id,
+                'valid' => $user !== null,
+            ],
+            now()->addMinutes(10)
+        );
+
+        // Respuesta uniforme para no facilitar enumeración de correos.
         return response()->json([
-            'success' => false,
-            'message' => 'No se encontró ningún usuario con ese correo electrónico.'
+            'success' => true,
+            'flow_token' => $flowToken,
+            'message' => 'Si el correo existe en el sistema, podrás continuar con la verificación de seguridad.'
         ]);
     }
 
@@ -76,37 +107,83 @@ class RecoverController extends Controller
      */
     public function checkSecurity(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|integer',
-            // En el primer intento color/animal son requeridos; para el segundo,
-            // el front reenvía los mismos valores junto con 'padre'.
-            'color' => 'nullable|string',
-            'animal' => 'nullable|string',
-            'padre' => 'nullable|string',
+        $request->merge([
+            'color' => self::emptyToNull(self::sanitizeTextInput($request->input('color'))),
+            'animal' => self::emptyToNull(self::sanitizeTextInput($request->input('animal'))),
+            'padre' => self::emptyToNull(self::sanitizeTextInput($request->input('padre'))),
         ]);
 
-        $user = User::find($request->user_id);
+        $request->validate([
+            'flow_token' => 'required|string|min:20',
+            // En el primer intento color/animal son requeridos; para el segundo,
+            // el front reenvía los mismos valores junto con 'padre'.
+            'color' => [
+                'nullable',
+                'string',
+                'min:2',
+                'max:40',
+                'regex:/^[\pL\s]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($value !== null && self::isSuspiciousText($value)) {
+                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
+                    }
+                },
+            ],
+            'animal' => [
+                'nullable',
+                'string',
+                'min:2',
+                'max:40',
+                'regex:/^[\pL\s]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($value !== null && self::isSuspiciousText($value)) {
+                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
+                    }
+                },
+            ],
+            'padre' => [
+                'nullable',
+                'string',
+                'min:2',
+                'max:40',
+                'regex:/^[\pL\s]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($value !== null && self::isSuspiciousText($value)) {
+                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
+                    }
+                },
+            ],
+        ], [
+            'flow_token.required' => 'El token de recuperación es obligatorio.',
+            'flow_token.min' => 'El token de recuperación no es válido.',
+            'color.min' => 'La respuesta de color favorito debe tener al menos 2 caracteres.',
+            'color.max' => 'La respuesta de color favorito no puede superar 40 caracteres.',
+            'color.regex' => 'La respuesta de color favorito solo debe contener letras y espacios.',
+            'animal.min' => 'La respuesta de animal favorito debe tener al menos 2 caracteres.',
+            'animal.max' => 'La respuesta de animal favorito no puede superar 40 caracteres.',
+            'animal.regex' => 'La respuesta de animal favorito solo debe contener letras y espacios.',
+            'padre.min' => 'La respuesta de nombre del padre debe tener al menos 2 caracteres.',
+            'padre.max' => 'La respuesta de nombre del padre no puede superar 40 caracteres.',
+            'padre.regex' => 'La respuesta de nombre del padre solo debe contener letras y espacios.',
+        ]);
+
+        $flowData = Cache::get($this->recoverFlowCacheKey($request->flow_token));
+        $user = null;
+        if (is_array($flowData) && !empty($flowData['valid']) && !empty($flowData['user_id'])) {
+            $user = User::find((int) $flowData['user_id']);
+        }
+
         if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Usuario no encontrado.'
+                'message' => 'Las respuestas no coinciden con nuestros registros. Intenta nuevamente.'
             ]);
         }
 
         // Helper de normalización para comparar cadenas de manera robusta
-        $normalize = function (?string $v): string {
-            if ($v === null) return '';
-            $v = trim(mb_strtolower($v));
-            // quitar diacríticos básicos
-            $v = str_replace(['á','é','í','ó','ú','ä','ë','ï','ö','ü','ñ'], ['a','e','i','o','u','a','e','i','o','u','n'], $v);
-            // colapsar espacios múltiples
-            $v = preg_replace('/\s+/', ' ', $v);
-            return $v;
-        };
-
-        $colorInput = $normalize($request->color);
-        $animalInput = $normalize($request->animal);
-        $padreInput = $normalize($request->padre);
+        $colorInput = self::normalizeSecurityAnswer($request->color);
+        $animalInput = self::normalizeSecurityAnswer($request->animal);
+        $padreInput = self::normalizeSecurityAnswer($request->padre);
 
         // Hash::check necesita el valor tal cual se guardó; como guardamos normalizado
         // en el registro, también normalizamos antes de hashear en registro.
@@ -189,14 +266,47 @@ class RecoverController extends Controller
     // Cambia la contraseña del usuario
     public function changePassword(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|integer',
-            'password' => 'required|string|min:16',
+        $request->merge([
+            'password' => self::sanitizePasswordInput($request->input('password')),
         ]);
-        $user = User::find($request->user_id);
+
+        $request->validate([
+            'flow_token' => 'required|string|min:20',
+            'password' => [
+                'required',
+                'string',
+                'min:16',
+                'max:30',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+$/',
+                function ($attribute, $value, $fail) {
+                    if (self::isSuspiciousPassword($value)) {
+                        $fail('La contraseña no parece segura. Evita secuencias o patrones repetitivos.');
+                    }
+                },
+            ],
+        ], [
+            'flow_token.required' => 'El token de recuperación es obligatorio.',
+            'flow_token.min' => 'El token de recuperación no es válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.string' => 'La contraseña debe ser texto válido.',
+            'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
+            'password.max' => 'La contraseña no puede superar 30 caracteres.',
+            'password.regex' => 'La contraseña debe incluir al menos una mayúscula, una minúscula, un número y un símbolo, sin espacios.',
+        ]);
+
+        $flowData = Cache::get($this->recoverFlowCacheKey($request->flow_token));
+        if (!is_array($flowData) || empty($flowData['valid']) || empty($flowData['user_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo cambiar la contraseña. El proceso de recuperación expiró o es inválido.'
+            ]);
+        }
+
+        $user = User::find((int) $flowData['user_id']);
         if ($user) {
             $user->password = Hash::make($request->password);
             $user->save();
+            Cache::forget($this->recoverFlowCacheKey($request->flow_token));
             return response()->json([
                 'success' => true,
                 'message' => 'Contraseña cambiada correctamente. Ya puedes iniciar sesión.'
@@ -206,5 +316,74 @@ class RecoverController extends Controller
             'success' => false,
             'message' => 'No se pudo cambiar la contraseña. Usuario no encontrado.'
         ]);
+    }
+
+    private function recoverFlowCacheKey(string $token): string
+    {
+        return 'recover_flow:' . $token;
+    }
+
+    private static function emptyToNull(?string $v): ?string
+    {
+        if ($v === null) return null;
+        $trimmed = trim($v);
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private static function sanitizeTextInput(?string $v): string
+    {
+        if ($v === null) return '';
+        return preg_replace('/\s+/u', ' ', trim($v));
+    }
+
+    private static function sanitizePasswordInput(?string $v): string
+    {
+        if ($v === null) return '';
+        return trim($v);
+    }
+
+    private static function normalizeSecurityAnswer(?string $v): string
+    {
+        if ($v === null) return '';
+        $v = trim(mb_strtolower($v));
+        $v = str_replace(['á','é','í','ó','ú','ä','ë','ï','ö','ü','ñ'], ['a','e','i','o','u','a','e','i','o','u','n'], $v);
+        $v = preg_replace('/\s+/', ' ', $v);
+        return $v;
+    }
+
+    private static function isSuspiciousText(?string $v): bool
+    {
+        $value = self::sanitizeTextInput($v);
+        if ($value === '') return true;
+
+        $compact = preg_replace('/\s+/u', '', $value);
+        if (preg_match('/(.)\1{3,}/u', $compact)) return true;
+        if (!str_contains($value, ' ') && mb_strlen($compact) > 12) return true;
+        return false;
+    }
+
+    private static function isSuspiciousEmail(?string $email): bool
+    {
+        $email = mb_strtolower(trim((string) $email));
+        if ($email === '' || !str_contains($email, '@')) return true;
+
+        [$localPart, $domain] = explode('@', $email, 2);
+        $typoDomains = ['gmai.com', 'gmial.com', 'gmal.com', 'hotnail.com', 'yaho.com'];
+
+        if (in_array($domain, $typoDomains, true)) return true;
+        if ($localPart === '' || preg_match('/^\d+$/', $localPart)) return true;
+        if (preg_match('/(.)\1{4,}/', $localPart)) return true;
+        if (mb_strlen($localPart) > 18 && !preg_match('/[._-]/', $localPart)) return true;
+        return false;
+    }
+
+    private static function isSuspiciousPassword(?string $password): bool
+    {
+        $password = self::sanitizePasswordInput($password);
+        if ($password === '') return true;
+        if (preg_match('/^\d+$/', $password)) return true;
+        if (preg_match('/(.)\1{4,}/u', $password)) return true;
+        if (count(array_unique(str_split($password))) < 4) return true;
+        return false;
     }
 }

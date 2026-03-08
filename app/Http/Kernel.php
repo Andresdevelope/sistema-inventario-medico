@@ -47,6 +47,7 @@ class Kernel extends HttpKernel
     protected $middlewareAliases = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        'permission' => \App\Http\Middleware\PermissionMiddleware::class,
         // Límite de peticiones por usuario/IP
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];
@@ -55,6 +56,7 @@ class Kernel extends HttpKernel
     protected $routeMiddleware = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        'permission' => \App\Http\Middleware\PermissionMiddleware::class,
         // Alias adicional por compatibilidad con código que usa routeMiddleware
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];

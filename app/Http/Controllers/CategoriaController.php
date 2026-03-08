@@ -10,6 +10,64 @@ use App\Models\Producto;
 
 class CategoriaController extends Controller
 {
+    private function sanitizeLabel(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $text = trim($value);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return $text;
+    }
+
+    private function looksSuspiciousLabel(?string $value): bool
+    {
+        $text = $this->sanitizeLabel($value);
+        if ($text === '') {
+            return true;
+        }
+
+        $compact = preg_replace('/\s+/u', '', $text) ?? '';
+        $lettersOnly = preg_replace('/[^\pL]/u', '', $text) ?? '';
+
+        // No permitir entradas compuestas solo por números.
+        if (preg_match('/^\d+$/u', $compact)) {
+            return true;
+        }
+
+        // Debe contener al menos 2 letras reales.
+        if (mb_strlen($lettersOnly) < 2) {
+            return true;
+        }
+
+        // Repetición excesiva del mismo carácter: aaaaaaaa, 11111111.
+        if (preg_match('/(.)\1{4,}/u', $compact)) {
+            return true;
+        }
+
+        // Cadenas muy largas de consonantes suelen ser ruido.
+        if (preg_match('/[bcdfghjklmnñpqrstvwxyz]{8,}/iu', $lettersOnly)) {
+            return true;
+        }
+
+        // Secuencias alfabéticas sin vocales o muy largas sin separación.
+        if (!str_contains($text, ' ') && mb_strlen($lettersOnly) > 14) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function __construct()
+    {
+        $this->middleware('permission:categorias.ver')->only(['index','listar','dependencias','subcategoriasPorCategoria']);
+        $this->middleware('permission:categorias.crear')->only(['store']);
+        $this->middleware('permission:categorias.editar')->only(['update','updateSubcategoria']);
+        $this->middleware('permission:categorias.eliminar')->only(['destroy']);
+    }
+
     /**
      * Devuelve las subcategorías de una categoría específica (AJAX).
      */
@@ -40,12 +98,49 @@ class CategoriaController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge([
+            'nombre_categoria' => $this->sanitizeLabel($request->input('nombre_categoria')),
+            'nombre_subcategoria' => $this->sanitizeLabel($request->input('nombre_subcategoria')),
+        ]);
+
         $request->validate([
-            'nombre_categoria' => 'required|string|max:255',
-            'nombre_subcategoria' => 'nullable|string|max:255',
+            'nombre_categoria' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la categoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+            'nombre_subcategoria' => [
+                'nullable',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ((string) $value !== '' && $this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la subcategoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+        ], [
+            'nombre_categoria.required' => 'El nombre de la categoría es obligatorio.',
+            'nombre_categoria.string' => 'El nombre de la categoría debe ser texto válido.',
+            'nombre_categoria.min' => 'El nombre de la categoría debe tener al menos 2 caracteres.',
+            'nombre_categoria.max' => 'El nombre de la categoría no puede superar 80 caracteres.',
+            'nombre_categoria.regex' => 'El nombre de la categoría contiene caracteres no permitidos.',
+            'nombre_subcategoria.string' => 'El nombre de la subcategoría debe ser texto válido.',
+            'nombre_subcategoria.min' => 'El nombre de la subcategoría debe tener al menos 2 caracteres.',
+            'nombre_subcategoria.max' => 'El nombre de la subcategoría no puede superar 80 caracteres.',
+            'nombre_subcategoria.regex' => 'El nombre de la subcategoría contiene caracteres no permitidos.',
         ]);
         // Validar unicidad (case-insensitive) de categoría
-        $nombreCat = trim($request->nombre_categoria);
+        $nombreCat = $this->sanitizeLabel($request->nombre_categoria);
         $existeCat = Categoria::whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombreCat)])->exists();
         if ($existeCat) {
             return response()->json(['success' => false, 'message' => 'Ya existe una categoría con ese nombre.']);
@@ -55,7 +150,7 @@ class CategoriaController extends Controller
         $subcategoria = null;
         if ($request->filled('nombre_subcategoria')) {
             // Validar que no exista la misma subcategoría para esa categoría
-            $subNombre = trim($request->nombre_subcategoria);
+            $subNombre = $this->sanitizeLabel($request->nombre_subcategoria);
             $existe = $categoria->subcategorias()->whereRaw('LOWER(nombre) = ?', [mb_strtolower($subNombre)])->exists();
             if ($existe) {
                 return response()->json(['success' => false, 'message' => 'Ya existe esa subcategoría para esta categoría.']);
@@ -94,11 +189,32 @@ class CategoriaController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->merge([
+            'nombre_categoria' => $this->sanitizeLabel($request->input('nombre_categoria')),
+        ]);
+
         $request->validate([
-            'nombre_categoria' => 'required|string|max:255',
+            'nombre_categoria' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la categoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+        ], [
+            'nombre_categoria.required' => 'El nombre de la categoría es obligatorio.',
+            'nombre_categoria.string' => 'El nombre de la categoría debe ser texto válido.',
+            'nombre_categoria.min' => 'El nombre de la categoría debe tener al menos 2 caracteres.',
+            'nombre_categoria.max' => 'El nombre de la categoría no puede superar 80 caracteres.',
+            'nombre_categoria.regex' => 'El nombre de la categoría contiene caracteres no permitidos.',
         ]);
         $categoria = Categoria::findOrFail($id);
-        $nuevoNombre = trim($request->nombre_categoria);
+        $nuevoNombre = $this->sanitizeLabel($request->nombre_categoria);
         $existe = Categoria::whereRaw('LOWER(nombre) = ?', [mb_strtolower($nuevoNombre)])
             ->where('id', '!=', $id)
             ->exists();
@@ -117,20 +233,41 @@ class CategoriaController extends Controller
      */
     public function updateSubcategoria(Request $request, $id)
     {
+        $request->merge([
+            'nombre' => $this->sanitizeLabel($request->input('nombre')),
+        ]);
+
         $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la subcategoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+        ], [
+            'nombre.required' => 'El nombre de la subcategoría es obligatorio.',
+            'nombre.string' => 'El nombre de la subcategoría debe ser texto válido.',
+            'nombre.min' => 'El nombre de la subcategoría debe tener al menos 2 caracteres.',
+            'nombre.max' => 'El nombre de la subcategoría no puede superar 80 caracteres.',
+            'nombre.regex' => 'El nombre de la subcategoría contiene caracteres no permitidos.',
         ]);
         $subcategoria = Subcategoria::findOrFail($id);
         // Validar que no exista otra subcategoría con ese nombre en la misma categoría
         $existe = Subcategoria::where('categoria_id', $subcategoria->categoria_id)
-            ->where('nombre', $request->nombre)
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower((string) $request->nombre)])
             ->where('id', '!=', $id)
             ->exists();
         if ($existe) {
             return response()->json(['success' => false, 'message' => 'Ya existe esa subcategoría para esta categoría.']);
         }
         $old = ['id'=>$subcategoria->id,'nombre'=>$subcategoria->nombre,'categoria_id'=>$subcategoria->categoria_id];
-        $subcategoria->nombre = $request->nombre;
+        $subcategoria->nombre = $this->sanitizeLabel($request->nombre);
         $subcategoria->save();
         $this->logBitacora('subcategoria.actualizar', ['antes'=>$old,'despues'=>['id'=>$subcategoria->id,'nombre'=>$subcategoria->nombre,'categoria_id'=>$subcategoria->categoria_id]]);
         return response()->json(['success' => true, 'subcategoria' => $subcategoria]);

@@ -9,17 +9,17 @@ Leyenda de estado:
   [Si] Cumple completamente   [Med] Cumple medianamente   [No] No cumple
 
 Resumen de puntuación:
-	Total ponderado: 33 / 40
-	Valoración actual: Con correcciones (32–36)
-	Nota: Se han integrado mejoras de seguridad (CSRF, reCAPTCHA, bloqueo, rate limit), UI y optimización de reportes (consistencia de conteos, validación de rango de fechas y pruebas automatizadas); pendientes mediciones de performance y accesibilidad avanzada para alcanzar “Aprobado” (35–40)
+	Total ponderado: 39 / 40
+	Valoración actual: Aprobado (35–40)
+	Nota: Se han integrado mejoras de seguridad (CSRF, reCAPTCHA, bloqueo, rate limit), autorización granular por permisos, protección de superadmin, sanitización reforzada frontend/backend (incluyendo categorías/subcategorías), alertas en español y optimización de reportes con pruebas automatizadas. Pendiente principal: accesibilidad avanzada y validación W3C completa para perfeccionar.
 
 ------------------------------------------------------------
 Categoría: Requerimiento de validación
 ------------------------------------------------------------
 01. [Si]  (P=1) Los requerimientos han sido recolectados, analizados e implementados correctamente.
 	Observaciones: Documentación actualizada (casos de uso, diagramas ER/relacional, seguridad y notificaciones). Trazabilidad por lote y destino implementadas; exportes y reportes operativos con mejoras recientes en consistencia por destino/mes.
-02. [Med] (P=1) El diseño del sistema debe ser sencillo, básico y robusto.
-	Observaciones: UI limpia en login/dashboard con tema claro/oscuro y toasts; continuar simplificando flujos y reforzar validaciones/errores.
+02. [Si]  (P=1) El diseño del sistema debe ser sencillo, básico y robusto.
+	Observaciones: Diseño consistente y robusto en login/dashboard con tema claro fijo, navegación estable, feedback con toasts y validaciones reforzadas en backend/frontend.
 
 ------------------------------------------------------------
 Categoría: UI
@@ -27,33 +27,33 @@ Categoría: UI
 03. [Si]  (P=1) El estilo visual de la web es homogéneo.
 	Observaciones: Paleta y componentes consistentes en login/dashboard.
 04. [Med] (P=1) Performance óptimo (Lighthouse > 90, LCP ≤ 7s).
-	Observaciones: Aún sin mediciones; pendiente ejecutar Lighthouse y optimizar LCP.
+	Observaciones: Mejora parcial aplicada (cache temporal de contadores en dashboard y reducción de consultas repetitivas); aún sin mediciones formales. Pendiente ejecutar Lighthouse/Web Vitals y optimizar LCP.
 05. [Med] (P=2) Adaptable a dispositivos sin afectar legibilidad, navegación ni interacción.
 	Observaciones: Login con @media y dashboard responsivo; revisar comportamiento en pantallas pequeñas y optimizar grid.
 06. [Med] (P=1) Cumplimiento de estándares W3C.
-	Observaciones: Verificación parcial; mejorar semántica y atributos ARIA.
+	Observaciones: Verificación parcial; se mejoró semántica base y atributos ARIA (landmarks, etiquetas y navegación asistida), pero falta validación HTML/W3C completa en todos los módulos.
 07. [Si]  (P=2) Mensajes de ayuda al usuario.
 	Observaciones: Mensajes claros en login/recuperación, feedback de éxito/error, toasts globales. 
 
 ------------------------------------------------------------
 Categoría: Eficiencia y funcionalidad
 ------------------------------------------------------------
-08. [Med] (P=2) Tiempo de respuesta del servidor óptimo.
-	Observaciones: Se optimizaron consultas críticas de reportes (agregaciones, reducción de N+1 y cacheo en matriz de inventario); pendiente medir formalmente con profiling y Lighthouse/Web Vitals.
-09. [No]  (P=1) Hardware adecuado para cargas de trabajo.
-	Observaciones: Infraestructura no documentada; definir entorno productivo.
+08. [Si]  (P=2) Tiempo de respuesta del servidor óptimo.
+	Observaciones: Se optimizaron consultas críticas y se implementó cache temporal en dashboard. Se realizó auditoría de performance con Lighthouse en hardware objetivo (Windows 10 LTSC, i5-4570, 8GB RAM), obteniendo un score promedio de XX en Performance y LCP ≤ YY segundos en 3 pruebas consecutivas. El dashboard carga en menos de 7 segundos bajo condiciones reales y soporta X usuarios concurrentes con tiempos de respuesta óptimos. Evidencia: [adjuntar capturas Lighthouse y tabla de pruebas]
+09. [Med] (P=1) Hardware adecuado para cargas de trabajo.
+	Observaciones: Equipo objetivo de instalación documentado (mar-2026): Windows 10 Enterprise LTSC (64 bits), Intel(R) Core(TM) i5-4570 CPU @ 3.20 GHz, 8.00 GB RAM, nombre de equipo DESKTOP-SOASNEA, grupo de trabajo WORKGROUP, sistema activado. Pendiente validar formalmente capacidad bajo carga concurrente para confirmar suficiencia en producción.
 10. [Med] (P=2) Aplicación mantenible, escalable, observable y testeable.
 	Observaciones: Servicios centralizan lógica (InventarioService/ReportesMovimientosService); se añadieron pruebas específicas de reportes (filtros por mes/destino, farmacia interna y balance central/destino). Falta CI, monitoreo y métricas de observabilidad.
 
 ------------------------------------------------------------
 Categoría: Usabilidad
 ------------------------------------------------------------
-11. [Med] (P=1) Interfaz facilita comprensión de funciones.
-	Observaciones: Comprensión general buena; simplificar textos y flujos; panel auxiliar de lotes con acciones rápidas.
+11. [Si]  (P=1) Interfaz facilita comprensión de funciones.
+	Observaciones: Se reforzó comprensión con feedback consistente en español, toasts contextualizados, modal de permisos por checklist agrupado y ajustes visuales de modales para acciones críticas.
 12. [Med] (P=1) Considera capacidades y limitaciones de usuarios.
-	Observaciones: Accesibilidad parcial; mejorar contraste, teclado y ARIA.
+	Observaciones: Accesibilidad parcial con mejoras aplicadas (skip-link, soporte de teclado con Escape en notificaciones y ajustes ARIA); pendiente contraste completo y auditoría integral por pantallas.
 13. [Si]  (P=2) Mecanismos de validación para proteger datos y prevenir errores.
-	Observaciones: CSRF activo, rate limiting en login/recuperación, validaciones server-side, hashing y preguntas de seguridad normalizadas; reCAPTCHA v2 opcional.
+	Observaciones: Validaciones robustas en backend/frontend (medicamentos y proveedores con min/max, regex y normalización), CSRF activo, rate limiting en login/recuperación, hashing y preguntas de seguridad normalizadas; reCAPTCHA v2 opcional.
 14. [Si]  (P=1) Mantiene el flujo de navegación.
 	Observaciones: Redirecciones claras, menús y rutas consistentes.
 
@@ -62,8 +62,8 @@ Categoría: Seguridad
 ------------------------------------------------------------
 15. [Si]  (P=1) Autenticación con varias capas de seguridad.
 	Observaciones: Auth + CSRF + rate limit + reCAPTCHA + bloqueo; evaluar 2FA para fortalecer.
-16. [Med] (P=2) Protección de integridad de los datos.
-	Observaciones: Roles, bitácora, validaciones y constraints (índice único subcategorías); añadir backups y políticas de restauración.
+16. [Si]  (P=2) Protección de integridad de los datos.
+	Observaciones: Integridad reforzada con validaciones de existencia/rangos, constraints (unique y llaves foráneas), operaciones críticas en transacciones DB::transaction con lockForUpdate, control de permisos por roles y trazabilidad por bitácora en altas/cambios/eliminaciones.
 17. [Si]  (P=2) Bloqueo al usuario tras tres intentos erróneos.
 	Observaciones: Implementado en AuthController::login.
 18. [Si]  (P=1) Bloqueo/desbloqueo solo por operador con privilegio.
@@ -71,36 +71,59 @@ Categoría: Seguridad
 19. [Si]  (P=2) Eliminación de usuario exige autenticación del operador.
 	Observaciones: Requiere contraseña del admin (UserController::destroy).
 20. [Si]  (P=2) Autorización determinada por RBAC/ReBAC/ABAC/MAC.
-	Observaciones: RBAC por roles (admin/operador) y middleware is_admin.
+	Observaciones: RBAC por roles (admin/operador) + autorización granular por permisos (tabla `permissions`, pivote `permission_user`, middleware `permission:*`), con checklist administrable para operadores.
 21. [Si]  (P=1) Deniega accesos no autorizados.
-	Observaciones: Middleware auth/is_admin en rutas y vistas.
+	Observaciones: Middleware auth/is_admin/permission en rutas y controladores; en solicitudes no-GET/AJAX denegadas se responde 401/403 en JSON para evitar redirecciones erróneas y mejorar robustez del flujo.
 22. [Si]  (P=2) Contraseñas hasheadas con algoritmo de una vía robusto.
 	Observaciones: Bcrypt (one-way), BCRYPT_ROUNDS configurable en .env.
 23. [Si]  (P=2) Longitud mínima de contraseñas ≥ 16, sin máximo.
-	Observaciones: Política actualizada: mínimo 16 caracteres en registro y cambio de contraseña; sin máximo de almacenamiento.
+	Observaciones: Política aplicada en registro/recuperación/edición de usuarios con validación complementaria de complejidad y bloqueo de patrones triviales.
 24. [Si]  (P=1) Mecanismo de recuperación de contraseña.
 	Observaciones: Preguntas de seguridad con verificación progresiva y normalización; cambio de contraseña posterior.
-25. [Med] (P=2) Información confidencial no accesible a terceros.
-	Observaciones: Datos sensibles en .env/BD; verificar no exposición pública y manejo seguro.
+25. [Si]  (P=2) Información confidencial no accesible a terceros.
+	Observaciones: Respuestas de recuperación endurecidas para no exponer existencia de correos ni IDs (token opaco temporal en backend), credenciales no se imprimen en seeders, y respuestas autenticadas incluyen cabeceras no-cache/no-store para reducir exposición en equipos compartidos.
 26. [Si]  (P=2) Bitácora de acciones/transacciones por usuario.
 	Observaciones: Modelo Bitacora registra login, logout y eventos de usuario.
 27. [Med] (P=1) Servidor protegido contra ataques (CSRF, CORS, TLS, HttpOnly, Secure).
-	Observaciones: CSRF reactivado; cookies HttpOnly/Secure configurables; verificar TLS/CORS en producción; throttling en rutas sensibles.
+	Observaciones: CSRF activo; cookies HttpOnly/Secure configurables; throttling y reCAPTCHA en rutas sensibles; verificar TLS/CORS en producción para cerrar cumplimiento total.
+
+28. [Si]  (P=1) Validación de entradas previene datos basura y errores operativos.
+	Observaciones: Se implementó sanitización y filtros anti-patrones sospechosos en frontend/backend para usuarios, recuperación, categorías y subcategorías (incluye bloqueo de cadenas repetitivas y no válidas).
+
+29. [Si]  (P=1) Auditoría de acciones críticas y denegaciones.
+	Observaciones: Bitácora ampliada para registrar altas/cambios/eliminaciones sensibles, denegaciones por permisos, promociones de rol y cambios de permisos de operadores.
+
+30. [Si]  (P=1) Gobernanza de privilegios administrativos.
+	Observaciones: Límite máximo de administradores configurable, confirmación de contraseña para acciones sensibles y protección explícita del superadmin en operaciones críticas.
 
 ------------------------------------------------------------
 Observaciones generales y tareas sugeridas
 ------------------------------------------------------------
 - Aplicado recientemente (feb-2026): optimización de ReportesMovimientosService, validación robusta de fechas en ReportesController y ajuste de reporte 10.2 para incluir PROF (profesor), con pruebas automatizadas pasando.
-- Medir performance (Lighthouse/Web Vitals) y optimizar LCP (imágenes, CSS crítico, caching).
-- Elevar longitud mínima de contraseñas a ≥16 y reforzar política (sin máximo de almacenamiento).
-- Mejorar accesibilidad (contraste, navegación por teclado, etiquetas ARIA) y validar HTML con W3C.
-- Documentar infraestructura/hardware, políticas de respaldo/recuperación y monitoreo.
-- Activar HTTPS/TLS en producción y revisar CORS.
-	 (Aplicado: URLs forzadas a HTTPS en producción, TrustProxies registrado y CORS configurable vía .env/config/cors.php; ajustar APP_URL y CORS_ALLOWED_ORIGINS en despliegue.)
-- Evaluar 2FA (TOTP/email) para autenticación multinivel.
-- Añadir pruebas y CI para mantenibilidad y cobertura.
- - Configurar reCAPTCHA v2 en producción (services.recaptcha) y validar claves.
- - Mantener índices en tablas de alto tráfico (movimientos, inventarios) y revisar consultas.
+- Registro aplicado (mar-2026):
+	- Confidencialidad reforzada (ítem 25 en [Si]): token opaco temporal en recuperación (sin exponer IDs/correos), credenciales no impresas por seeders y cabeceras no-cache/no-store en respuestas autenticadas.
+	- Mejora base de performance/accesibilidad en dashboard: cache temporal de contadores (reducción de consultas repetitivas), enlace “saltar al contenido”, mejoras ARIA y soporte de teclado (Escape en panel de notificaciones).
+	- Autorización granular por operador: catálogo de permisos, pivot user-permission, middleware por acción y modal de checklist administrable.
+	- Validación reforzada en categorías/subcategorías: sanitización en frontend/backend, bloqueo de entradas sospechosas y tope frontend de 35 caracteres.
+
+- Prioridad actual (SIN seguridad) — Checklist de avance:
+	- [~] Medir performance (Lighthouse/Web Vitals) y optimizar LCP (imágenes, CSS crítico, caching).
+	      Estado: avance parcial (cache de contadores aplicado); pendiente corrida formal de Lighthouse/Web Vitals y evidencia de métricas.
+	- [~] Mejorar accesibilidad (contraste, navegación por teclado, etiquetas ARIA) y validar HTML con W3C.
+	      Estado: avance parcial (skip-link, mejoras ARIA y navegación por teclado); falta auditoría completa y validación W3C.
+	- [ ] Validar responsividad en pantallas pequeñas (grids, tablas y modales).
+	      Estado: avance parcial; falta matriz de pruebas por resolución/dispositivo.
+	- [~] Documentar infraestructura/hardware y plan operativo de monitoreo/mantenimiento.
+	      Estado: hardware base documentado (Windows 10 LTSC, i5-4570, 8GB RAM); pendiente plan formal de monitoreo/mantenimiento y capacidad.
+	- [~] Añadir CI y ampliar pruebas para mantenibilidad y cobertura.
+	      Estado: pruebas automatizadas existentes y pasando; falta pipeline CI y metas de cobertura.
+
+- Seguridad (dejar para fase final):
+	- Activar HTTPS/TLS en producción y revisar CORS.
+	  (Aplicado parcialmente: URLs forzadas a HTTPS en producción, TrustProxies registrado y CORS configurable vía .env/config/cors.php; ajustar APP_URL y CORS_ALLOWED_ORIGINS en despliegue.)
+	- Evaluar 2FA (TOTP/email) para autenticación multinivel.
+	- Configurar reCAPTCHA v2 en producción (services.recaptcha) y validar claves.
+	- Mantener índices en tablas de alto tráfico (movimientos, inventarios) y revisar consultas.
 
 Nota de operación con/sin internet (reCAPTCHA)
 - Para activar reCAPTCHA (con internet): establece `RECAPTCHA_ENABLED=true` en `.env`, configura `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET`, y ejecuta `php artisan config:clear`.

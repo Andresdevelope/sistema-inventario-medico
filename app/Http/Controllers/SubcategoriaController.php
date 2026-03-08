@@ -8,6 +8,59 @@ use App\Models\Producto;
 
 class SubcategoriaController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:categorias.ver')->only(['index', 'show', 'dependencias']);
+        $this->middleware('permission:categorias.crear')->only(['create', 'store']);
+        $this->middleware('permission:categorias.editar')->only(['edit', 'update']);
+        $this->middleware('permission:categorias.eliminar')->only(['destroy']);
+    }
+
+    private function sanitizeLabel(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $text = trim($value);
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return $text;
+    }
+
+    private function looksSuspiciousLabel(?string $value): bool
+    {
+        $text = $this->sanitizeLabel($value);
+        if ($text === '') {
+            return true;
+        }
+
+        $compact = preg_replace('/\s+/u', '', $text) ?? '';
+        $lettersOnly = preg_replace('/[^\pL]/u', '', $text) ?? '';
+
+        if (preg_match('/^\d+$/u', $compact)) {
+            return true;
+        }
+
+        if (mb_strlen($lettersOnly) < 2) {
+            return true;
+        }
+
+        if (preg_match('/(.)\1{4,}/u', $compact)) {
+            return true;
+        }
+
+        if (preg_match('/[bcdfghjklmnñpqrstvwxyz]{8,}/iu', $lettersOnly)) {
+            return true;
+        }
+
+        if (!str_contains($text, ' ') && mb_strlen($lettersOnly) > 14) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -30,11 +83,34 @@ class SubcategoriaController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'categoria_id' => 'required|exists:categorias,id',
+        $request->merge([
+            'nombre' => $this->sanitizeLabel($request->input('nombre')),
         ]);
-        $nombre = trim($request->nombre);
+
+        $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la subcategoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+            'categoria_id' => 'required|exists:categorias,id',
+        ], [
+            'nombre.required' => 'El nombre de la subcategoría es obligatorio.',
+            'nombre.string' => 'El nombre de la subcategoría debe ser texto válido.',
+            'nombre.min' => 'El nombre de la subcategoría debe tener al menos 2 caracteres.',
+            'nombre.max' => 'El nombre de la subcategoría no puede superar 80 caracteres.',
+            'nombre.regex' => 'El nombre de la subcategoría contiene caracteres no permitidos.',
+            'categoria_id.required' => 'La categoría es obligatoria para crear una subcategoría.',
+            'categoria_id.exists' => 'La categoría seleccionada no es válida.',
+        ]);
+        $nombre = $this->sanitizeLabel($request->nombre);
         $existe = Subcategoria::where('categoria_id', $request->categoria_id)
             ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
             ->exists();
@@ -70,11 +146,32 @@ class SubcategoriaController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->merge([
+            'nombre' => $this->sanitizeLabel($request->input('nombre')),
+        ]);
+
         $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/&]+$/u',
+                function ($attribute, $value, $fail) {
+                    if ($this->looksSuspiciousLabel((string) $value)) {
+                        $fail('El nombre de la subcategoría no parece válido. Usa texto real y evita patrones repetitivos.');
+                    }
+                },
+            ],
+        ], [
+            'nombre.required' => 'El nombre de la subcategoría es obligatorio.',
+            'nombre.string' => 'El nombre de la subcategoría debe ser texto válido.',
+            'nombre.min' => 'El nombre de la subcategoría debe tener al menos 2 caracteres.',
+            'nombre.max' => 'El nombre de la subcategoría no puede superar 80 caracteres.',
+            'nombre.regex' => 'El nombre de la subcategoría contiene caracteres no permitidos.',
         ]);
         $subcategoria = Subcategoria::findOrFail($id);
-        $nombre = trim($request->nombre);
+        $nombre = $this->sanitizeLabel($request->nombre);
         $existe = Subcategoria::where('categoria_id', $subcategoria->categoria_id)
             ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
             ->where('id', '!=', $id)

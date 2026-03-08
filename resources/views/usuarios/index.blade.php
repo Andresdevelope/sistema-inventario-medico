@@ -2,6 +2,94 @@
 
 @section('content')
 <div class="container mt-4">
+    <style>
+        /* Ajuste específico del modal de edición para mantener visibles los botones */
+        #editUserModal .modal-content {
+            max-height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+        #editUserModal .modal-body {
+            overflow-y: auto;
+            max-height: calc(100vh - 230px);
+        }
+        #editUserModal .modal-content.admin-auth-visible .modal-body {
+            max-height: calc(100vh - 260px);
+        }
+        #editUserModal .modal-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            z-index: 2;
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* Ajuste específico del modal de permisos para mantener footer visible */
+        #permissionsUserModal .modal-content {
+            max-height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+        #permissionsUserModal .modal-body {
+            overflow-y: auto;
+            max-height: calc(100vh - 250px);
+            padding-top: 1rem;
+            padding-bottom: .75rem;
+        }
+        #permissionsUserModal .modal-footer {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            z-index: 2;
+            border-top: 1px solid #dee2e6;
+        }
+
+        #permissionsChecklist .permission-group-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: .85rem .9rem;
+            background: linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
+        }
+        #permissionsChecklist .permission-group-title {
+            font-weight: 700;
+            color: #2f3a4a;
+            font-size: .94rem;
+            letter-spacing: .1px;
+            margin-bottom: .55rem;
+        }
+        #permissionsChecklist .permission-item {
+            border: 1px solid #eef1f4;
+            border-radius: 8px;
+            padding: .4rem .55rem;
+            background: #fff;
+            transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+            min-height: 40px;
+        }
+        #permissionsChecklist .permission-item:hover {
+            border-color: #d8dee6;
+            background: #fbfcfe;
+        }
+        #permissionsChecklist .permission-item:has(.permission-checkbox:checked) {
+            border-color: rgba(39, 174, 96, .5);
+            box-shadow: 0 0 0 2px rgba(39, 174, 96, .12);
+            background: rgba(39, 174, 96, .05);
+        }
+        #permissionsChecklist .permission-checkbox {
+            margin-top: 0;
+        }
+        #permissionsChecklist .permission-label {
+            font-size: .9rem;
+            line-height: 1.25rem;
+            color: #2f3a4a;
+        }
+
+        @media (max-width: 576px) {
+            #permissionsUserModal .modal-content {
+                max-height: calc(100vh - 20px);
+            }
+            #permissionsUserModal .modal-body {
+                max-height: calc(100vh - 220px);
+            }
+        }
+    </style>
     <div class="d-flex justify-content-between align-items-center">
         <h2 class="mb-0">Gestión de Usuarios</h2>
         <button class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;" data-bs-toggle="modal" data-bs-target="#createUserModal">
@@ -49,6 +137,81 @@
         window.__editUserId = @json(session('edit_user_id'));
         window.__createFailed = @json(session('create_failed', false));
         window.authUserId = @json(auth()->id());
+        window.superAdminId = @json((int) ($superAdminId ?? 0));
+        window.maxAdminsAllowed = @json((int) config('inventario.max_admins', 2));
+        window.currentAdminCount = @json((int) $users->where('role', 'admin')->count());
+        window.__editingUserCurrentRole = null;
+
+        function refreshCreateAdminPasswordVisibility() {
+            const roleSelect = document.querySelector('#createUserForm select[name="role"]');
+            const group = document.getElementById('createAdminPasswordGroup');
+            const input = group?.querySelector('input[name="admin_password"]');
+            if (!roleSelect || !group || !input) return;
+
+            const adminOption = roleSelect.querySelector('option[value="admin"]');
+            const adminVisible = !!adminOption && !adminOption.hidden && !adminOption.disabled;
+            const requireAuthPassword = adminVisible && roleSelect.value === 'admin';
+
+            group.style.display = requireAuthPassword ? '' : 'none';
+            input.required = requireAuthPassword;
+            if (!requireAuthPassword) input.value = '';
+        }
+
+        function refreshEditAdminPasswordVisibility() {
+            const roleSelect = document.getElementById('editRole');
+            const group = document.getElementById('editAdminPasswordGroup');
+            const input = group?.querySelector('input[name="admin_password"]');
+            const modalContent = document.querySelector('#editUserModal .modal-content');
+            if (!roleSelect || !group || !input) return;
+
+            const currentRole = String(window.__editingUserCurrentRole || '');
+            const adminOption = roleSelect.querySelector('option[value="admin"]');
+            const adminVisible = !!adminOption && !adminOption.hidden && !adminOption.disabled;
+            const requireAuthPassword = (currentRole === 'admin') || (adminVisible && roleSelect.value === 'admin');
+
+            group.style.display = requireAuthPassword ? '' : 'none';
+            input.required = requireAuthPassword;
+            if (!requireAuthPassword) input.value = '';
+            if (modalContent) {
+                modalContent.classList.toggle('admin-auth-visible', requireAuthPassword);
+            }
+        }
+
+        function refreshAdminLimitUI(editingRole = null) {
+            const limitReached = Number(window.currentAdminCount || 0) >= Number(window.maxAdminsAllowed || 2);
+
+            const createRoleSelect = document.querySelector('#createUserForm select[name="role"]');
+            if (createRoleSelect) {
+                const createAdminOption = createRoleSelect.querySelector('option[value="admin"]');
+                if (createAdminOption) {
+                    createAdminOption.hidden = limitReached;
+                    createAdminOption.disabled = limitReached;
+                    if (limitReached && createRoleSelect.value === 'admin') {
+                        createRoleSelect.value = 'operador';
+                    }
+                }
+            }
+            refreshCreateAdminPasswordVisibility();
+
+            const editRoleSelect = document.getElementById('editRole');
+            if (editRoleSelect) {
+                const editAdminOption = editRoleSelect.querySelector('option[value="admin"]');
+                if (editAdminOption) {
+                    const isEditingCurrentAdmin = String(editingRole || '') === 'admin';
+                    const mustBlockAdminOption = limitReached && !isEditingCurrentAdmin;
+                    editAdminOption.hidden = mustBlockAdminOption;
+                    editAdminOption.disabled = mustBlockAdminOption;
+                    if (mustBlockAdminOption && editRoleSelect.value === 'admin') {
+                        editRoleSelect.value = 'operador';
+                    }
+                }
+            }
+
+            if (editingRole !== null && editingRole !== undefined) {
+                window.__editingUserCurrentRole = editingRole;
+            }
+            refreshEditAdminPasswordVisibility();
+        }
     </script>
     <table class="table table-bordered table-hover mt-3 align-middle">
         <thead>
@@ -63,11 +226,12 @@
         </thead>
         <tbody>
                         @foreach($users as $user)
+                                @php($isSuperAdminRow = $user->role === 'admin' && (int)$user->id === (int)($superAdminId ?? 0))
                                 <tr>
                                     <td>{{ $user->id }}</td>
                                     <td>{{ $user->name }}</td>
                                     <td>{{ $user->email }}</td>
-                                    <td><span class="badge {{ $user->role === 'admin' ? 'bg-dark' : 'bg-secondary' }}">{{ $user->role }}</span></td>
+                                    <td><span class="badge {{ $isSuperAdminRow ? 'bg-danger' : ($user->role === 'admin' ? 'bg-dark' : 'bg-secondary') }}">{{ $isSuperAdminRow ? 'superadmin' : $user->role }}</span></td>
                                     <td>
                                         @if($user->locked_until)
                                             <span class="badge bg-danger">Bloqueado</span>
@@ -83,6 +247,12 @@
                                                 data-role="{{ $user->role }}">
                                             <i class="fa fa-edit"></i>
                                         </button>
+                                        @if(auth()->id() !== $user->id && $user->role === 'operador')
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#permissionsUserModal"
+                                                    data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-role="{{ $user->role }}" title="Gestionar permisos">
+                                                <i class="fa fa-list-check"></i>
+                                            </button>
+                                        @endif
                                         @if(auth()->id() !== $user->id)
                                             <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal"
                                                     data-id="{{ $user->id }}" data-name="{{ $user->name }}">
@@ -144,7 +314,7 @@
         <!-- Modal Crear Usuario -->
         <div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content" style="max-height:calc(100vh - 130px);border-radius:12px;">
+                <div class="modal-content" style="border-radius:12px;">
                     <div class="modal-header text-white" style="background:var(--accent);">
                         <h5 class="modal-title">Crear Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -232,6 +402,14 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            <div class="mt-2" id="createAdminPasswordGroup" style="display:none;">
+                                <label class="form-label">Contraseña del administrador que autoriza</label>
+                                <input type="password" class="form-control @error('admin_password') is-invalid @enderror" name="admin_password" autocomplete="current-password" placeholder="Requerida al crear un admin">
+                                @error('admin_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Para crear usuarios con rol administrador se debe confirmar la contraseña del admin que autoriza.</div>
+                            </div>
                         </div>
                         <div class="modal-footer" style="padding-top:0.5rem;">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -256,6 +434,9 @@
             }
         }
         document.addEventListener('DOMContentLoaded', function(){
+            refreshAdminLimitUI();
+            document.querySelector('#createUserForm select[name="role"]')?.addEventListener('change', refreshCreateAdminPasswordVisibility);
+            document.getElementById('editRole')?.addEventListener('change', refreshEditAdminPasswordVisibility);
             // Medidor de fortaleza en tiempo real (Crear Usuario)
             const passEl = document.getElementById('createPassword');
             const fill = document.getElementById('create-pwd-fill');
@@ -348,18 +529,23 @@
                     if (!res.ok) throw new Error('Error al obtener usuarios');
                     const data = await res.json();
                     if (!Array.isArray(data)) throw new Error('Formato inesperado');
+                    window.currentAdminCount = data.filter(u => String(u.role) === 'admin').length;
+                    refreshAdminLimitUI();
                     const tbody = document.querySelector('table tbody');
                     if (!tbody) return;
                     tbody.innerHTML = '';
                     data.forEach(user => {
                         const isBlocked = !!user.locked_until;
                         const canManage = String(window.authUserId) !== String(user.id);
+                        const isSuperAdmin = String(user.role) === 'admin' && Number(user.id) === Number(window.superAdminId || 0);
+                        const roleLabel = isSuperAdmin ? 'superadmin' : user.role;
+                        const roleBadgeClass = isSuperAdmin ? 'bg-danger' : (user.role === 'admin' ? 'bg-dark' : 'bg-secondary');
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
                             <td>${user.id}</td>
                             <td>${user.name}</td>
                             <td>${user.email}</td>
-                            <td><span class="badge ${user.role === 'admin' ? 'bg-dark' : 'bg-secondary'}">${user.role}</span></td>
+                            <td><span class="badge ${roleBadgeClass}">${roleLabel}</span></td>
                             <td>
                                 ${isBlocked ? '<span class="badge bg-danger">Bloqueado</span>' : '<span class="badge bg-success">Activo</span>'}
                             </td>
@@ -371,6 +557,7 @@
                                     data-role="${user.role}">
                                     <i class="fa fa-edit"></i>
                                 </button>
+                                ${(canManage && String(user.role) === 'operador') ? `<button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#permissionsUserModal" data-id="${user.id}" data-name="${user.name}" data-role="${user.role}" title="Gestionar permisos"><i class="fa fa-list-check"></i></button>` : ''}
                                 ${canManage ? `<button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-trash"></i></button>` : ''}
                                 ${(canManage && isBlocked) ? `<button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#unlockUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-unlock"></i> Desbloquear</button>` : ''}
                             </td>
@@ -506,11 +693,72 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+                            <div class="mt-2" id="editAdminPasswordGroup" style="display:none;">
+                                <label class="form-label">Contraseña del administrador que autoriza</label>
+                                <input type="password" class="form-control @error('admin_password') is-invalid @enderror" name="admin_password" autocomplete="current-password" placeholder="Requerida para cambios sensibles de admin">
+                                @error('admin_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Si editas otro administrador o promueves a administrador, debes confirmar tu contraseña.</div>
+                            </div>
                             <div id="editAlert" class="d-none alert alert-warning small py-2"></div>
                         </div>
                         <div class="modal-footer" style="padding-top:0.5rem;">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                             <button type="submit" class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Permisos de Operador -->
+        <div class="modal fade" id="permissionsUserModal" tabindex="-1" aria-hidden="true" data-bs-focus="false">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content" style="max-height:calc(100vh - 110px);border-radius:12px;">
+                    <div class="modal-header text-white" style="background:var(--accent);">
+                        <h5 class="modal-title">Permisos del operador</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="permissionsUserForm" method="POST" autocomplete="off">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-body">
+                            <div id="permissionsAlert" class="alert alert-danger d-none"></div>
+                            <input type="hidden" id="permissionsUserId">
+                            <div class="mb-2 text-muted small" id="permissionsUserLabel">Selecciona los permisos para este operador.</div>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button type="button" id="permissionsSelectAll" class="btn btn-sm btn-outline-secondary">Marcar todo</button>
+                                <button type="button" id="permissionsClearAll" class="btn btn-sm btn-outline-secondary">Desmarcar todo</button>
+                            </div>
+
+                            <div id="permissionsChecklist">
+                                @foreach(($permissionCatalog ?? []) as $group)
+                                    <div class="mb-3 permission-group-card">
+                                        <div class="permission-group-title">{{ $group['label'] ?? 'Permisos' }}</div>
+                                        <div class="row g-2">
+                                            @foreach(($group['items'] ?? []) as $slug => $label)
+                                                <div class="col-md-6">
+                                                    <label class="form-check-label d-flex gap-2 align-items-center permission-item">
+                                                        <input class="form-check-input permission-checkbox" type="checkbox" value="{{ $slug }}">
+                                                        <span class="permission-label">{{ $label }}</span>
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="mt-2">
+                                <label class="form-label">Contraseña del administrador que autoriza</label>
+                                <input type="password" class="form-control" name="admin_password" id="permissionsAdminPassword" autocomplete="current-password" required>
+                                <div class="form-text">Requerida para guardar cambios de permisos.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;">Guardar permisos</button>
                         </div>
                     </form>
                 </div>
@@ -547,6 +795,118 @@
         </div>
 
         <script>
+    const permissionsModal = document.getElementById('permissionsUserModal');
+        const permissionsForm = document.getElementById('permissionsUserForm');
+        const permissionsAlert = document.getElementById('permissionsAlert');
+        const permissionsUserLabel = document.getElementById('permissionsUserLabel');
+        const permissionsUserIdInput = document.getElementById('permissionsUserId');
+
+        function permissionsSetAlert(message = '', isError = true) {
+            if (!permissionsAlert) return;
+            if (!message) {
+                permissionsAlert.classList.add('d-none');
+                permissionsAlert.textContent = '';
+                return;
+            }
+            permissionsAlert.classList.remove('d-none');
+            permissionsAlert.classList.toggle('alert-danger', isError);
+            permissionsAlert.classList.toggle('alert-success', !isError);
+            permissionsAlert.textContent = message;
+        }
+
+        function collectSelectedPermissions() {
+            return Array.from(document.querySelectorAll('.permission-checkbox:checked')).map(el => el.value);
+        }
+
+        function applyPermissionsSelection(slugs = []) {
+            const allowed = new Set(slugs || []);
+            document.querySelectorAll('.permission-checkbox').forEach(cb => {
+                cb.checked = allowed.has(cb.value);
+            });
+        }
+
+        document.getElementById('permissionsSelectAll')?.addEventListener('click', () => {
+            document.querySelectorAll('.permission-checkbox').forEach(cb => { cb.checked = true; });
+        });
+        document.getElementById('permissionsClearAll')?.addEventListener('click', () => {
+            document.querySelectorAll('.permission-checkbox').forEach(cb => { cb.checked = false; });
+        });
+
+        permissionsModal?.addEventListener('show.bs.modal', async (event) => {
+            permissionsSetAlert('');
+            const button = event.relatedTarget;
+            const userId = button?.getAttribute('data-id');
+            const userName = button?.getAttribute('data-name');
+            const userRole = button?.getAttribute('data-role');
+
+            permissionsUserIdInput.value = userId || '';
+            if (permissionsUserLabel) {
+                permissionsUserLabel.textContent = `Permisos para ${userName || 'usuario'} (${userRole || 'operador'}).`;
+            }
+            if (userRole !== 'operador') {
+                applyPermissionsSelection([]);
+                permissionsSetAlert('Solo se pueden gestionar permisos granulares para usuarios operadores.', true);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/usuarios/${userId}/permisos`, { headers: { 'Accept':'application/json' } });
+                const data = await res.json();
+                if (!res.ok || !data?.success) {
+                    permissionsSetAlert(data?.message || 'No se pudieron cargar los permisos.', true);
+                    return;
+                }
+                applyPermissionsSelection(data.permissions || []);
+            } catch (_) {
+                permissionsSetAlert('Error de red al cargar permisos.', true);
+            }
+        });
+
+        permissionsForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            permissionsSetAlert('');
+
+            const userId = permissionsUserIdInput?.value;
+            const adminPassword = document.getElementById('permissionsAdminPassword')?.value || '';
+            const permissions = collectSelectedPermissions();
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            const btn = permissionsForm.querySelector('button[type="submit"]');
+            const previous = btn?.textContent;
+            if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+            try {
+                const res = await fetch(`/usuarios/${userId}/permisos`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type':'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept':'application/json'
+                    },
+                    body: JSON.stringify({ permissions, admin_password: adminPassword })
+                });
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok || !data?.success) {
+                    permissionsSetAlert(data?.message || 'No se pudieron guardar los permisos.', true);
+                    return;
+                }
+
+                permissionsSetAlert('Permisos actualizados correctamente.', false);
+                if (typeof showToast === 'function') {
+                    showToast('Permisos actualizados correctamente.', 'success');
+                }
+                document.getElementById('permissionsAdminPassword').value = '';
+                setTimeout(() => {
+                    bootstrap.Modal.getOrCreateInstance(permissionsModal).hide();
+                }, 700);
+            } catch (_) {
+                permissionsSetAlert('Error de red al guardar permisos.', true);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = previous; }
+            }
+        });
+
     const editModal = document.getElementById('editUserModal');
         let lastEditTrigger = null;
         editModal?.addEventListener('show.bs.modal', event => {
@@ -560,6 +920,8 @@
                 const email = button.getAttribute('data-email');
                 const role = button.getAttribute('data-role');
                 form.setAttribute('action', `/usuarios/${id}`);
+                window.__editingUserCurrentRole = role ?? 'operador';
+                refreshAdminLimitUI(role);
 
                 // Prefill con datos del botón, excepto cuando reabrimos por error del mismo usuario
                 const isSameFailedUser = (window.__editFailed && String(window.__editUserId) === String(id));
@@ -569,6 +931,7 @@
                     document.getElementById('editRole').value = role ?? 'operador';
                     // Limpiar campos opcionales
                     const pw = document.querySelector('input[name="password"]'); if (pw) pw.value = '';
+                    const adminPw = document.querySelector('#editUserForm input[name="admin_password"]'); if (adminPw) adminPw.value = '';
                     const col = document.querySelector('input[name="color_favorito"]'); if (col) col.value = '';
                     const ani = document.querySelector('input[name="animal_favorito"]'); if (ani) ani.value = '';
                 }
@@ -641,6 +1004,8 @@
                 // Asegurar que el select de rol refleje old('role') si existe
                 const roleSelect = document.getElementById('editRole');
                 if (roleSelect && oldRole) roleSelect.value = oldRole;
+                window.__editingUserCurrentRole = oldRole || (triggerBtn ? triggerBtn.getAttribute('data-role') : null);
+                refreshAdminLimitUI(oldRole || (triggerBtn ? triggerBtn.getAttribute('data-role') : null));
                 // Registrar trigger para devolver foco cuando cierre
                 lastEditTrigger = triggerBtn;
                 modal.show();

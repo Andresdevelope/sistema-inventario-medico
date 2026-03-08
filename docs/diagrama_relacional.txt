@@ -14,6 +14,8 @@ TABLAS PRINCIPALES Y CAMPOS CLAVE
 - MOVIMIENTOS: id (PK), producto_id (FK), tipo (ingreso|egreso|ajuste_pos|ajuste_neg), modalidad (distribucion|consumo en egreso), salida (área), destino_id (FK, NULL), inventario_id (FK, NULL), entrada (origen), cantidad (operativa), motivo, fecha, usuario_id (FK, NULL), observaciones, tipo_identificacion (string, 20, nullable), sexo (string, 10, nullable), created_at, updated_at
   (Interpretación: cantidad = blíster para medicamentos sólidos; = unidad para insumos. Los campos `modalidad`, `tipo_identificacion` y `sexo` se usan para el reporte de salidas tipo Farmacia Interna.)
 - USERS: id (PK), name, email (único), email_verified_at, password, security_color_answer, security_animal_answer, security_padre_answer, login_attempts, locked_until, notif_mov_last_seen_id (nullable), role, remember_token, created_at, updated_at
+- PERMISSIONS: id (PK), slug (único), name, group, created_at, updated_at
+- PERMISSION_USER (pivot): id (PK), permission_id (FK), user_id (FK), created_at, updated_at, unique(permission_id,user_id)
 - BITACORA: id (PK), user_id (FK), acción, detalles, fecha_hora
 - REPORTES: id (PK), nombre, tipo (inventario_periodico|salidas_farmacia_interna|...), `para  metros` (json nullable; nombre físico actual de columna), usuario_id (FK, NULL), created_at, updated_at
 - DESTINOS: id (PK), codigo (único), nombre, activo, tipo, created_at, updated_at
@@ -26,6 +28,7 @@ RELACIONES PRINCIPALES
 - PRODUCTOS tiene INVENTARIOS (por lote) y afecta MOVIMIENTOS.
 - INVENTARIOS registra MOVIMIENTOS (trazabilidad por inventario_id/lote).
 - USERS realiza MOVIMIENTOS, genera REPORTES y registra BITÁCORA.
+- USERS se relaciona N..N con PERMISSIONS por PERMISSION_USER para autorización granular.
 - DESTINOS agrupa salidas (egresos) y se relaciona 1..N con MOVIMIENTOS.
 - MOVIMIENTOS tiene lecturas N..N con USERS vía MOVIMIENTO_USER_READS.
 
@@ -37,14 +40,23 @@ NOTAS
 - Áreas/destinos controlados: principal/ppal, aci, agroalimentacion/agro, odontologia. Se recomienda normalizar códigos en `DESTINOS` y permitir alias visibles en reportes (p. ej. “BÁSICO”, “ÁREA”, “E. BRACHO”).
 - Índices recomendados: producto_id, inventario_id, destino_id, usuario_id, fecha, tipo, modalidad, tipo_identificacion, sexo, categoria_id, subcategoria_id.
 - Seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF, sanitización de entrada, control de intentos y bloqueo, rate limiting, reCAPTCHA v2 opcional.
+- Autorización granular activa para operadores mediante middleware `permission:*` y catálogo de slugs en `permissions`.
+- Regla operativa de roles: admin con acceso total funcional; operador con acceso por checklist de permisos.
+- Gestión de superadmin protegida (usuario inicial) en operaciones sensibles de cuentas.
 - Bitácora de auditoría para registrar acciones críticas y movimientos.
 - Migraciones implementadas (ya en base de datos):
   - `2026_01_31_000000_add_modalidad_y_beneficiario_a_movimientos.php` → agrega `modalidad`, `tipo_identificacion`, `sexo` e índices relacionados.
   - `2026_02_04_000000_add_um_y_contenido_por_blister_to_inventarios_table.php` → agrega `um_operativa` y `contenido_por_blister` a `inventarios`.
+  - `2026_03_08_000200_create_permissions_tables.php` → crea `permissions` y `permission_user` con carga inicial del catálogo.
 
 ACTUALIZACIÓN 08/02/2026
 - No se añadieron nuevas columnas; sin embargo, la interfaz de movimientos reorganizada en tarjetas ("mosaico") ahora controla los valores `tipo` y `modalidad` mediante `old()` para garantizar que las inserciones/actualizaciones respeten el esquema relacional descrito.
 - Se introdujo el helper `mov_formatear_destino()` a nivel de Blade para representar cadenas normalizadas de DESTINO sin alterar la tabla `destinos`. La normalización mantiene coherencia con las claves foráneas documentadas y evita disparidades en reportes/exportes.
+
+ACTUALIZACIÓN 08/03/2026
+- Se integra autorización granular por usuario operador con tablas `permissions` y `permission_user`.
+- Se agregan endpoints de gestión de permisos por checklist y bitácora de consulta/actualización de permisos.
+- Se ajustan validaciones de categorías/subcategorías para sanitización y bloqueo de entradas sospechosas en frontend/backend (incluye tope frontend de 35 caracteres).
 
 REPORTES (vista lógica)
 - Inventario periódico (matriz por destino): título “INVENTARIO DE MEDICAMENTOS E INSUMOS”, periodo (mensual/trimestral/semestral/anual), columnas por destino con fecha de corte; UM respetada (blíster/unidad); total global.

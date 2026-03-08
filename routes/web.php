@@ -20,6 +20,8 @@ Route::middleware(['auth', 'is_admin'])->group(function () {
     Route::post('/usuarios', [UserController::class, 'store'])->name('usuarios.store');
     Route::get('/usuarios/{id}/edit', [UserController::class, 'edit'])->name('usuarios.edit');
     Route::put('/usuarios/{id}', [UserController::class, 'update'])->name('usuarios.update');
+    Route::get('/usuarios/{id}/permisos', [UserController::class, 'permissions'])->name('usuarios.permissions');
+    Route::put('/usuarios/{id}/permisos', [UserController::class, 'updatePermissions'])->name('usuarios.permissions.update');
     Route::delete('/usuarios/{id}', [UserController::class, 'destroy'])->name('usuarios.destroy');
     Route::put('/usuarios/{id}/unlock', [UserController::class, 'unlock'])->name('usuarios.unlock');
     // Nueva ruta para AJAX
@@ -58,7 +60,7 @@ Route::post('/recover/change-password', [App\Http\Controllers\RecoverController:
 // ================= CATEGORÍAS Y SUBCATEGORÍAS =================
 Route::get('/categorias', function() {
     return view('layouts.categoria.categoria');
-})->middleware('auth')->name('categorias');
+})->middleware(['auth', 'permission:categorias.ver'])->name('categorias');
 Route::resource('categorias', CategoriaController::class)->middleware('auth');
 Route::resource('subcategorias', SubcategoriaController::class)->middleware('auth');
 Route::get('categorias-listar', [App\Http\Controllers\CategoriaController::class, 'listar'])->middleware('auth');
@@ -67,8 +69,6 @@ Route::get('/categorias/{id}/dependencias', [App\Http\Controllers\CategoriaContr
 Route::get('/subcategorias/{id}/dependencias', [App\Http\Controllers\SubcategoriaController::class, 'dependencias'])->middleware('auth');
 // Endpoint AJAX para subcategorías por categoría
 Route::get('/subcategorias/by-categoria/{id}', [App\Http\Controllers\CategoriaController::class, 'subcategoriasPorCategoria'])->middleware('auth');
-// Ruta para actualizar subcategoría individualmente
-Route::put('/subcategorias/{id}', [CategoriaController::class, 'updateSubcategoria']);
 
 
 
@@ -111,7 +111,7 @@ Route::post('/notificaciones/movimientos/leer', [\App\Http\Controllers\Notificac
     ->name('notificaciones.movimientos.leer');
 
 // ================= PROVEEDORES (AJAX) =================
-Route::prefix('proveedores/ajax')->name('proveedores.ajax')->group(function() {
+Route::prefix('proveedores/ajax')->middleware('auth')->name('proveedores.ajax')->group(function() {
     Route::post('/', [App\Http\Controllers\ProveedorController::class, 'storeAjax']);
     Route::put('/{id}', [App\Http\Controllers\ProveedorController::class, 'updateAjax'])->name('.update');
     Route::delete('/{id}', [App\Http\Controllers\ProveedorController::class, 'destroyAjax'])->name('.destroy');

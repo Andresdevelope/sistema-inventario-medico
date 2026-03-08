@@ -6,6 +6,13 @@ use App\Models\Proveedor;
 
 class ProveedorController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:medicamentos.crear')->only(['storeAjax']);
+        $this->middleware('permission:medicamentos.editar')->only(['updateAjax']);
+        $this->middleware('permission:medicamentos.eliminar')->only(['destroyAjax']);
+    }
+
     // ...existing code...
     /**
      * Guarda un proveedor desde el modal (AJAX).

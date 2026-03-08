@@ -135,6 +135,30 @@
         }
         /* Accesibilidad foco */
         a:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+        .skip-link {
+            position: absolute;
+            top: -44px;
+            left: 12px;
+            background: #111;
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            z-index: 4000;
+            font-size: .72rem;
+            font-weight: 700;
+            transition: top .2s ease;
+        }
+        .skip-link:focus {
+            top: 10px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
         /*
             Responsividad para pantallas menores a 900px
         */
@@ -183,6 +207,7 @@
     @stack('styles')
 </head>
 <body>
+<a class="skip-link" href="#main-content">Saltar al contenido principal</a>
 {{--
     layout-shell: contenedor raíz del dashboard
 --}}
@@ -198,8 +223,8 @@
                 <button id="notifBell" type="button" class="icon-btn" aria-label="Abrir notificaciones" aria-haspopup="true" aria-expanded="false"><i class="fa fa-bell" aria-hidden="true"></i><span id="notifCount">0</span></button>
                 <div id="notifPanel" class="notif-panel" aria-live="polite" aria-label="Panel de notificaciones">
                     <div class="notif-header">
-                        <div class="title"><i class="fa fa-bell"></i> Movimientos</div>
-                        <button id="notifMarkAll" type="button" class="btn-mark">Marcar</button>
+                        <div class="title"><i class="fa fa-bell" aria-hidden="true"></i> Movimientos</div>
+                        <button id="notifMarkAll" type="button" class="btn-mark" aria-label="Marcar notificaciones como leídas">Marcar</button>
                     </div>
                     <div id="notifItems" class="notif-items"></div>
                     <div id="notifEmpty" class="notif-empty">Sin movimientos registrados.</div>
@@ -208,14 +233,15 @@
             {{-- Menú de usuario desplegable --}}
             <div class="dropdown" aria-label="Menú de usuario">
                 <a href="#" class="user-pill dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
-                    <span class="avatar">{{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}</span>
+                    @php
+                        $topbarName = Auth::user()->name ?? Auth::user()->username ?? 'U';
+                    @endphp
+                    <span class="avatar">{{ strtoupper(mb_substr(trim($topbarName),0,1,'UTF-8')) }}</span>
                     <span class="name">{{ Auth::user()->name ?? 'Usuario' }}</span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow p-3" aria-labelledby="userDropdown" style="min-width:240px; font-size:.7rem;">
                     <li class="text-center mb-2">
-                        @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
-                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:58px;height:58px; background:var(--slate-line); color:#fff; font-size:1.15rem; font-weight:700;">{{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}</span>
+                        <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:58px;height:58px; background:var(--slate-line); color:#fff; font-size:1.15rem; font-weight:700;">{{ strtoupper(mb_substr(trim($topbarName),0,1,'UTF-8')) }}</span>
                         <div class="fw-bold mt-2" style="font-size:.8rem;">{{ Auth::user()->name }}</div>
                         <div class="text-muted" style="font-size:.55rem;">{{ Auth::user()->email }}</div>
                     </li>
@@ -239,11 +265,21 @@
                 <div class="nav-title">Navegación</div>
                 <ul class="nav-list">
                     <li><a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}"><i class="fa fa-home"></i>Inicio</a></li>
-                    <li><a href="/categorias" class="{{ request()->is('categorias*') ? 'active' : '' }}"><i class="fa fa-folder"></i>Categorías</a></li>
-                    <li><a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}"><i class="fa fa-pills"></i>Medicamentos</a></li>
-                    <li><a href="{{ route('inventario.index') }}" class="{{ request()->is('inventario*') ? 'active' : '' }}"><i class="fa fa-warehouse"></i>Inventario</a></li>
-                    <li><a href="{{ route('movimientos.index') }}" class="{{ request()->is('movimientos*') ? 'active' : '' }}"><i class="fa fa-exchange-alt"></i>Movimientos</a></li>
-                    <li><a href="{{ route('reportes.index') }}" class="{{ request()->is('reportes*') ? 'active' : '' }}"><i class="fa fa-chart-bar"></i>Reportes</a></li>
+                    @if(auth()->user()?->hasPermission('categorias.ver'))
+                        <li><a href="/categorias" class="{{ request()->is('categorias*') ? 'active' : '' }}"><i class="fa fa-folder"></i>Categorías</a></li>
+                    @endif
+                    @if(auth()->user()?->hasPermission('medicamentos.ver'))
+                        <li><a href="/productos" class="{{ request()->is('productos*') ? 'active' : '' }}"><i class="fa fa-pills"></i>Medicamentos</a></li>
+                    @endif
+                    @if(auth()->user()?->hasPermission('inventario.ver'))
+                        <li><a href="{{ route('inventario.index') }}" class="{{ request()->is('inventario*') ? 'active' : '' }}"><i class="fa fa-warehouse"></i>Inventario</a></li>
+                    @endif
+                    @if(auth()->user()?->hasAnyPermission(['movimientos.entrada','movimientos.distribucion','movimientos.consumo','movimientos.ajuste_positivo','movimientos.ajuste_negativo']))
+                        <li><a href="{{ route('movimientos.index') }}" class="{{ request()->is('movimientos*') ? 'active' : '' }}"><i class="fa fa-exchange-alt"></i>Movimientos</a></li>
+                    @endif
+                    @if(auth()->user()?->hasAnyPermission(['reportes.inventario','reportes.salida']))
+                        <li><a href="{{ route('reportes.index') }}" class="{{ request()->is('reportes*') ? 'active' : '' }}"><i class="fa fa-chart-bar"></i>Reportes</a></li>
+                    @endif
                     @if(Auth::user() && Auth::user()->role === 'admin')
                         <li><a href="{{ route('usuarios.index') }}" class="{{ request()->is('usuarios*') ? 'active' : '' }}"><i class="fa fa-users"></i>Usuarios</a></li>
                         <li><a href="{{ route('bitacora.index') }}" class="{{ request()->is('bitacora*') ? 'active' : '' }}"><i class="fa fa-book"></i>Registro</a></li>
@@ -255,7 +291,7 @@
             </div>
         </aside>
         {{-- Área de contenido principal --}}
-        <section class="content-area" role="main">
+        <section class="content-area" role="main" id="main-content" tabindex="-1">
             <div class="content-wrapper">
             {{--
                 Dashboard: bienvenida, accesos rápidos y badges de conteo
@@ -265,8 +301,10 @@
                 <button class="strip-toggle" id="toggleTiles" aria-expanded="true" aria-controls="tilesGrid" title="Ocultar accesos">−</button>
                 <div class="quick-strip" aria-label="Bienvenida" id="quickStrip">
                     <div class="qs-left">
-                        @php($__name = Auth::user()->name ?? Auth::user()->username ?? 'U')
-                        <div class="qs-avatar">{{ strtoupper(mb_substr(trim($__name),0,1,'UTF-8')) }}</div>
+                        @php
+                            $quickName = Auth::user()->name ?? Auth::user()->username ?? 'U';
+                        @endphp
+                        <div class="qs-avatar">{{ strtoupper(mb_substr(trim($quickName),0,1,'UTF-8')) }}</div>
                         <div class="qs-text">
                             <div class="qs-title">Hola, {{ Auth::user()->name ?? 'Usuario' }}</div>
                             <div class="qs-sub">Resumen rápido de módulos</div>
@@ -276,28 +314,54 @@
                 </div>
                 <div class="tiles-grid" aria-label="Accesos rápidos" id="tilesGrid">
                     {{-- Conteos dinámicos de modelos y tablas --}}
-                    @php($countCategorias = \App\Models\Categoria::count())
-                    @php($countProductos = \App\Models\Producto::count())
-                    @php($countInventario = class_exists('App\\Models\\inventario') ? \App\Models\inventario::count() : 0)
-                    @php($countMovimientos = DB::table('movimientos')->count())
-                    @php($countReportes = DB::table('reportes')->count())
-                    @php($countUsuarios = DB::table('users')->count())
-                    @php($countBitacora = DB::table('bitacora')->count())
+                    @php
+                        $dashboardCounters = \Illuminate\Support\Facades\Cache::remember(
+                            'dashboard:counters:v1',
+                            now()->addMinutes(2),
+                            function () {
+                                return [
+                                    'categorias' => \App\Models\Categoria::count(),
+                                    'productos' => \App\Models\Producto::count(),
+                                    'inventario' => class_exists('App\\Models\\inventario') ? \App\Models\inventario::count() : 0,
+                                    'movimientos' => \Illuminate\Support\Facades\DB::table('movimientos')->count(),
+                                    'reportes' => \Illuminate\Support\Facades\DB::table('reportes')->count(),
+                                    'usuarios' => \Illuminate\Support\Facades\DB::table('users')->count(),
+                                    'bitacora' => \Illuminate\Support\Facades\DB::table('bitacora')->count(),
+                                ];
+                            }
+                        );
+
+                        $countCategorias = $dashboardCounters['categorias'] ?? 0;
+                        $countProductos = $dashboardCounters['productos'] ?? 0;
+                        $countInventario = $dashboardCounters['inventario'] ?? 0;
+                        $countMovimientos = $dashboardCounters['movimientos'] ?? 0;
+                        $countReportes = $dashboardCounters['reportes'] ?? 0;
+                        $countUsuarios = $dashboardCounters['usuarios'] ?? 0;
+                        $countBitacora = $dashboardCounters['bitacora'] ?? 0;
+                    @endphp
                     <a href="/dashboard" class="tile" aria-label="Inicio"><i class="fa fa-home"></i><span class="t-label">Inicio</span></a>
-                    <a href="/categorias" class="tile" aria-label="Categorías"><span class="badge-count">{{ $countCategorias }}</span><i class="fa fa-folder"></i><span class="t-label">Categorías</span></a>
-                    <a href="/productos" class="tile" aria-label="Medicamentos"><span class="badge-count">{{ $countProductos }}</span><i class="fa fa-pills"></i><span class="t-label">Medicamentos</span></a>
-                    <a href="{{ route('inventario.index') }}" class="tile" aria-label="Inventario"><span class="badge-count">{{ $countInventario }}</span><i class="fa fa-warehouse"></i><span class="t-label">Inventario</span></a>
-                    <a href="{{ route('movimientos.index') }}" class="tile" aria-label="Movimientos"><span class="badge-count">{{ $countMovimientos }}</span><i class="fa fa-exchange-alt"></i><span class="t-label">Movimientos</span></a>
-                    <a href="{{ route('reportes.index') }}" class="tile" aria-label="Reportes"><span class="badge-count">{{ $countReportes }}</span><i class="fa fa-chart-bar"></i><span class="t-label">Reportes</span></a>
+                    @if(auth()->user()?->hasPermission('categorias.ver'))
+                        <a href="/categorias" class="tile" aria-label="Categorías"><span class="badge-count">{{ $countCategorias }}</span><i class="fa fa-folder"></i><span class="t-label">Categorías</span></a>
+                    @endif
+                    @if(auth()->user()?->hasPermission('medicamentos.ver'))
+                        <a href="/productos" class="tile" aria-label="Medicamentos"><span class="badge-count">{{ $countProductos }}</span><i class="fa fa-pills"></i><span class="t-label">Medicamentos</span></a>
+                    @endif
+                    @if(auth()->user()?->hasPermission('inventario.ver'))
+                        <a href="{{ route('inventario.index') }}" class="tile" aria-label="Inventario"><span class="badge-count">{{ $countInventario }}</span><i class="fa fa-warehouse"></i><span class="t-label">Inventario</span></a>
+                    @endif
+                    @if(auth()->user()?->hasAnyPermission(['movimientos.entrada','movimientos.distribucion','movimientos.consumo','movimientos.ajuste_positivo','movimientos.ajuste_negativo']))
+                        <a href="{{ route('movimientos.index') }}" class="tile" aria-label="Movimientos"><span class="badge-count">{{ $countMovimientos }}</span><i class="fa fa-exchange-alt"></i><span class="t-label">Movimientos</span></a>
+                    @endif
+                    @if(auth()->user()?->hasAnyPermission(['reportes.inventario','reportes.salida']))
+                        <a href="{{ route('reportes.index') }}" class="tile" aria-label="Reportes"><span class="badge-count">{{ $countReportes }}</span><i class="fa fa-chart-bar"></i><span class="t-label">Reportes</span></a>
+                    @endif
                     @if(Auth::user() && Auth::user()->role === 'admin')
                         <a href="{{ route('usuarios.index') }}" class="tile" aria-label="Usuarios"><span class="badge-count">{{ $countUsuarios }}</span><i class="fa fa-users"></i><span class="t-label">Usuarios</span></a>
                         <a href="{{ route('bitacora.index') }}" class="tile" aria-label="Registro"><span class="badge-count">{{ $countBitacora }}</span><i class="fa fa-book"></i><span class="t-label">Registro</span></a>
                     @endif
                 </div>
             @endif
-            {{--
-                Aquí se inyecta el contenido de cada vista hija con @yield('content')
-            --}}
+            <!-- Aquí se inyecta el contenido de cada vista hija -->
             @yield('content')
             </div>
         </section>
@@ -338,6 +402,13 @@ window.showToast = function(msg, tipo='success') {
 }
 // Toggle panel notificaciones y simulación de lista de movimientos
 const bell=document.getElementById('notifBell'); const panel=document.getElementById('notifPanel'); if(bell&&panel){ bell.addEventListener('click',()=>{ const open=panel.style.display==='block'; panel.style.display=open?'none':'block'; bell.setAttribute('aria-expanded', open?'false':'true'); }); }
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && panel && bell && panel.style.display === 'block') {
+        panel.style.display = 'none';
+        bell.setAttribute('aria-expanded', 'false');
+        bell.focus();
+    }
+});
 document.getElementById('notifMarkAll')?.addEventListener('click',()=>{ const items=document.getElementById('notifItems'); const empty=document.getElementById('notifEmpty'); const count=document.getElementById('notifCount'); if(items&&empty){ items.innerHTML=''; empty.style.display='block'; } if(count){ count.style.display='none'; count.textContent='0'; } });
 // Sin simulación: el notificador solo mostrará datos reales cuando se integren
 const items=document.getElementById('notifItems'); const empty=document.getElementById('notifEmpty'); const badge=document.getElementById('notifCount');

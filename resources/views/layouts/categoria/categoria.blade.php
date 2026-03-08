@@ -21,11 +21,11 @@
             <input type="hidden" id="categoria_id" name="categoria_id" />
             <div class="mb-3">
                 <label class="form-label fw-semibold">Nombre de la categoría</label>
-                <input type="text" id="input-nombre-categoria" name="nombre_categoria" class="form-control" placeholder="Ej: Medicamentos" autocomplete="off" required>
+                <input type="text" id="input-nombre-categoria" name="nombre_categoria" class="form-control" placeholder="Ej: Medicamentos" autocomplete="off" required maxlength="35">
             </div>
             <div class="mb-2">
                 <label class="form-label fw-semibold">Subcategoría inicial (opcional)</label>
-                <input type="text" id="input-nombre-subcategoria" name="nombre_subcategoria" class="form-control" placeholder="Ej: Analgésicos" autocomplete="off">
+                <input type="text" id="input-nombre-subcategoria" name="nombre_subcategoria" class="form-control" placeholder="Ej: Analgésicos" autocomplete="off" maxlength="35">
             </div>
             <div id="error-subcategoria" class="text-danger small mb-2" style="display:none;"></div>
             <div class="d-flex justify-content-end gap-2 mt-3">
@@ -42,7 +42,7 @@
         <input type="hidden" id="editSubId">
         <div class="mb-3">
             <label class="form-label fw-semibold">Nombre</label>
-            <input type="text" id="editSubNombre" class="form-control" autocomplete="off">
+            <input type="text" id="editSubNombre" class="form-control" autocomplete="off" maxlength="35">
         </div>
         <div class="d-flex justify-content-end gap-2">
             <button type="button" onclick="cerrarModalEditarSubcategoria()" class="btn btn-outline-secondary btn-sm">Cancelar</button>
@@ -199,6 +199,24 @@
     }
     function confirmar(mensaje, cb){ const modal=document.getElementById('modal-confirmar'); modal.style.display='flex'; document.getElementById('confirmar-mensaje').textContent=mensaje; const btnOk=document.getElementById('btn-aceptar-confirmar'); const btnNo=document.getElementById('btn-cancelar-confirmar'); const close=()=>{modal.style.display='none'; btnOk.removeEventListener('click',okH); btnNo.removeEventListener('click',noH);} ; const okH=()=>{cb&&cb(); close();}; const noH=()=>close(); btnOk.addEventListener('click',okH,{once:true}); btnNo.addEventListener('click',noH,{once:true}); }
     function csrf(){ const m=document.querySelector('meta[name="csrf-token"]'); return m?m.content:''; }
+    function sanitizeLabelClient(v=''){ return String(v || '').trim().replace(/\s+/gu, ' '); }
+    function getSuspiciousReason(v=''){
+        const text = sanitizeLabelClient(v);
+        if(!text) return 'El nombre es obligatorio.';
+        if(text.length > 35) return 'El nombre no puede superar 35 caracteres.';
+
+        const compact = text.replace(/\s+/gu, '');
+        const lettersOnly = text.replace(/[^\p{L}]/gu, '');
+
+        if(!/^.*\p{L}.*$/u.test(text)) return 'Debe contener letras y no solo números.';
+        if(lettersOnly.length < 2) return 'Debe contener al menos 2 letras reales.';
+        if(/^(.)\1{4,}$/u.test(compact) || /(.)\1{4,}/u.test(compact)) return 'No se permiten secuencias repetitivas (ej. aaaaa o 11111).';
+        if(/[bcdfghjklmnñpqrstvwxyz]{8,}/iu.test(lettersOnly)) return 'El texto no parece válido; usa un nombre real.';
+        if(!text.includes(' ') && lettersOnly.length > 14) return 'El texto no parece válido; evita cadenas largas sin separación.';
+        if(!/^(?=.*\p{L})[\p{L}\p{N}\s\-\.,\(\)\/&]+$/u.test(text)) return 'El nombre contiene caracteres no permitidos.';
+
+        return null;
+    }
 
     // ===================== PERSISTENCIA =====================
     function loadPersisted(){ try { const v=localStorage.getItem(LS_KEY); if(v) state.selectedCategoryId = parseInt(v); } catch{} }
@@ -354,26 +372,40 @@
     const errorSub = document.getElementById('error-subcategoria');
     function existeCategoria(nombre){ if(!nombre) return false; const n=nombre.trim().toLowerCase(); return state.categorias.some(c=> c.nombre.trim().toLowerCase()===n); }
     function existeSubEnCategoria(catId, nombre){ if(!catId || !nombre) return false; const n=nombre.trim().toLowerCase(); const cat = state.categorias.find(c=> c.id==catId); if(!cat) return false; return cat.subcategorias.some(s=> s.nombre.trim().toLowerCase()===n); }
-    function validarDuplicados(){ const modo = els.formCategoria().getAttribute('data-modo'); const catNombre = inputCat.value.trim(); const subNombre = inputSub.value.trim(); let ok=true; errorSub.style.display='none'; errorSub.textContent=''; inputCat.classList.remove('is-invalid'); inputSub.classList.remove('is-invalid');
-        if(modo==='crear'){ if(catNombre && existeCategoria(catNombre)){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent='Ya existe una categoría con ese nombre.'; errorSub.style.display='block'; }
+    function validarDuplicados(){ const modo = els.formCategoria().getAttribute('data-modo'); const catNombre = sanitizeLabelClient(inputCat.value); const subNombre = sanitizeLabelClient(inputSub.value); let ok=true; errorSub.style.display='none'; errorSub.textContent=''; inputCat.classList.remove('is-invalid'); inputSub.classList.remove('is-invalid');
+        if(modo==='crear'){
+            const catSuspicious = getSuspiciousReason(catNombre);
+            if(catSuspicious){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent=catSuspicious; errorSub.style.display='block'; }
+            if(ok && subNombre){
+                const subSuspicious = getSuspiciousReason(subNombre);
+                if(subSuspicious){ inputSub.classList.add('is-invalid'); ok=false; errorSub.textContent=subSuspicious; errorSub.style.display='block'; }
+            }
+            if(ok && catNombre && existeCategoria(catNombre)){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent='Ya existe una categoría con ese nombre.'; errorSub.style.display='block'; }
             if(ok && subNombre && existeSubEnCategoria(state.categorias.find(c=> c.nombre.trim().toLowerCase()===catNombre?.toLowerCase())?.id, subNombre)){ inputSub.classList.add('is-invalid'); ok=false; errorSub.textContent='Ya existe esa subcategoría en la categoría.'; errorSub.style.display='block'; }
-        } else if(modo==='sub'){ const catId = document.getElementById('categoria_id').value; if(subNombre && existeSubEnCategoria(catId, subNombre)){ inputSub.classList.add('is-invalid'); ok=false; errorSub.textContent='Subcategoría duplicada.'; errorSub.style.display='block'; }
-        } else if(modo==='editar'){ /* edición de nombre de categoría: se valida al enviar */ if(catNombre && existeCategoria(catNombre) && state.categorias.find(c=> c.id==document.getElementById('categoria_id').value)?.nombre.toLowerCase()!==catNombre.toLowerCase()){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent='Otro registro ya usa ese nombre.'; errorSub.style.display='block'; }
+        } else if(modo==='sub'){
+            const catId = document.getElementById('categoria_id').value;
+            const subSuspicious = getSuspiciousReason(subNombre);
+            if(subSuspicious){ inputSub.classList.add('is-invalid'); ok=false; errorSub.textContent=subSuspicious; errorSub.style.display='block'; }
+            if(ok && subNombre && existeSubEnCategoria(catId, subNombre)){ inputSub.classList.add('is-invalid'); ok=false; errorSub.textContent='Subcategoría duplicada.'; errorSub.style.display='block'; }
+        } else if(modo==='editar'){
+            const catSuspicious = getSuspiciousReason(catNombre);
+            if(catSuspicious){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent=catSuspicious; errorSub.style.display='block'; }
+            if(ok && catNombre && existeCategoria(catNombre) && state.categorias.find(c=> c.id==document.getElementById('categoria_id').value)?.nombre.toLowerCase()!==catNombre.toLowerCase()){ inputCat.classList.add('is-invalid'); ok=false; errorSub.textContent='Otro registro ya usa ese nombre.'; errorSub.style.display='block'; }
         }
         return ok;
     }
     ['input','blur'].forEach(ev=>{ inputCat.addEventListener(ev, ()=>{ validarDuplicados(); }); inputSub.addEventListener(ev, ()=>{ validarDuplicados(); }); });
 
-    els.formCategoria().addEventListener('submit', async (e)=>{ e.preventDefault(); if(!validarDuplicados()) return; const form = e.currentTarget; const modo = form.getAttribute('data-modo'); const catId = document.getElementById('categoria_id').value; const nombreCat = document.getElementById('input-nombre-categoria').value.trim(); const subNombre = document.getElementById('input-nombre-subcategoria').value.trim(); try { if(modo==='editar'){ if(!nombreCat) return showToast('Nombre requerido','error'); await peticion(`/categorias/${catId}`, 'PUT', { nombre_categoria: nombreCat }); showToast('Categoría actualizada'); }
-            else if(modo==='sub'){ if(!subNombre) return showToast('Nombre subcategoría requerido','error'); await peticion(`/subcategorias`, 'POST', { nombre: subNombre, categoria_id: catId }); showToast('Subcategoría creada'); }
-            else { if(!nombreCat) return showToast('Nombre requerido','error'); const payload={nombre_categoria:nombreCat}; if(subNombre) payload.nombre_subcategoria=subNombre; await peticion('/categorias','POST', payload); showToast('Categoría creada'); }
+    els.formCategoria().addEventListener('submit', async (e)=>{ e.preventDefault(); if(!validarDuplicados()) return; const form = e.currentTarget; const modo = form.getAttribute('data-modo'); const catId = document.getElementById('categoria_id').value; const nombreCat = sanitizeLabelClient(document.getElementById('input-nombre-categoria').value); const subNombre = sanitizeLabelClient(document.getElementById('input-nombre-subcategoria').value); try { if(modo==='editar'){ if(!nombreCat) return showToast('El nombre de la categoría es obligatorio.','error'); await peticion(`/categorias/${catId}`, 'PUT', { nombre_categoria: nombreCat }); showToast('Categoría actualizada'); }
+            else if(modo==='sub'){ if(!subNombre) return showToast('El nombre de la subcategoría es obligatorio.','error'); await peticion(`/subcategorias`, 'POST', { nombre: subNombre, categoria_id: catId }); showToast('Subcategoría creada'); }
+            else { if(!nombreCat) return showToast('El nombre de la categoría es obligatorio.','error'); const payload={nombre_categoria:nombreCat}; if(subNombre) payload.nombre_subcategoria=subNombre; await peticion('/categorias','POST', payload); showToast('Categoría creada'); }
             closeCategoriaModal(); await cargarCategorias({silencioso:true}); }
         catch(err){ showToast(err.message || 'Error','error'); }
     });
 
     window.abrirModalEditarSubcategoria = function(id,nombre){ els.modalEditarSub().style.display='flex'; document.getElementById('editSubId').value=id; document.getElementById('editSubNombre').value=nombre; };
     window.cerrarModalEditarSubcategoria = function(){ els.modalEditarSub().style.display='none'; };
-    window.guardarEdicionSubcategoria = async function(){ const id=document.getElementById('editSubId').value; const nombre=document.getElementById('editSubNombre').value.trim(); if(!nombre) return showToast('Nombre requerido','error'); try { await peticion(`/subcategorias/${id}`,'PUT',{ nombre }); showToast('Subcategoría actualizada'); cerrarModalEditarSubcategoria(); await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'Error','error'); } };
+    window.guardarEdicionSubcategoria = async function(){ const id=document.getElementById('editSubId').value; const nombre=sanitizeLabelClient(document.getElementById('editSubNombre').value); const suspiciousReason = getSuspiciousReason(nombre); if(!nombre) return showToast('El nombre de la subcategoría es obligatorio.','error'); if(suspiciousReason) return showToast(suspiciousReason,'error'); try { await peticion(`/subcategorias/${id}`,'PUT',{ nombre }); showToast('Subcategoría actualizada'); cerrarModalEditarSubcategoria(); await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'Error','error'); } };
 
     async function eliminarCategoria(id){ try{ await peticion(`/categorias/${id}`,'DELETE'); showToast('Categoría eliminada'); if(state.selectedCategoryId==id) state.selectedCategoryId=null; await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'No se pudo eliminar','error'); } }
     async function eliminarSubcategoria(id){ try{ await peticion(`/subcategorias/${id}`,'DELETE'); showToast('Subcategoría eliminada'); await cargarCategorias({silencioso:true}); } catch(e){ showToast(e.message || 'No se pudo eliminar','error'); } }

@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Log;
 
-abstract class Controller
+abstract class Controller extends BaseController
 {
+    use AuthorizesRequests, ValidatesRequests;
+
     // Helper para registrar eventos en bitácora
     protected function logBitacora(string $accion, $detalles = null): void
     {
