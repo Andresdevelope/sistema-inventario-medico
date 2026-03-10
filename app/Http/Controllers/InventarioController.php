@@ -29,7 +29,9 @@ class InventarioController extends Controller
     public function index(Request $request)
     {
         // Obtener filtros de la request
-        $q = $request->input('search'); // Búsqueda por nombre
+        $q = trim((string) $request->input('search', '')); // Búsqueda por nombre
+        $q = mb_substr($q, 0, 35);
+        $q = $q !== '' ? $q : null;
         $categoria = $request->input('categoria'); // Filtro por categoría
         $categoriaInventario = $request->input('categoria_inventario'); // Filtro por área (general / odontologia)
         $fecha = $request->input('fecha'); // Filtro por fecha de ingreso

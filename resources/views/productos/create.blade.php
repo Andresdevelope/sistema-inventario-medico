@@ -27,7 +27,7 @@
         <div class="row g-4">
                     <div class="col-md-6">
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" minlength="3" maxlength="80" pattern="(?=.*[A-Za-zÁÉÍÓÚáéíóúÑñ])[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s\-\.,\(\)/\+%]{3,80}" title="Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números." required>
+                            <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" minlength="3" maxlength="50" pattern="(?=(?:.*\d){0,4}$)(?=.*[A-Za-zÁÉÍÓÚáéíóúÑñ])[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s\-\.,\(\)/\+%]{3,50}" title="Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). Máximo 4 números." required>
                             <label for="nombre"><i class="fas fa-capsules me-2"></i> Nombre</label>
                         </div>
                         @error('nombre')
@@ -41,7 +41,7 @@
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <textarea name="descripcion" id="descripcion" class="form-control ps-5 @error('descripcion') is-invalid @enderror" placeholder="Descripción" minlength="10" maxlength="500" style="height: 80px;">{{ old('descripcion') }}</textarea>
+                            <textarea name="descripcion" id="descripcion" class="form-control ps-5 @error('descripcion') is-invalid @enderror" placeholder="Descripción" minlength="10" maxlength="100" style="height: 80px;">{{ old('descripcion') }}</textarea>
                             <label for="descripcion"><i class="fas fa-align-left me-2"></i> Descripción</label>
                         </div>
                         @error('descripcion')
@@ -108,14 +108,14 @@
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="number" name="stock" id="stock" class="form-control ps-5 @error('stock') is-invalid @enderror" min="0" placeholder="Stock" value="{{ old('stock') }}" required>
+              <input type="number" name="stock" id="stock" class="form-control ps-5 @error('stock') is-invalid @enderror" min="1" max="9999" step="1" inputmode="numeric" placeholder="Stock" value="{{ old('stock') }}" required>
               <label for="stock"><i class="fas fa-boxes me-2"></i> Stock</label>
             </div>
             @error('stock')
               <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
             <div class="form-floating mb-3 position-relative">
-              <input type="number" name="stock_minimo" id="stock_minimo" class="form-control ps-5 @error('stock_minimo') is-invalid @enderror" min="0" placeholder="Stock mínimo recomendado" value="{{ old('stock_minimo') }}">
+              <input type="number" name="stock_minimo" id="stock_minimo" class="form-control ps-5 @error('stock_minimo') is-invalid @enderror" min="1" max="9999" step="1" inputmode="numeric" placeholder="Stock mínimo recomendado" value="{{ old('stock_minimo') }}">
               <label for="stock_minimo"><i class="fas fa-exclamation-triangle me-2"></i> Stock mínimo recomendado</label>
             </div>
             @error('stock_minimo')
@@ -246,7 +246,43 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
   const categoriaSelect = document.getElementById('categoria_id');
   const subcategoriaSelect = document.getElementById('subcategoria_id');
+  const nombreInput = document.getElementById('nombre');
+  const stockInput = document.getElementById('stock');
+  const stockMinimoInput = document.getElementById('stock_minimo');
   const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
+
+  const limitarDigitosMaximosEnTexto = (input, maxDigitos = 4) => {
+    if (!input) return;
+    input.addEventListener('input', function() {
+      let digitosActuales = 0;
+      let resultado = '';
+
+      for (const char of this.value) {
+        if (/\d/.test(char)) {
+          if (digitosActuales < maxDigitos) {
+            resultado += char;
+            digitosActuales++;
+          }
+        } else {
+          resultado += char;
+        }
+      }
+
+      this.value = resultado;
+    });
+  };
+
+  const limitarMaximo4Digitos = (input) => {
+    if (!input) return;
+    input.addEventListener('input', function() {
+      const soloDigitos = this.value.replace(/\D/g, '').slice(0, 4);
+      this.value = soloDigitos;
+    });
+  };
+
+  limitarMaximo4Digitos(stockInput);
+  limitarMaximo4Digitos(stockMinimoInput);
+  limitarDigitosMaximosEnTexto(nombreInput, 4);
   // Eliminado: No se genera código automáticamente, el usuario debe ingresar el código real del medicamento.
   if (categoriaSelect && subcategoriaSelect) {
     categoriaSelect.addEventListener('change', function() {

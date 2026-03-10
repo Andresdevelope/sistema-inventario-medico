@@ -111,6 +111,12 @@ class MovimientosController extends Controller
 
     public function store(Request $request, InventarioService $service)
     {
+        $request->merge([
+            'lote' => $this->normalizarTexto($request->input('lote')),
+            'motivo' => $this->normalizarTexto($request->input('motivo')),
+            'observaciones' => $this->normalizarTexto($request->input('observaciones')),
+        ]);
+
         $tipo = (string) $request->input('tipo');
         $modalidad = (string) $request->input('modalidad');
         $requiredPermission = match ($tipo) {
@@ -136,7 +142,41 @@ class MovimientosController extends Controller
             'fecha_vencimiento' => 'nullable|required_if:tipo,ingreso,ajuste_pos|date|after:today',
             // Para ENTRADA y AJUSTE +, debe indicarse un número de lote (nuevo o existente).
             // En otros tipos se permite que quede vacío sin validar como string.
-            'lote' => 'nullable|required_if:tipo,ingreso,ajuste_pos|string|max:50',
+            'lote' => [
+                'nullable',
+                'required_if:tipo,ingreso,ajuste_pos',
+                'string',
+                'min:3',
+                'max:35',
+                'regex:/^[\pL\pN\s\-\.\/\#]+$/u',
+                function ($attribute, $value, $fail) {
+                    if (! is_string($value) || ! $this->textoPareceValido($value, true)) {
+                        $fail('El número de lote ingresado no parece válido. Usa un formato real (ej. L-2025-AX13).');
+                    }
+                },
+            ],
+            'motivo' => [
+                'nullable',
+                'string',
+                'min:5',
+                'max:40',
+                function ($attribute, $value, $fail) {
+                    if (! is_string($value) || ! $this->textoPareceValido($value, false)) {
+                        $fail('El motivo ingresado no parece válido. Evita textos aleatorios o solo números.');
+                    }
+                },
+            ],
+            'observaciones' => [
+                'nullable',
+                'string',
+                'min:5',
+                'max:60',
+                function ($attribute, $value, $fail) {
+                    if (! is_string($value) || ! $this->textoPareceValido($value, false)) {
+                        $fail('La observación ingresada no parece válida. Evita textos aleatorios o solo números.');
+                    }
+                },
+            ],
             'destino_id' => 'required_if:tipo,egreso|nullable|exists:destinos,id',
             // Modalidad requerida en egresos: distribucion o consumo
             'modalidad' => 'nullable|required_if:tipo,egreso|in:distribucion,consumo',
@@ -150,6 +190,13 @@ class MovimientosController extends Controller
             'fecha_vencimiento.required_if' => 'Debe ingresar la fecha de vencimiento para entradas y ajustes positivos',
             'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy',
             'lote.required_if' => 'Debe ingresar el número de lote o seleccionar uno de la tabla para entradas y ajustes positivos',
+            'lote.min' => 'El número de lote debe tener al menos 3 caracteres.',
+            'lote.max' => 'El número de lote no puede superar 35 caracteres.',
+            'lote.regex' => 'El número de lote contiene caracteres no permitidos.',
+            'motivo.min' => 'El motivo debe tener al menos 5 caracteres.',
+            'motivo.max' => 'El motivo no puede superar 40 caracteres.',
+            'observaciones.min' => 'La observación debe tener al menos 5 caracteres.',
+            'observaciones.max' => 'La observación no puede superar 60 caracteres.',
             'destino_id.required_if' => 'Debe seleccionar un destino para egresos',
             'modalidad.required_if' => 'Para egresos indique si es distribución o consumo',
             'tipo_identificacion.required_if' => 'Para consumo debe indicar el tipo de beneficiario',
@@ -379,5 +426,61 @@ class MovimientosController extends Controller
         } catch (\Throwable $e) {}
 
         return view('movimientos.historial_consumo', compact('consumos','destinos','productos'));
+    }
+
+    private function normalizarTexto($valor): ?string
+    {
+        if (! is_string($valor)) {
+            return null;
+        }
+
+        $texto = trim($valor);
+        if ($texto === '') {
+            return null;
+        }
+
+        return preg_replace('/\s+/u', ' ', $texto) ?? $texto;
+    }
+
+    private function textoPareceValido(string $texto, bool $esLote = false): bool
+    {
+        $texto = trim(mb_strtolower($texto));
+        if ($texto === '') {
+            return false;
+        }
+
+        // Bloquear entradas puramente numéricas.
+        if (preg_match('/^\d+$/u', $texto)) {
+            return false;
+        }
+
+        // Bloquear repeticiones excesivas del mismo carácter.
+        if (preg_match('/(.)\1{4,}/u', $texto)) {
+            return false;
+        }
+
+        // Bloquear patrones típicos de "teclado" aleatorio.
+        if (preg_match('/(asdf|asd|qwer|qwe|zxcv|zxc|sdfg|jkl|lkj|mnb)/iu', $texto)) {
+            return false;
+        }
+
+        // Para campos descriptivos, exigir letras y presencia razonable de vocales.
+        if (! $esLote) {
+            if (! preg_match('/\pL/u', $texto)) {
+                return false;
+            }
+
+            $soloLetras = preg_replace('/[^\pL]/u', '', $texto) ?? '';
+            if (mb_strlen($soloLetras) < 4) {
+                return false;
+            }
+
+            $vocales = preg_match_all('/[aeiouáéíóú]/u', $soloLetras);
+            if ($vocales === false || $vocales < 2) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

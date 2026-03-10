@@ -83,24 +83,29 @@ class ProductoController extends Controller
                 'required',
                 'string',
                 'min:3',
-                'max:80',
+                'max:50',
                 'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
                 function ($attribute, $value, $fail) {
                     if (! $this->nombreMedicamentoPareceValido((string) $value)) {
                         $fail('Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números ni texto inválido.');
                     }
+
+                    $totalDigitos = preg_match_all('/\pN/u', (string) $value);
+                    if ($totalDigitos !== false && $totalDigitos > 4) {
+                        $fail('El nombre puede contener máximo 4 números.');
+                    }
                 },
             ],
             'codigo' => 'required|string|min:3|max:30|regex:/^[A-Z0-9\-\.\/]+$/|unique:productos,codigo',
-            'descripcion' => 'nullable|string|min:10|max:500',
+            'descripcion' => 'nullable|string|min:10|max:100',
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
             'unidad_medida' => 'required|string|min:2|max:20|regex:/^[\pL\pN\s\-\.,\/]+$/u',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
-            'stock' => 'required|integer|min:0',
-            'stock_minimo' => 'nullable|integer|min:0',
+            'stock' => 'required|integer|min:1|max:9999|digits_between:1,4',
+            'stock_minimo' => 'nullable|integer|min:1|max:9999|digits_between:1,4',
             'proveedor_id' => 'required|exists:proveedores,id',
             'fecha_ingreso' => 'required|date|before_or_equal:today',
             'fecha_vencimiento' => 'required|date|after:fecha_ingreso|after:today'
@@ -135,6 +140,7 @@ class ProductoController extends Controller
     public function buscarAjax(Request $request)
     {
         $term = trim((string) $request->input('q', ''));
+        $term = mb_substr($term, 0, 35);
         $tipo = $request->input('tipo');
         $perPage = (int) $request->input('per_page', 15);
         $perPage = max(5, min(30, $perPage));
@@ -208,24 +214,29 @@ class ProductoController extends Controller
                 'required',
                 'string',
                 'min:3',
-                'max:80',
+                'max:50',
                 'regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
                 function ($attribute, $value, $fail) {
                     if (! $this->nombreMedicamentoPareceValido((string) $value)) {
                         $fail('Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). No se permiten solo números ni texto inválido.');
                     }
+
+                    $totalDigitos = preg_match_all('/\pN/u', (string) $value);
+                    if ($totalDigitos !== false && $totalDigitos > 4) {
+                        $fail('El nombre puede contener máximo 4 números.');
+                    }
                 },
             ],
             'codigo' => 'required|string|min:3|max:30|regex:/^[A-Z0-9\-\.\/]+$/|unique:productos,codigo,' . $producto->id,
-            'descripcion' => 'nullable|string|min:10|max:500',
+            'descripcion' => 'nullable|string|min:10|max:100',
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
             'unidad_medida' => 'required|string|min:2|max:20|regex:/^[\pL\pN\s\-\.,\/]+$/u',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
-            'stock' => 'required|integer|min:0',
-            'stock_minimo' => 'nullable|integer|min:0',
+            'stock' => 'required|integer|min:1|max:9999|digits_between:1,4',
+            'stock_minimo' => 'nullable|integer|min:1|max:9999|digits_between:1,4',
             'proveedor_id' => 'required|exists:proveedores,id',
             'fecha_ingreso' => 'required|date|before_or_equal:today',
             'fecha_vencimiento' => 'nullable|date|after:fecha_ingreso|after:today',
@@ -297,7 +308,7 @@ class ProductoController extends Controller
             'nombre.required' => 'El nombre es obligatorio.',
             'nombre.string' => 'El nombre debe ser un texto válido.',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres.',
-            'nombre.max' => 'El nombre no puede superar los 80 caracteres.',
+            'nombre.max' => 'El nombre no puede superar los 50 caracteres.',
             'nombre.regex' => 'El nombre solo puede contener letras, números y signos permitidos (.-,()/+%).',
 
             'codigo.required' => 'El código es obligatorio.',
@@ -309,7 +320,7 @@ class ProductoController extends Controller
 
             'descripcion.string' => 'La descripción debe ser un texto válido.',
             'descripcion.min' => 'La descripción debe tener al menos 10 caracteres si se indica.',
-            'descripcion.max' => 'La descripción no puede superar los 500 caracteres.',
+            'descripcion.max' => 'La descripción no puede superar los 100 caracteres.',
 
             'categoria_id.required' => 'Debes seleccionar una categoría.',
             'categoria_id.exists' => 'La categoría seleccionada no es válida.',
@@ -339,10 +350,14 @@ class ProductoController extends Controller
 
             'stock.required' => 'El stock es obligatorio.',
             'stock.integer' => 'El stock debe ser un número entero.',
-            'stock.min' => 'El stock no puede ser negativo.',
+            'stock.min' => 'El stock debe ser mínimo 1.',
+            'stock.max' => 'El stock no puede superar 9999 (4 dígitos).',
+            'stock.digits_between' => 'El stock solo puede tener entre 1 y 4 dígitos.',
 
             'stock_minimo.integer' => 'El stock mínimo debe ser un número entero.',
-            'stock_minimo.min' => 'El stock mínimo no puede ser negativo.',
+            'stock_minimo.min' => 'El stock mínimo debe ser mínimo 1.',
+            'stock_minimo.max' => 'El stock mínimo no puede superar 9999 (4 dígitos).',
+            'stock_minimo.digits_between' => 'El stock mínimo solo puede tener entre 1 y 4 dígitos.',
 
             'proveedor_id.required' => 'Debes seleccionar un proveedor.',
             'proveedor_id.exists' => 'El proveedor seleccionado no es válido.',

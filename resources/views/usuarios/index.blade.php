@@ -81,6 +81,18 @@
             color: #2f3a4a;
         }
 
+        .btn-outline-accent {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: #fff;
+        }
+        .btn-outline-accent:hover,
+        .btn-outline-accent:focus {
+            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
         @media (max-width: 576px) {
             #permissionsUserModal .modal-content {
                 max-height: calc(100vh - 20px);
@@ -248,7 +260,7 @@
                                             <i class="fa fa-edit"></i>
                                         </button>
                                         @if(auth()->id() !== $user->id && $user->role === 'operador')
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#permissionsUserModal"
+                                            <button class="btn btn-sm btn-outline-accent" data-bs-toggle="modal" data-bs-target="#permissionsUserModal"
                                                     data-id="{{ $user->id }}" data-name="{{ $user->name }}" data-role="{{ $user->role }}" title="Gestionar permisos">
                                                 <i class="fa fa-list-check"></i>
                                             </button>
@@ -557,7 +569,7 @@
                                     data-role="${user.role}">
                                     <i class="fa fa-edit"></i>
                                 </button>
-                                ${(canManage && String(user.role) === 'operador') ? `<button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#permissionsUserModal" data-id="${user.id}" data-name="${user.name}" data-role="${user.role}" title="Gestionar permisos"><i class="fa fa-list-check"></i></button>` : ''}
+                                ${(canManage && String(user.role) === 'operador') ? `<button class="btn btn-sm btn-outline-accent" data-bs-toggle="modal" data-bs-target="#permissionsUserModal" data-id="${user.id}" data-name="${user.name}" data-role="${user.role}" title="Gestionar permisos"><i class="fa fa-list-check"></i></button>` : ''}
                                 ${canManage ? `<button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-trash"></i></button>` : ''}
                                 ${(canManage && isBlocked) ? `<button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#unlockUserModal" data-id="${user.id}" data-name="${user.name}"><i class="fa fa-unlock"></i> Desbloquear</button>` : ''}
                             </td>

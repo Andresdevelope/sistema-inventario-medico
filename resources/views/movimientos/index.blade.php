@@ -472,7 +472,7 @@
         <div class="col-12 col-xl-8">
           <label class="form-label">Producto</label>
           <div class="position-relative">
-            <input type="text" id="producto_buscar" class="form-control mb-2" placeholder="Buscar por nombre o código..." autocomplete="off">
+            <input type="text" id="producto_buscar" class="form-control mb-2" maxlength="35" placeholder="Buscar por nombre o código..." autocomplete="off">
             <div id="producto_sugerencias" class="list-group position-absolute w-100" style="z-index: 1000; display:none; max-height: 240px; overflow:auto;"></div>
           </div>
           <small class="form-text text-muted" id="producto-buscar-hint">El buscador recorre todo el catálogo; los filtros solo acotan la lista desplegable inferior.</small>
@@ -577,7 +577,7 @@
             </div>
             <div class="col-md-8 col-xl-4" id="lote-wrapper">
               <label class="form-label">Número de lote </label>
-              <input type="text" class="form-control" maxlength="50" name="lote" value="{{ old('lote') }}" placeholder="Ej: L-2025-AX13">
+              <input type="text" class="form-control" maxlength="35" name="lote" value="{{ old('lote') }}" placeholder="Ej: L-2025-AX13">
               <div class="form-text mt-1">Sugerencia: usa la tabla inferior para elegir un lote con los botones “+” o “Elegir lote”, o escribe uno nuevo.</div>
               <div id="lote-advice" class="small mt-1 text-muted"></div>
             </div>
@@ -588,11 +588,11 @@
             </div>
             <div class="col-md-4 col-xl-3">
               <label class="form-label">Motivo</label>
-              <input type="text" class="form-control" name="motivo" value="{{ old('motivo') }}" placeholder="Opcional">
+              <input type="text" class="form-control" maxlength="40" name="motivo" value="{{ old('motivo') }}" placeholder="Opcional">
             </div>
             <div class="col-md-8 col-xl-6">
               <label class="form-label">Observaciones</label>
-              <input type="text" class="form-control" name="observaciones" value="{{ old('observaciones') }}" placeholder="Opcional">
+              <input type="text" class="form-control" maxlength="60" name="observaciones" value="{{ old('observaciones') }}" placeholder="Opcional">
             </div>
           </div>
         </div>

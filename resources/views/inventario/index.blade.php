@@ -170,7 +170,7 @@
     <form method="GET" class="row g-3 mb-4 align-items-end">
         <div class="col-md-3">
             <label for="search" class="form-label">Nombre</label>
-            <input type="text" name="search" id="search" value="{{ request('search') }}" class="form-control" placeholder="Buscar por nombre...">
+            <input type="text" name="search" id="search" value="{{ request('search') }}" class="form-control" maxlength="35" placeholder="Buscar por nombre...">
         </div>
         <div class="col-md-3">
             <label for="categoria" class="form-label">Categoría</label>
