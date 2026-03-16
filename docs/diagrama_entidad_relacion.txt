@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA ENTIDAD-RELACIÓN (ER)
-Fecha: 26/02/2026 (actualizado)
+Fecha: 16/03/2026 (actualizado)
 
 Este diagrama conceptual refleja las entidades principales del dominio, sus atributos y relaciones. Está alineado con las migraciones actuales y la trazabilidad por lote.
 
@@ -10,6 +10,7 @@ RESUMEN DE ENTIDADES Y RELACIONES
  - Un DESTINO normaliza salidas y puede tener muchos MOVIMIENTOS.
  - Un MOVIMIENTO puede estar “leído” por muchos USUARIOS (pivot de lecturas para notificaciones).
  - Un USUARIO puede tener muchos PERMISOS y un PERMISO puede pertenecer a muchos USUARIOS (N:N).
+ - Un flujo temporal de RECUPERACIÓN (cache) referencia a un USUARIO y controla estados de verificación (preguntas + token correo).
 
 RELACIONES PRINCIPALES
 - CATEGORIA tiene muchas SUBCATEGORIAS y PRODUCTOS.
@@ -22,6 +23,7 @@ RELACIONES PRINCIPALES
  - MOVIMIENTO <-> USUARIO (N:N) a través de movimiento_user_reads para marcar notificaciones leídas.
  - MOVIMIENTO (egreso) lleva una MODALIDAD: distribución (Central → Destinos) o consumo (entrega real).
  - USUARIO <-> PERMISO (N:N) a través de permission_user para autorización granular por módulo/acción.
+ - RECOVER_FLOW (cache) guarda el estado temporal de recuperación: `flow_token` opaco, `security_verified`, `email_token_verified`, hash/expiración/intentos del token de correo.
 
 ATRIBUTOS CLAVE POR ENTIDAD
 - CATEGORIA: id, nombre
@@ -37,6 +39,7 @@ ATRIBUTOS CLAVE POR ENTIDAD
  - DESTINO: id, codigo, nombre, activo, tipo
  - MOVIMIENTO_USER_READS (pivot): movimiento_id, user_id, read_at
  - PERMISSION_USER (pivot): permission_id, user_id, created_at, updated_at
+ - RECOVER_FLOW (cache, entidad temporal): token opaco, user_id, valid, security_verified, email_token_verified, email_token_hash, email_token_expires_at, email_token_attempts, email_token_sent_at
 
 CARDINALIDADES
 - Un Producto puede tener 0..N Lotes.
@@ -55,6 +58,7 @@ NOTAS
 - No se permite consumo originado en Central; Odontología sólo egresa insumos (validado por `producto.tipo_producto`).
 - El sistema implementa seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF en formularios, sanitización de datos de entrada y control de intentos de acceso.
  - Seguridad reforzada adicional: rate limiting en login y recuperación, reCAPTCHA v2 opcional en login/registro, bloqueo por intentos fallidos con desbloqueo por admin.
+- Recuperación reforzada (16/03/2026): código de correo de 6 dígitos hasheado, expiración de 2 minutos, máximo 3 intentos y reenvío con cooldown de 45 segundos.
 - Los movimientos y acciones relevantes quedan registrados en bitácora para auditoría.
 
 ACTUALIZACIÓN 05/02/2026
@@ -82,6 +86,16 @@ ACTUALIZACIÓN 08/03/2026
 	- `operador` accede por permisos de checklist (categorías, medicamentos, inventario, movimientos, reportes).
 - Se documenta la protección de superadmin (primer usuario del sistema) para operaciones críticas de gestión de usuarios.
 - Se añade validación reforzada en categorías/subcategorías con sanitización y filtros anti-entrada sospechosa (backend + frontend).
+
+ACTUALIZACIÓN 16/03/2026
+- Se incorpora al modelo conceptual la entidad temporal `RECOVER_FLOW` en caché para recuperación de contraseña por etapas.
+- Se documenta el desafío de correo posterior a preguntas de seguridad:
+	- código de 6 dígitos,
+	- almacenamiento como hash,
+	- expiración 2 minutos,
+	- máximo 3 intentos,
+	- reenvío con cooldown de 45 segundos.
+- Se mantiene respuesta uniforme en el paso de correo para mitigar enumeración de cuentas.
 
 EJEMPLO VISUAL (MERMAID)
 

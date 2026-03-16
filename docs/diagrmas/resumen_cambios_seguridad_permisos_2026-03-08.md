@@ -204,3 +204,33 @@ flowchart TD
 - Agregar pruebas específicas para casos anti-basura en categorías/subcategorías.
 - Evaluar formalizar `superadmin` como atributo explícito (además de la regla por primer usuario), si el negocio lo requiere.
 - Homologar respuesta 401/403 JSON en otros middleware personalizados para consistencia total.
+
+---
+
+## 12) Actualización 16/03/2026 — Recuperación por token de correo
+
+Se actualizó el flujo de recuperación de contraseña para operar en dos factores del mismo canal (conocimiento + posesión de correo):
+
+1. **Verificación progresiva de seguridad**
+  - Preguntas base: `color` y `animal`.
+  - Si una falla, se exige tercera pregunta: `padre`.
+  - Comparación robusta con normalización de texto y compatibilidad retroactiva.
+
+2. **Desafío de token por correo**
+  - Código de 6 dígitos generado por backend.
+  - Almacenamiento **hasheado** en caché (no en texto plano).
+  - Vigencia del código: **2 minutos**.
+  - Máximo de intentos por emisión: **3**.
+  - Reenvío con cooldown: **45 segundos**.
+
+3. **Controles adicionales**
+  - Respuesta uniforme en el paso de correo para reducir enumeración de cuentas.
+  - Throttle activo en endpoints de recuperación.
+  - reCAPTCHA opcional según configuración (`RECAPTCHA_ENABLED`).
+  - Cuenta regresiva visible en frontend, con validación definitiva en backend.
+
+4. **Artefactos impactados**
+  - `app/Http/Controllers/RecoverController.php`
+  - `resources/views/recover.blade.php`
+  - `resources/views/emails/recover-token.blade.php`
+  - Documentación en `docs/casos_de_uso.txt`, `docs/diagrama_flujo.txt`, `docs/diagrama_entidad_relacion.txt`, `docs/diagrama_relacional.txt`.

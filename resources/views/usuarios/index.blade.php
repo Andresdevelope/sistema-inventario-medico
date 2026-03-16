@@ -338,14 +338,16 @@
                             <div class="row g-3 mb-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Nombre de usuario</label>
-                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required maxlength="45">
+                                    <span class="form-text small text-muted">Máx. 45 caracteres</span>
                                     @error('name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Email</label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required>
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required maxlength="60">
+                                    <span class="form-text small text-muted">Máx. 60 caracteres</span>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -384,21 +386,24 @@
                             <div class="row g-3 mb-2">
                                 <div class="col-md-4">
                                     <label class="form-label">¿Color favorito?</label>
-                                    <input type="text" class="form-control @error('color') is-invalid @enderror" name="color" value="{{ old('color') }}" required>
+                                    <input type="text" class="form-control @error('color') is-invalid @enderror" name="color" value="{{ old('color') }}" required maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('color')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">¿Animal favorito?</label>
-                                    <input type="text" class="form-control @error('animal') is-invalid @enderror" name="animal" value="{{ old('animal') }}" required>
+                                    <input type="text" class="form-control @error('animal') is-invalid @enderror" name="animal" value="{{ old('animal') }}" required maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('animal')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">¿Nombre del padre?</label>
-                                    <input type="text" class="form-control @error('padre') is-invalid @enderror" name="padre" value="{{ old('padre') }}" required>
+                                    <input type="text" class="form-control @error('padre') is-invalid @enderror" name="padre" value="{{ old('padre') }}" required maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('padre')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -627,14 +632,16 @@
                             <div class="row g-3 mb-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Nombre</label>
-                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="editName" value="{{ old('name') }}" required>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="editName" value="{{ old('name') }}" required maxlength="45">
+                                    <span class="form-text small text-muted">Máx. 45 caracteres</span>
                                     @error('name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Email</label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" id="editEmail" value="{{ old('email') }}" required>
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" id="editEmail" value="{{ old('email') }}" required maxlength="60">
+                                    <span class="form-text small text-muted">Máx. 60 caracteres</span>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -675,21 +682,24 @@
                             <div class="row g-3 mb-2">
                                 <div class="col-md-4">
                                     <label class="form-label">¿Color favorito?</label>
-                                    <input type="text" class="form-control @error('color_favorito') is-invalid @enderror" name="color_favorito" value="{{ old('color_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    <input type="text" class="form-control @error('color_favorito') is-invalid @enderror" name="color_favorito" value="{{ old('color_favorito') }}" placeholder="Actualizar respuesta (opcional)" maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('color_favorito')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">¿Animal favorito?</label>
-                                    <input type="text" class="form-control @error('animal_favorito') is-invalid @enderror" name="animal_favorito" value="{{ old('animal_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    <input type="text" class="form-control @error('animal_favorito') is-invalid @enderror" name="animal_favorito" value="{{ old('animal_favorito') }}" placeholder="Actualizar respuesta (opcional)" maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('animal_favorito')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">¿Nombre del padre?</label>
-                                    <input type="text" class="form-control @error('padre_favorito') is-invalid @enderror" name="padre_favorito" value="{{ old('padre_favorito') }}" placeholder="Actualizar respuesta (opcional)">
+                                    <input type="text" class="form-control @error('padre_favorito') is-invalid @enderror" name="padre_favorito" value="{{ old('padre_favorito') }}" placeholder="Actualizar respuesta (opcional)" maxlength="40">
+                                    <span class="form-text small text-muted">Máx. 40 caracteres</span>
                                     @error('padre_favorito')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

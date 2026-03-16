@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — CASOS DE USO
-Fecha: 08/03/2026 (actualizado)
+Fecha: 16/03/2026 (actualizado)
 Autor: Equipo Servicios Médicos
 
 OBJETIVO
@@ -147,10 +147,23 @@ CU-15 Bitácora y auditoría
 - Actor: Administrador/Auditor
 - Flujo: Consultar acciones por usuario/rango de fechas.
  - Detalle: Registra login/logout, bloqueos, creación/edición/eliminación de entidades, exportaciones y consultas clave.
-CU-16 Recuperación de contraseña con preguntas de seguridad
+CU-16 Recuperación de contraseña con verificación progresiva y token por correo
 - Actor: Usuario
-- Flujo: Proporciona correo (con reCAPTCHA si activo), responde dos preguntas (color/animal); si falla alguna, se exige tercera (padre). Si pasa validación, se permite cambio de contraseña.
-- Reglas: Normalización de respuestas para comparación robusta; longitud mínima de contraseña 16, letras y números.
+- Flujo:
+	1) Proporciona correo (con reCAPTCHA si está activo).
+	2) El sistema responde de forma uniforme y crea `flow_token` opaco temporal.
+	3) Responde preguntas de seguridad (color/animal); si falla alguna, se exige tercera pregunta (padre).
+	4) Si la verificación es válida, el sistema envía un código de 6 dígitos por correo.
+	5) Usuario valida el código dentro de su vigencia.
+	6) Con código válido, puede definir nueva contraseña.
+- Reglas:
+	- `flow_token` temporal en caché (TTL flujo: 15 min).
+	- Código email de un solo uso, almacenado como hash en caché.
+	- Vigencia de código: 2 minutos.
+	- Máximo 3 intentos de código por emisión.
+	- Reenvío permitido con cooldown de 45 segundos.
+	- Respuesta anti-enumeración de correo en el primer paso.
+	- Contraseña final: 16 a 30 caracteres, mayúscula, minúscula, número, símbolo y sin espacios.
 
 CU-17 Notificaciones de movimientos (campana)
 - Actor: Usuario autenticado
@@ -180,6 +193,7 @@ MODELO DE DATOS (RESUMEN)
 - permissions: id, slug, name, group.
 - permission_user (pivot): permission_id, user_id, timestamps.
 - movimiento_user_reads (pivot): movimiento_id, user_id, read_at, timestamps.
+- recover_flow (cache, no tabla física): token opaco, user_id, valid, security_verified, email_token_verified, email_token_hash, email_token_expires_at, email_token_attempts, email_token_sent_at.
 
 CONSIDERACIONES NO FUNCIONALES
 - Rendimiento: índices en claves foráneas (producto_id, inventario_id, usuario_id, fecha, tipo); paginación en listados.
@@ -254,3 +268,15 @@ VALIDACIÓN TÉCNICA RECIENTE (08/03/2026)
 - Se verificó estabilidad funcional con pruebas automatizadas (`php artisan test`) en verde tras cada bloque de cambios.
 
 Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan al 08/03/2026.
+
+VALIDACIÓN TÉCNICA RECIENTE (16/03/2026)
+- Se extendió CU-16 con desafío por código de correo en dos etapas: preguntas de seguridad + token de 6 dígitos.
+- Se verificó en backend (`RecoverController`) y frontend (`recover.blade.php`) el control de:
+	1) token hasheado,
+	2) expiración (2 min),
+	3) intentos máximos (3),
+	4) cooldown de reenvío (45 s),
+	5) cuenta regresiva visible para el usuario.
+- Se añadieron mensajes uniformes en el paso de correo para reducir enumeración de cuentas.
+
+Este bloque permite trazar rápidamente cada caso de uso clave con las clases y tablas que lo implementan al 16/03/2026.

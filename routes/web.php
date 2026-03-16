@@ -55,6 +55,8 @@ Route::get('/recover', function () {
 });
 Route::post('/recover/check-email', [App\Http\Controllers\RecoverController::class, 'checkEmail'])->middleware('throttle:recover');
 Route::post('/recover/check-security', [App\Http\Controllers\RecoverController::class, 'checkSecurity'])->middleware('throttle:recover');
+Route::post('/recover/verify-email-token', [App\Http\Controllers\RecoverController::class, 'verifyEmailToken'])->middleware('throttle:recover');
+Route::post('/recover/resend-email-token', [App\Http\Controllers\RecoverController::class, 'resendEmailToken'])->middleware('throttle:recover');
 Route::post('/recover/change-password', [App\Http\Controllers\RecoverController::class, 'changePassword'])->middleware('throttle:recover');
 
 // ================= CATEGORÍAS Y SUBCATEGORÍAS =================

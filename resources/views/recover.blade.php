@@ -141,10 +141,10 @@ button:hover{ background:var(--accentH); }
       <h3>Verificación de seguridad</h3>
       <form id="security-recover-form">
         <div id="security-recover-alert" class="alert-box" role="alert" style="margin-bottom:8px;"></div>
-  <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Color favorito: solo letras y espacios (máx. 40)." />
-  <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Animal favorito: solo letras y espacios (máx. 40)." />
+  <input type="text" name="color" placeholder="¿Color favorito?" required autocomplete="off" maxlength="40" title="Color favorito: mínimo 2 y máximo 40 caracteres." />
+  <input type="text" name="animal" placeholder="¿Animal favorito?" required autocomplete="off" maxlength="40" title="Animal favorito: mínimo 2 y máximo 40 caracteres." />
         <div id="padre-container" style="display:none;">
-          <input type="text" name="padre" placeholder="¿Nombre del padre?" autocomplete="off" maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre del padre: solo letras y espacios (máx. 40)." />
+          <input type="text" name="padre" placeholder="¿Nombre del padre?" autocomplete="off" maxlength="40" title="Nombre del padre: mínimo 2 y máximo 40 caracteres." />
         </div>
         <div class="actions">
           <button type="submit">Verificar</button>
@@ -153,6 +153,35 @@ button:hover{ background:var(--accentH); }
       </form>
     </div>
   </div>
+
+  <div id="email-token-modal" class="modal">
+    <div class="card">
+      <h3>Verificación por correo</h3>
+      <p id="email-token-hint" style="margin:0 0 10px;color:var(--muted);font-size:13px;">Te enviamos un código de 6 dígitos a tu correo.</p>
+      <p id="email-token-countdown" style="margin:0 0 12px;color:#b45309;font-size:13px;font-weight:700;display:none;">Tiempo restante: 01:00</p>
+      <form id="email-token-form">
+        <div id="email-token-alert" class="alert-box" role="alert" style="margin-bottom:8px;"></div>
+        <input
+          type="text"
+          name="email_token"
+          id="email_token"
+          placeholder="Código de 6 dígitos"
+          required
+          inputmode="numeric"
+          maxlength="6"
+          pattern="\d{6}"
+          title="Ingresa el código de 6 dígitos enviado a tu correo"
+          autocomplete="one-time-code"
+        />
+        <div class="actions" style="flex-wrap:wrap;">
+          <button type="submit">Validar código</button>
+          <button type="button" id="resend-email-token">Reenviar código</button>
+          <button type="button" id="cancel-email-token">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="change-password-modal" class="modal">
     <div class="card">
       <h3>Cambiar contraseña</h3>
@@ -199,20 +228,12 @@ const recoverAlert = document.getElementById('recover-alert');
 // Usar rutas generadas por Blade para máxima compatibilidad
 const routeCheckEmail = "{{ url('/recover/check-email') }}";
 const routeCheckSecurity = "{{ url('/recover/check-security') }}";
+const routeVerifyEmailToken = "{{ url('/recover/verify-email-token') }}";
+const routeResendEmailToken = "{{ url('/recover/resend-email-token') }}";
 const routeChangePassword = "{{ url('/recover/change-password') }}";
 const routeLogin = "{{ url('/login') }}";
 const typoDomains = ['gmai.com', 'gmial.com', 'gmal.com', 'hotnail.com', 'yaho.com'];
-const onlyLettersRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$/;
-
 function sanitizeText(value){ return (value || '').trim().replace(/\s+/g, ' '); }
-function isSuspiciousText(value){
-  const clean = sanitizeText(value);
-  const compact = clean.replace(/\s+/g, '');
-  if (!clean) return true;
-  if (/(.)\1{3,}/u.test(compact)) return true;
-  if (!clean.includes(' ') && compact.length > 12) return true;
-  return false;
-}
 function isSuspiciousEmail(value){
   const email = (value || '').trim().toLowerCase();
   const parts = email.split('@');
@@ -318,6 +339,48 @@ function showRecoverToast(message, type = 'error', timeout = 3600, details = [])
 let lastPwdToastSignature = '';
 let lastPwdToastAt = 0;
 let pwdSuccessShown = false;
+let emailTokenTimerId = null;
+let emailTokenRemainingSeconds = 0;
+
+function formatCountdown(totalSeconds){
+  const safe = Math.max(0, Number(totalSeconds) || 0);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function stopEmailTokenCountdown(){
+  if (emailTokenTimerId) {
+    clearInterval(emailTokenTimerId);
+    emailTokenTimerId = null;
+  }
+}
+
+function renderEmailTokenCountdown(){
+  const countdownEl = document.getElementById('email-token-countdown');
+  if (!countdownEl) return;
+  if (emailTokenRemainingSeconds <= 0) {
+    countdownEl.textContent = 'El código expiró. Solicita uno nuevo.';
+    countdownEl.style.display = 'block';
+    countdownEl.style.color = '#b91c1c';
+    stopEmailTokenCountdown();
+    return;
+  }
+  countdownEl.textContent = `Tiempo restante: ${formatCountdown(emailTokenRemainingSeconds)}`;
+  countdownEl.style.display = 'block';
+  countdownEl.style.color = '#b45309';
+}
+
+function startEmailTokenCountdown(seconds){
+  stopEmailTokenCountdown();
+  emailTokenRemainingSeconds = Math.max(0, Number(seconds) || 0);
+  renderEmailTokenCountdown();
+  if (emailTokenRemainingSeconds <= 0) return;
+  emailTokenTimerId = setInterval(() => {
+    emailTokenRemainingSeconds -= 1;
+    renderEmailTokenCountdown();
+  }, 1000);
+}
 
 window.addEventListener('load', () => {
   const params = new URLSearchParams(window.location.search);
@@ -370,6 +433,8 @@ document.getElementById('recover-email-form').addEventListener('submit', functio
     if (data && data.success){
       recoverFlowToken = data.flow_token || null;
       document.getElementById('security-recover-modal').style.display = 'flex';
+      document.getElementById('email-token-modal').style.display = 'none';
+      document.getElementById('change-password-modal').style.display = 'none';
     } else {
       if (recoverAlert){
         const msg = (data && data.message) ? data.message : 'Correo no encontrado';
@@ -408,9 +473,9 @@ document.getElementById('security-recover-form').addEventListener('submit', func
     { value: animal, input: this.animal, label: 'Animal favorito' },
   ];
   for (const field of baseFields) {
-    if (field.value.length < 2 || field.value.length > 40 || !onlyLettersRegex.test(field.value) || isSuspiciousText(field.value)) {
+    if (field.value.length < 2 || field.value.length > 40) {
       if (alertBox) {
-        alertBox.textContent = `${field.label} inválido: solo texto real, sin números, máximo 40 caracteres.`;
+        alertBox.textContent = `${field.label} inválido: debe tener entre 2 y 40 caracteres.`;
         alertBox.style.display = 'block';
       }
       field.input?.focus();
@@ -420,9 +485,9 @@ document.getElementById('security-recover-form').addEventListener('submit', func
 
   const padreVisible = document.getElementById('padre-container')?.style.display === 'block';
   if (padreVisible && padreInput) {
-    if (padre.length < 2 || padre.length > 40 || !onlyLettersRegex.test(padre) || isSuspiciousText(padre)) {
+    if (padre.length < 2 || padre.length > 40) {
       if (alertBox) {
-        alertBox.textContent = 'Nombre del padre inválido: solo texto real, sin números, máximo 40 caracteres.';
+        alertBox.textContent = 'Nombre del padre inválido: debe tener entre 2 y 40 caracteres.';
         alertBox.style.display = 'block';
       }
       padreInput.focus();
@@ -433,11 +498,43 @@ document.getElementById('security-recover-form').addEventListener('submit', func
   fetch(routeCheckSecurity, {
     method: 'POST', headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
     body: JSON.stringify({ flow_token: recoverFlowToken, color, animal, padre })
-  }).then(r => r.json()).then(data => {
+  }).then(async r => {
+    const data = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, data };
+  }).then(({ ok, status, data }) => {
     if (data && data.success){
       document.getElementById('security-recover-modal').style.display = 'none';
-      document.getElementById('change-password-modal').style.display = 'flex';
+      if (data.require_email_token) {
+        const hint = document.getElementById('email-token-hint');
+        if (hint) {
+          hint.textContent = data.email_hint
+            ? `Te enviamos un código de 6 dígitos a ${data.email_hint}.`
+            : 'Te enviamos un código de 6 dígitos a tu correo.';
+        }
+        startEmailTokenCountdown(data.token_expires_in_seconds);
+        const tokenInput = document.getElementById('email_token');
+        if (tokenInput) tokenInput.value = '';
+        const alertToken = document.getElementById('email-token-alert');
+        if (alertToken) {
+          alertToken.style.display = 'none';
+          alertToken.textContent = '';
+          alertToken.className = 'alert-box';
+        }
+        document.getElementById('email-token-modal').style.display = 'flex';
+        showRecoverToast(data.message || 'Te enviamos un código de verificación por correo.', 'info', 3200);
+      } else {
+        document.getElementById('change-password-modal').style.display = 'flex';
+      }
     } else {
+      if (!ok && data?.message) {
+        if (alertBox) {
+          alertBox.className = 'alert-box';
+          alertBox.textContent = data.message;
+          alertBox.style.display = 'block';
+        }
+        return;
+      }
+
       const padreContainer = document.getElementById('padre-container');
       if (data && data.require_padre) {
         // Mostrar la tercera pregunta
@@ -466,7 +563,9 @@ document.getElementById('security-recover-form').addEventListener('submit', func
             msg = 'Respuestas incorrectas. Intenta nuevamente.';
           }
         } else {
-          msg = 'Respuestas incorrectas. Intenta nuevamente.';
+          msg = (data && data.message)
+            ? data.message
+            : 'Respuestas incorrectas. Intenta nuevamente.';
         }
         alertBox.textContent = msg;
         alertBox.style.display = 'block';
@@ -477,6 +576,116 @@ document.getElementById('security-recover-form').addEventListener('submit', func
       alertBox.textContent = 'Error de red. Intenta nuevamente.';
       alertBox.style.display = 'block';
     }
+  });
+});
+
+document.getElementById('email-token-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  const input = document.getElementById('email_token');
+  const code = (input?.value || '').replace(/\D+/g, '').slice(0, 6);
+  if (input) input.value = code;
+
+  const alertBox = document.getElementById('email-token-alert');
+  if (alertBox) {
+    alertBox.style.display = 'none';
+    alertBox.textContent = '';
+    alertBox.className = 'alert-box';
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    if (alertBox) {
+      alertBox.textContent = 'El código debe tener exactamente 6 dígitos.';
+      alertBox.style.display = 'block';
+    }
+    input?.focus();
+    return;
+  }
+
+  const btn = this.querySelector('button[type="submit"]');
+  const prev = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Validando…';
+  }
+
+  fetch(routeVerifyEmailToken, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
+    body: JSON.stringify({ flow_token: recoverFlowToken, email_token: code })
+  })
+  .then(r => r.json().catch(() => null))
+  .then(data => {
+    if (data && data.success) {
+      stopEmailTokenCountdown();
+      document.getElementById('email-token-modal').style.display = 'none';
+      document.getElementById('change-password-modal').style.display = 'flex';
+      showRecoverToast(data.message || 'Código validado correctamente.', 'success', 2200);
+    } else {
+      const msg = (data && data.message) ? data.message : 'No se pudo validar el código.';
+      if (alertBox) {
+        alertBox.textContent = msg;
+        alertBox.style.display = 'block';
+      }
+    }
+  })
+  .catch(() => {
+    if (alertBox) {
+      alertBox.textContent = 'Error de red. Intenta nuevamente.';
+      alertBox.style.display = 'block';
+    }
+  })
+  .finally(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  });
+});
+
+document.getElementById('resend-email-token').addEventListener('click', function(){
+  const alertBox = document.getElementById('email-token-alert');
+  if (alertBox) {
+    alertBox.style.display = 'none';
+    alertBox.textContent = '';
+    alertBox.className = 'alert-box';
+  }
+
+  const btn = this;
+  const prev = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Reenviando…';
+
+  fetch(routeResendEmailToken, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' },
+    body: JSON.stringify({ flow_token: recoverFlowToken })
+  })
+  .then(r => r.json().catch(() => null))
+  .then(data => {
+    if (data && data.success) {
+      const hint = document.getElementById('email-token-hint');
+      if (hint && data.email_hint) {
+        hint.textContent = `Te enviamos un nuevo código a ${data.email_hint}.`;
+      }
+      startEmailTokenCountdown(data.token_expires_in_seconds);
+      showRecoverToast(data.message || 'Código reenviado.', 'success', 2400);
+    } else {
+      const msg = (data && data.message) ? data.message : 'No se pudo reenviar el código.';
+      if (alertBox) {
+        alertBox.textContent = msg;
+        alertBox.style.display = 'block';
+      }
+    }
+  })
+  .catch(() => {
+    if (alertBox) {
+      alertBox.textContent = 'Error de red. Intenta nuevamente.';
+      alertBox.style.display = 'block';
+    }
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = prev;
   });
 });
 
@@ -539,6 +748,14 @@ document.getElementById('change-password-form').addEventListener('submit', funct
 
 document.getElementById('cancel-security').addEventListener('click', ()=>{
   document.getElementById('security-recover-modal').style.display = 'none';
+});
+document.getElementById('cancel-email-token').addEventListener('click', ()=>{
+  stopEmailTokenCountdown();
+  const countdownEl = document.getElementById('email-token-countdown');
+  if (countdownEl) {
+    countdownEl.style.display = 'none';
+  }
+  document.getElementById('email-token-modal').style.display = 'none';
 });
 document.getElementById('cancel-change').addEventListener('click', ()=>{
   document.getElementById('change-password-modal').style.display = 'none';

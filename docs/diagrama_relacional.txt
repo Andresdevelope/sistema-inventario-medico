@@ -1,5 +1,5 @@
 SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA RELACIONAL
-Fecha: 26/02/2026 (actualizado)
+Fecha: 16/03/2026 (actualizado)
 
 Este diagrama refleja las tablas y relaciones actuales según las migraciones del proyecto (MySQL/XAMPP), e incorpora la política “solo blíster” para sólidos y el reporte de salidas (Farmacia Interna). Mantiene trazabilidad por lote en movimientos (inventario_id) y control por destinos.
 
@@ -20,6 +20,7 @@ TABLAS PRINCIPALES Y CAMPOS CLAVE
 - REPORTES: id (PK), nombre, tipo (inventario_periodico|salidas_farmacia_interna|...), `para  metros` (json nullable; nombre físico actual de columna), usuario_id (FK, NULL), created_at, updated_at
 - DESTINOS: id (PK), codigo (único), nombre, activo, tipo, created_at, updated_at
 - MOVIMIENTO_USER_READS (pivot): id (PK), movimiento_id (FK), user_id (FK), read_at, created_at, updated_at
+- RECOVER_FLOW (cache, sin tabla SQL): flow_token, user_id, valid, security_verified, email_token_verified, email_token_hash, email_token_expires_at, email_token_attempts, email_token_sent_at
 
 RELACIONES PRINCIPALES
 - CATEGORIAS contiene SUBCATEGORIAS y clasifica PRODUCTOS.
@@ -40,6 +41,7 @@ NOTAS
 - Áreas/destinos controlados: principal/ppal, aci, agroalimentacion/agro, odontologia. Se recomienda normalizar códigos en `DESTINOS` y permitir alias visibles en reportes (p. ej. “BÁSICO”, “ÁREA”, “E. BRACHO”).
 - Índices recomendados: producto_id, inventario_id, destino_id, usuario_id, fecha, tipo, modalidad, tipo_identificacion, sexo, categoria_id, subcategoria_id.
 - Seguridad reforzada: autenticación obligatoria, autorización por rol, protección CSRF, sanitización de entrada, control de intentos y bloqueo, rate limiting, reCAPTCHA v2 opcional.
+- Recuperación reforzada: token de correo de 6 dígitos almacenado como hash, expiración en 2 minutos, máximo 3 intentos por emisión y cooldown de reenvío de 45 segundos.
 - Autorización granular activa para operadores mediante middleware `permission:*` y catálogo de slugs en `permissions`.
 - Regla operativa de roles: admin con acceso total funcional; operador con acceso por checklist de permisos.
 - Gestión de superadmin protegida (usuario inicial) en operaciones sensibles de cuentas.
@@ -57,6 +59,13 @@ ACTUALIZACIÓN 08/03/2026
 - Se integra autorización granular por usuario operador con tablas `permissions` y `permission_user`.
 - Se agregan endpoints de gestión de permisos por checklist y bitácora de consulta/actualización de permisos.
 - Se ajustan validaciones de categorías/subcategorías para sanitización y bloqueo de entradas sospechosas en frontend/backend (incluye tope frontend de 35 caracteres).
+
+ACTUALIZACIÓN 16/03/2026
+- Se documenta formalmente el estado de recuperación en caché (`RECOVER_FLOW`) para reflejar implementación real sin nuevas tablas físicas.
+- El flujo de recuperación queda modelado en dos fases:
+  1) validación progresiva de preguntas de seguridad,
+  2) validación de token de correo con hash, expiración e intentos limitados.
+- Se añade detalle operativo de reenvío controlado (cooldown 45 s) y respuesta uniforme en verificación de correo.
 
 REPORTES (vista lógica)
 - Inventario periódico (matriz por destino): título “INVENTARIO DE MEDICAMENTOS E INSUMOS”, periodo (mensual/trimestral/semestral/anual), columnas por destino con fecha de corte; UM respetada (blíster/unidad); total global.

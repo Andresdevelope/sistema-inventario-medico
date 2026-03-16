@@ -1,138 +1,253 @@
-SISTEMA DE INVENTARIO MÉDICO — DIAGRAMA DE FLUJO (INTEGRAL)
-Fecha: 08/03/2026
+SISTEMA DE INVENTARIO MÉDICO — FLUJO FUNCIONAL (INTEGRAL)
+Fecha: 16/03/2026
 
 Objetivo
-- Documentar el flujo completo del sistema (autenticación, autorización, módulos operativos, auditoría y reportes), con versión Mermaid y versión texto plano dentro del mismo archivo.
+- Documentar el flujo completo del sistema (autenticación, autorización, módulos operativos, auditoría y reportes) en un formato textual neutral, reutilizable y adaptable para cualquier herramienta de representación visual.
 
 ============================================================
-1) FLUJO INTEGRAL DEL SISTEMA (MERMAID)
+1) FLUJO INTEGRAL DEL SISTEMA (TEXTO ESTRUCTURADO ADAPTABLE)
 ============================================================
 
-flowchart TD
-     A[Inicio / Usuario abre aplicación] --> B{Sesión activa?}
+1.1 Nodos (ID -> descripción)
 
-     B -->|No| C[Auth: Login / Registro / Recuperación]
-     C --> C1[Validación frontend]
-     C1 --> C2[Validación backend + seguridad\nCSRF, throttle, reCAPTCHA opcional]
-     C2 --> C3{Resultado}
-     C3 -->|Error| C4[Respuesta en español\ncontrol de intentos y bloqueo]
-     C3 -->|OK| D[Entrar a Dashboard]
+- A -> Inicio / Usuario abre aplicación.
+- B -> Decisión: ¿Sesión activa?
+- C -> Auth: Login / Registro / Recuperación.
+- C1 -> Validación frontend.
+- C2 -> Validación backend + seguridad (CSRF, throttle, reCAPTCHA opcional).
+- C3 -> Decisión: resultado de autenticación.
+- C4 -> Respuesta en español + control de intentos y bloqueo.
+- D -> Entrar a Dashboard.
+- E -> Decisión: rol y permisos.
+- F -> Acceso funcional total (admin).
+- G -> Acceso por checklist de permisos (operador).
+- H -> Menú de módulos.
+- I -> Decisión: módulo seleccionado.
 
-     B -->|Sí| D
+- I1 -> Perfil.
+- I2 -> Usuarios.
+- I3 -> Categorías/Subcategorías.
+- I4 -> Productos.
+- I5 -> Inventario.
+- I6 -> Movimientos.
+- I7 -> Reportes.
+- I8 -> Bitácora.
+- I9 -> Notificaciones.
 
-     D --> E{Rol y permisos}
-     E -->|admin| F[Acceso funcional total]
-     E -->|operador| G[Acceso por checklist de permisos]
+- U0 -> Middleware auth + is_admin.
+- U1 -> Decisión: ¿operación sensible?
+- U2 -> Confirmar contraseña admin.
+- U3 -> Decisión: regla superadmin / límite admins.
+- U4 -> Denegar + bitácora.
+- U5 -> Crear/Editar/Eliminar/Desbloquear/Permisos.
+- U6 -> Respuesta en español + actualización UI.
 
-     F --> H[Menú de módulos]
-     G --> H
+- K0 -> Middleware permission:categorias.*.
+- K1 -> Validación frontend (max 35 + anti-basura).
+- K2 -> Validación backend + sanitización + unicidad.
+- K3 -> Decisión: ¿válido?
+- K4 -> Error en español.
+- K5 -> Guardar categoría/subcategoría.
+- K6 -> Bitácora + refresco de listado.
 
-     H --> I{Módulo seleccionado}
-     I --> I1[Perfil]
-     I --> I2[Usuarios]
-     I --> I3[Categorías/Subcategorías]
-     I --> I4[Productos]
-     I --> I5[Inventario]
-     I --> I6[Movimientos]
-     I --> I7[Reportes]
-     I --> I8[Bitácora]
-     I --> I9[Notificaciones]
+- P0 -> Middleware permission:medicamentos.*.
+- P1 -> Validación frontend.
+- P2 -> Validación backend (formato, reglas de negocio, fechas).
+- P3 -> Decisión: ¿válido?
+- P4 -> Error en español.
+- P5 -> Persistir producto.
+- P6 -> Bitácora.
 
-     I2 --> U0[Middleware auth + is_admin]
-     U0 --> U1{Operación sensible?}
-     U1 -->|Sí| U2[Confirmar contraseña admin]
-     U2 --> U3{Regla superadmin / límite admins}
-     U3 -->|No cumple| U4[Denegar + bitácora]
-     U3 -->|Cumple| U5[Crear/Editar/Eliminar/Desbloquear/Permisos]
-     U1 -->|No| U5
-     U5 --> U6[Respuesta en español + actualización UI]
+- V0 -> Middleware permission:inventario.ver.
+- V1 -> Consultar stock por filtros.
+- V2 -> KPIs + próximos a vencer + distribución.
+- V3 -> Bitácora de acceso.
 
-     I3 --> K0[Middleware permission:categorias.*]
-     K0 --> K1[Validación frontend\nmax 35 + anti-basura]
-     K1 --> K2[Validación backend + sanitización + unicidad]
-     K2 --> K3{Válido?}
-     K3 -->|No| K4[Error en español]
-     K3 -->|Sí| K5[Guardar categoría/subcategoría]
-     K5 --> K6[Bitácora + refresco de listado]
+- M0 -> Auth + control por tipo de movimiento.
+- M1 -> Decisión: tipo de movimiento.
+- M2 -> permission:movimientos.entrada.
+- M3 -> permission:movimientos.distribucion.
+- M4 -> permission:movimientos.consumo.
+- M5 -> permission:movimientos.ajuste_positivo.
+- M6 -> permission:movimientos.ajuste_negativo.
+- M7 -> Validación + InventarioService (FEFO/FIFO y reglas de destino).
+- M8 -> Decisión: ¿éxito?
+- M9 -> Error en español + bitácora error.
+- M10 -> Guardar movimiento + bitácora.
 
-     I4 --> P0[Middleware permission:medicamentos.*]
-     P0 --> P1[Validación frontend]
-     P1 --> P2[Validación backend\nformato, reglas de negocio, fechas]
-     P2 --> P3{Válido?}
-     P3 -->|No| P4[Error en español]
-     P3 -->|Sí| P5[Persistir producto]
-     P5 --> P6[Bitácora]
+- R0 -> Auth + permission:reportes.*.
+- R1 -> Validar rango fechas/filtros.
+- R2 -> ReportesMovimientosService.
+- R3 -> Decisión: tipo de salida.
+- R4 -> Vista (resumen + detalle + matriz inventario).
+- R5 -> Exportación (PDF/detalle + bitácora).
 
-     I5 --> V0[Middleware permission:inventario.ver]
-     V0 --> V1[Consultar stock por filtros]
-     V1 --> V2[KPIs + próximos a vencer + distribución]
-     V2 --> V3[Bitácora de acceso]
+- B0 -> Consulta de auditoría.
+- N0 -> Campana + marca de leídos.
+- PF0 -> Validar seguridad del usuario.
+- PF1 -> Cambio de contraseña.
+- L0 -> Logout.
+- L1 -> Bitácora logout.
+- L2 -> Fin.
 
-     I6 --> M0[Auth + control por tipo de movimiento]
-     M0 --> M1{Tipo}
-     M1 -->|Ingreso| M2[permission:movimientos.entrada]
-     M1 -->|Egreso distribución| M3[permission:movimientos.distribucion]
-     M1 -->|Egreso consumo| M4[permission:movimientos.consumo]
-     M1 -->|Ajuste +| M5[permission:movimientos.ajuste_positivo]
-     M1 -->|Ajuste -| M6[permission:movimientos.ajuste_negativo]
-     M2 --> M7
-     M3 --> M7
-     M4 --> M7
-     M5 --> M7
-     M6 --> M7
-     M7[Validación + InventarioService\nFEFO/FIFO y reglas de destino] --> M8{Éxito?}
-     M8 -->|No| M9[Error en español + bitácora error]
-     M8 -->|Sí| M10[Guardar movimiento + bitácora]
+1.2 Transiciones (origen -> destino | condición/evento)
 
-     I7 --> R0[Auth + permission:reportes.*]
-     R0 --> R1[Validar rango fechas/filtros]
-     R1 --> R2[ReportesMovimientosService]
-     R2 --> R3{Salida}
-     R3 -->|Vista| R4[Resumen + detalle + matriz inventario]
-     R3 -->|Exportación| R5[PDF/Detalle + bitácora]
+- A -> B | al abrir la aplicación.
+- B -> C | si no hay sesión activa.
+- C -> C1 | al iniciar flujo de autenticación.
+- C1 -> C2 | validación frontend aprobada para envío.
+- C2 -> C3 | backend procesa credenciales/registro/recuperación.
+- C3 -> C4 | resultado = error.
+- C3 -> D | resultado = OK.
+- B -> D | si ya existe sesión activa.
 
-     I8 --> B0[Consulta de auditoría]
-     I9 --> N0[Campana + marca de leídos]
+- D -> E | al cargar Dashboard.
+- E -> F | rol = admin.
+- E -> G | rol = operador.
+- F -> H | acceso a menú.
+- G -> H | acceso a menú según permisos.
+- H -> I | seleccionar módulo.
 
-     I1 --> PF0[Validar seguridad del usuario]
-     PF0 --> PF1[Cambio de contraseña]
+- I -> I1 | módulo Perfil.
+- I -> I2 | módulo Usuarios.
+- I -> I3 | módulo Categorías/Subcategorías.
+- I -> I4 | módulo Productos.
+- I -> I5 | módulo Inventario.
+- I -> I6 | módulo Movimientos.
+- I -> I7 | módulo Reportes.
+- I -> I8 | módulo Bitácora.
+- I -> I9 | módulo Notificaciones.
 
-     D --> L0[Logout]
-     L0 --> L1[Bitácora logout]
-     L1 --> L2[Fin]
+- I2 -> U0 | entrar a Usuarios.
+- U0 -> U1 | autorización admin superada.
+- U1 -> U2 | si la operación es sensible.
+- U2 -> U3 | contraseña admin confirmada.
+- U3 -> U4 | regla superadmin/límite admins no cumple.
+- U3 -> U5 | regla superadmin/límite admins cumple.
+- U1 -> U5 | si la operación no es sensible.
+- U5 -> U6 | acción completada.
+
+- I3 -> K0 | entrar a Categorías/Subcategorías.
+- K0 -> K1 | autorización superada.
+- K1 -> K2 | validación frontend aprobada.
+- K2 -> K3 | backend evalúa datos.
+- K3 -> K4 | no válido.
+- K3 -> K5 | válido.
+- K5 -> K6 | guardado exitoso.
+
+- I4 -> P0 | entrar a Productos.
+- P0 -> P1 | autorización superada.
+- P1 -> P2 | validación frontend aprobada.
+- P2 -> P3 | backend evalúa datos.
+- P3 -> P4 | no válido.
+- P3 -> P5 | válido.
+- P5 -> P6 | persistencia exitosa.
+
+- I5 -> V0 | entrar a Inventario.
+- V0 -> V1 | autorización superada.
+- V1 -> V2 | consulta procesada.
+- V2 -> V3 | acceso registrado.
+
+- I6 -> M0 | entrar a Movimientos.
+- M0 -> M1 | autenticación y control inicial superados.
+- M1 -> M2 | tipo = ingreso.
+- M1 -> M3 | tipo = egreso distribución.
+- M1 -> M4 | tipo = egreso consumo.
+- M1 -> M5 | tipo = ajuste positivo.
+- M1 -> M6 | tipo = ajuste negativo.
+- M2 -> M7 | permiso específico superado.
+- M3 -> M7 | permiso específico superado.
+- M4 -> M7 | permiso específico superado.
+- M5 -> M7 | permiso específico superado.
+- M6 -> M7 | permiso específico superado.
+- M7 -> M8 | servicio de inventario ejecutado.
+- M8 -> M9 | resultado = error.
+- M8 -> M10 | resultado = éxito.
+
+- I7 -> R0 | entrar a Reportes.
+- R0 -> R1 | autorización superada.
+- R1 -> R2 | filtros válidos.
+- R2 -> R3 | reporte generado.
+- R3 -> R4 | salida = vista.
+- R3 -> R5 | salida = exportación.
+
+- I8 -> B0 | entrar a Bitácora.
+- I9 -> N0 | entrar a Notificaciones.
+- I1 -> PF0 | entrar a Perfil.
+- PF0 -> PF1 | seguridad validada.
+
+- D -> L0 | solicitud de cierre de sesión.
+- L0 -> L1 | logout ejecutado.
+- L1 -> L2 | fin de flujo.
 
 ============================================================
-2) FLUJOS ESPECÍFICOS COMPLEMENTARIOS (MERMAID)
+2) FLUJOS ESPECÍFICOS COMPLEMENTARIOS (TEXTO ESTRUCTURADO)
 ============================================================
 
 2.1 Flujo de recuperación de contraseña
 
-flowchart TD
-     RA[Usuario va a Recover] --> RB[Ingresa correo]
-     RB --> RC[Validación backend + throttle + reCAPTCHA opcional]
-     RC --> RD{Correo válido?}
-     RD -->|No| RE[Mensaje en español]
-     RD -->|Sí| RF[Preguntas de seguridad\n(color, animal, padre según flujo)]
-     RF --> RG{Respuestas válidas?}
-     RG -->|No| RH[Denegar + mensaje en español]
-     RG -->|Sí| RI[Nueva contraseña]
-     RI --> RJ[Validaciones robustas]
-     RJ --> RK{Cumple política?}
-     RK -->|No| RL[Mensaje en español]
-     RK -->|Sí| RM[Guardar contraseña + éxito]
+Nodos (ID -> descripción)
+- RA -> Usuario va a Recover.
+- RB -> Ingresa correo.
+- RC -> Validación backend + throttle + reCAPTCHA opcional.
+- RD -> Decisión: ¿correo válido?
+- RE -> Respuesta uniforme + emisión de flow_token temporal.
+- RF -> Preguntas de seguridad (color, animal, padre según flujo).
+- RG -> Decisión: ¿respuestas válidas?
+- RH -> Denegar + mensaje en español.
+- RI -> Envío de token de correo (6 dígitos) y visualización de hint de correo enmascarado.
+- RJ -> Cuenta regresiva del token (frontend) + control backend por expiración.
+- RK -> Usuario ingresa token de correo.
+- RL -> Decisión: ¿token válido (hash + intentos)?
+- RM -> Nueva contraseña.
+- RN -> Validaciones robustas.
+- RO -> Decisión: ¿cumple política?
+- RP -> Mensaje en español.
+- RQ -> Guardar contraseña + éxito.
+
+Transiciones
+- RA -> RB | usuario inicia recuperación.
+- RB -> RC | correo enviado a validación.
+- RC -> RD | backend procesa correo.
+- RD -> RE | respuesta uniforme para evitar enumeración.
+- RE -> RF | flow_token emitido y proceso activo.
+- RF -> RG | respuestas enviadas.
+- RG -> RH | respuestas inválidas.
+- RG -> RI | respuestas válidas.
+- RI -> RJ | token enviado por correo y desafío activo.
+- RJ -> RK | usuario ingresa token de 6 dígitos.
+- RK -> RL | backend valida hash, expiración e intentos.
+- RL -> RH | token inválido/expirado o intentos agotados.
+- RL -> RM | token válido.
+- RM -> RN | propuesta de nueva contraseña.
+- RN -> RO | evaluación de política.
+- RO -> RP | no cumple política.
+- RO -> RQ | cumple política.
 
 2.2 Flujo de asignación de permisos a operador
 
-flowchart TD
-     PA[Admin abre módulo Usuarios] --> PB[Abre modal de permisos]
-     PB --> PC[GET permisos actuales del operador]
-     PC --> PD[Checklist por grupos]
-     PD --> PE[Seleccionar/deseleccionar permisos]
-     PE --> PF[Confirmar contraseña admin]
-     PF --> PG[PUT actualizar permisos]
-     PG --> PH{Validación OK?}
-     PH -->|No| PI[Error en español]
-     PH -->|Sí| PJ[Sync permission_user + bitácora]
+Nodos (ID -> descripción)
+- PA -> Admin abre módulo Usuarios.
+- PB -> Abre modal de permisos.
+- PC -> GET permisos actuales del operador.
+- PD -> Checklist por grupos.
+- PE -> Seleccionar/deseleccionar permisos.
+- PF -> Confirmar contraseña admin.
+- PG -> PUT actualizar permisos.
+- PH -> Decisión: ¿validación OK?
+- PI -> Error en español.
+- PJ -> Sync permission_user + bitácora.
+
+Transiciones
+- PA -> PB | iniciar gestión de permisos.
+- PB -> PC | cargar permisos actuales.
+- PC -> PD | mostrar checklist.
+- PD -> PE | edición de selección.
+- PE -> PF | confirmar cambios sensibles.
+- PF -> PG | envío de actualización.
+- PG -> PH | backend valida operación.
+- PH -> PI | validación con error.
+- PH -> PJ | validación exitosa.
 
 ============================================================
 3) NOTAS OPERATIVAS
@@ -144,7 +259,7 @@ flowchart TD
 - Validaciones clave están duplicadas en frontend y backend (defensa en profundidad).
 
 ============================================================
-4) VERSIÓN EN TEXTO PLANO (SIN MERMAID)
+4) VERSIÓN NARRATIVA RESUMIDA
 ============================================================
 
 4.1 Flujo general del sistema
@@ -198,7 +313,12 @@ flowchart TD
         - lectura de movimientos y marca de leídos.
 
 6) Recuperación de contraseña (resumen)
-    -> validar correo -> validar respuestas de seguridad -> validar nueva contraseña -> guardar.
+    -> validar correo (respuesta uniforme + flow_token)
+    -> validar preguntas de seguridad (2 + 1 opcional)
+    -> enviar token de correo (6 dígitos)
+    -> validar token (hash, expiración, intentos, cooldown de reenvío)
+    -> validar nueva contraseña
+    -> guardar.
 
 7) Cierre de sesión
     -> registrar logout en bitácora -> terminar sesión.

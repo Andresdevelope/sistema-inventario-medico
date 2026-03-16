@@ -7,10 +7,17 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class RecoverController extends Controller
 {
+    private const RECOVER_FLOW_TTL_MINUTES = 15;
+    private const EMAIL_TOKEN_TTL_MINUTES = 2;
+    private const EMAIL_TOKEN_MAX_ATTEMPTS = 3;
+    private const EMAIL_TOKEN_RESEND_COOLDOWN_SECONDS = 45;
+
     // Verifica si el correo existe y retorna el id del usuario
     public function checkEmail(Request $request)
     {
@@ -84,8 +91,14 @@ class RecoverController extends Controller
             [
                 'user_id' => $user?->id,
                 'valid' => $user !== null,
+                'security_verified' => false,
+                'email_token_verified' => false,
+                'email_token_hash' => null,
+                'email_token_expires_at' => null,
+                'email_token_attempts' => 0,
+                'email_token_sent_at' => null,
             ],
-            now()->addMinutes(10)
+            now()->addMinutes(self::RECOVER_FLOW_TTL_MINUTES)
         );
 
         // Respuesta uniforme para no facilitar enumeración de correos.
@@ -122,49 +135,28 @@ class RecoverController extends Controller
                 'string',
                 'min:2',
                 'max:40',
-                'regex:/^[\pL\s]+$/u',
-                function ($attribute, $value, $fail) {
-                    if ($value !== null && self::isSuspiciousText($value)) {
-                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
-                    }
-                },
             ],
             'animal' => [
                 'nullable',
                 'string',
                 'min:2',
                 'max:40',
-                'regex:/^[\pL\s]+$/u',
-                function ($attribute, $value, $fail) {
-                    if ($value !== null && self::isSuspiciousText($value)) {
-                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
-                    }
-                },
             ],
             'padre' => [
                 'nullable',
                 'string',
                 'min:2',
                 'max:40',
-                'regex:/^[\pL\s]+$/u',
-                function ($attribute, $value, $fail) {
-                    if ($value !== null && self::isSuspiciousText($value)) {
-                        $fail('La respuesta de seguridad no parece válida. Usa solo texto real (máx. 40).');
-                    }
-                },
             ],
         ], [
             'flow_token.required' => 'El token de recuperación es obligatorio.',
             'flow_token.min' => 'El token de recuperación no es válido.',
             'color.min' => 'La respuesta de color favorito debe tener al menos 2 caracteres.',
             'color.max' => 'La respuesta de color favorito no puede superar 40 caracteres.',
-            'color.regex' => 'La respuesta de color favorito solo debe contener letras y espacios.',
             'animal.min' => 'La respuesta de animal favorito debe tener al menos 2 caracteres.',
             'animal.max' => 'La respuesta de animal favorito no puede superar 40 caracteres.',
-            'animal.regex' => 'La respuesta de animal favorito solo debe contener letras y espacios.',
             'padre.min' => 'La respuesta de nombre del padre debe tener al menos 2 caracteres.',
             'padre.max' => 'La respuesta de nombre del padre no puede superar 40 caracteres.',
-            'padre.regex' => 'La respuesta de nombre del padre solo debe contener letras y espacios.',
         ]);
 
         $flowData = Cache::get($this->recoverFlowCacheKey($request->flow_token));
@@ -200,10 +192,7 @@ class RecoverController extends Controller
         }
 
         if ($colorOk && $animalOk) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Respuestas correctas. Puedes continuar.'
-            ]);
+            return $this->issueEmailTokenChallenge($request->flow_token, $flowData, $user);
         }
 
         // Si falta o falla alguna de las primeras dos, exigir la tercera
@@ -238,10 +227,7 @@ class RecoverController extends Controller
                 $padreOk = Hash::check(trim($request->padre), $user->security_padre_answer);
             }
             if ($padreOk) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Respuestas correctas. Puedes continuar.'
-                ]);
+                return $this->issueEmailTokenChallenge($request->flow_token, $flowData, $user);
             }
 
             // Falla completa: reportar qué preguntas fallaron
@@ -261,6 +247,140 @@ class RecoverController extends Controller
             'success' => false,
             'message' => 'Verificación fallida. Intenta nuevamente.'
         ]);
+    }
+
+    public function verifyEmailToken(Request $request)
+    {
+        $request->merge([
+            'email_token' => preg_replace('/\D+/', '', (string) $request->input('email_token')),
+        ]);
+
+        $request->validate([
+            'flow_token' => 'required|string|min:20',
+            'email_token' => 'required|string|digits:6',
+        ], [
+            'flow_token.required' => 'El token de recuperación es obligatorio.',
+            'flow_token.min' => 'El token de recuperación no es válido.',
+            'email_token.required' => 'El código de verificación es obligatorio.',
+            'email_token.digits' => 'El código de verificación debe contener 6 dígitos.',
+        ]);
+
+        $cacheKey = $this->recoverFlowCacheKey($request->flow_token);
+        $flowData = Cache::get($cacheKey);
+
+        if (!is_array($flowData) || empty($flowData['valid']) || empty($flowData['user_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El proceso de recuperación expiró o es inválido. Inicia nuevamente.',
+            ], 422);
+        }
+
+        if (empty($flowData['security_verified'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Primero debes completar la verificación de preguntas de seguridad.',
+            ], 422);
+        }
+
+        if (!empty($flowData['email_token_verified'])) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Código ya validado. Puedes cambiar tu contraseña.',
+            ]);
+        }
+
+        if (empty($flowData['email_token_hash']) || empty($flowData['email_token_expires_at'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró un código activo. Solicita un nuevo código.',
+            ], 422);
+        }
+
+        $attempts = (int) ($flowData['email_token_attempts'] ?? 0);
+        if ($attempts >= self::EMAIL_TOKEN_MAX_ATTEMPTS) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Has superado el número máximo de intentos. Solicita un nuevo código.',
+            ], 429);
+        }
+
+        $expiresAt = strtotime((string) $flowData['email_token_expires_at']);
+        if (!$expiresAt || $expiresAt < time()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El código ha expirado. Solicita uno nuevo.',
+            ], 422);
+        }
+
+        if (!Hash::check($request->email_token, (string) $flowData['email_token_hash'])) {
+            $flowData['email_token_attempts'] = $attempts + 1;
+            Cache::put($cacheKey, $flowData, now()->addMinutes(self::RECOVER_FLOW_TTL_MINUTES));
+
+            $remaining = max(0, self::EMAIL_TOKEN_MAX_ATTEMPTS - (int) $flowData['email_token_attempts']);
+            return response()->json([
+                'success' => false,
+                'message' => $remaining > 0
+                    ? "Código incorrecto. Intentos restantes: {$remaining}."
+                    : 'Código incorrecto. Has agotado los intentos; solicita un nuevo código.',
+            ], 422);
+        }
+
+        $flowData['email_token_verified'] = true;
+        $flowData['email_token_hash'] = null;
+        $flowData['email_token_attempts'] = 0;
+        $flowData['email_token_expires_at'] = null;
+        Cache::put($cacheKey, $flowData, now()->addMinutes(self::RECOVER_FLOW_TTL_MINUTES));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Código validado correctamente. Ahora puedes cambiar tu contraseña.',
+        ]);
+    }
+
+    public function resendEmailToken(Request $request)
+    {
+        $request->validate([
+            'flow_token' => 'required|string|min:20',
+        ], [
+            'flow_token.required' => 'El token de recuperación es obligatorio.',
+            'flow_token.min' => 'El token de recuperación no es válido.',
+        ]);
+
+        $cacheKey = $this->recoverFlowCacheKey($request->flow_token);
+        $flowData = Cache::get($cacheKey);
+
+        if (!is_array($flowData) || empty($flowData['valid']) || empty($flowData['user_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El proceso de recuperación expiró o es inválido. Inicia nuevamente.',
+            ], 422);
+        }
+
+        if (empty($flowData['security_verified'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Primero debes completar la verificación de preguntas de seguridad.',
+            ], 422);
+        }
+
+        $sentAt = strtotime((string) ($flowData['email_token_sent_at'] ?? ''));
+        if ($sentAt && (time() - $sentAt) < self::EMAIL_TOKEN_RESEND_COOLDOWN_SECONDS) {
+            $wait = self::EMAIL_TOKEN_RESEND_COOLDOWN_SECONDS - (time() - $sentAt);
+            return response()->json([
+                'success' => false,
+                'message' => "Espera {$wait} segundos para solicitar otro código.",
+            ], 429);
+        }
+
+        $user = User::find((int) $flowData['user_id']);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado para este proceso de recuperación.',
+            ], 422);
+        }
+
+        return $this->issueEmailTokenChallenge($request->flow_token, $flowData, $user, true);
     }
 
     // Cambia la contraseña del usuario
@@ -299,7 +419,14 @@ class RecoverController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'No se pudo cambiar la contraseña. El proceso de recuperación expiró o es inválido.'
-            ]);
+            ], 422);
+        }
+
+        if (empty($flowData['security_verified']) || empty($flowData['email_token_verified'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debes completar la validación del código enviado a tu correo antes de cambiar la contraseña.',
+            ], 422);
         }
 
         $user = User::find((int) $flowData['user_id']);
@@ -315,7 +442,81 @@ class RecoverController extends Controller
         return response()->json([
             'success' => false,
             'message' => 'No se pudo cambiar la contraseña. Usuario no encontrado.'
+        ], 422);
+    }
+
+    private function issueEmailTokenChallenge(string $flowToken, array $flowData, User $user, bool $isResend = false)
+    {
+        $emailToken = (string) random_int(100000, 999999);
+
+        try {
+            $this->sendRecoverCodeByEmail($user, $emailToken);
+        } catch (\Throwable $e) {
+            Log::error('recover.email_token.send_failed', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo enviar el código de verificación al correo. Intenta nuevamente en unos minutos.',
+            ], 500);
+        }
+
+        $flowData['security_verified'] = true;
+        $flowData['email_token_verified'] = false;
+        $flowData['email_token_hash'] = Hash::make($emailToken);
+        $flowData['email_token_expires_at'] = now()->addMinutes(self::EMAIL_TOKEN_TTL_MINUTES)->toIso8601String();
+        $flowData['email_token_attempts'] = 0;
+        $flowData['email_token_sent_at'] = now()->toIso8601String();
+
+        Cache::put(
+            $this->recoverFlowCacheKey($flowToken),
+            $flowData,
+            now()->addMinutes(self::RECOVER_FLOW_TTL_MINUTES)
+        );
+
+        return response()->json([
+            'success' => true,
+            'require_email_token' => true,
+            'message' => $isResend
+                ? 'Se envió un nuevo código de verificación a tu correo.'
+                : 'Respuestas correctas. Te enviamos un código de verificación a tu correo.',
+            'email_hint' => $this->maskEmail($user->email),
+            'token_expires_in_seconds' => self::EMAIL_TOKEN_TTL_MINUTES * 60,
         ]);
+    }
+
+    private function sendRecoverCodeByEmail(User $user, string $code): void
+    {
+        $data = [
+            'userName' => $user->name,
+            'code' => $code,
+            'minutes' => self::EMAIL_TOKEN_TTL_MINUTES,
+            'logoUrl' => url('/logouptag.png'),
+            'appName' => (string) config('app.name', 'Sistema de Inventario Médico'),
+        ];
+
+        Mail::send('emails.recover-token', $data, function ($message) use ($user) {
+            $message->to($user->email, $user->name)
+                ->subject('Código de verificación para recuperar contraseña');
+        });
+    }
+
+    private function maskEmail(string $email): string
+    {
+        $email = trim(mb_strtolower($email));
+        if (!str_contains($email, '@')) {
+            return 'correo oculto';
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $localVisible = mb_substr($local, 0, 2);
+        $maskedLocal = $localVisible . str_repeat('*', max(2, mb_strlen($local) - 2));
+
+        return $maskedLocal . '@' . $domain;
     }
 
     private function recoverFlowCacheKey(string $token): string
@@ -333,7 +534,7 @@ class RecoverController extends Controller
     private static function sanitizeTextInput(?string $v): string
     {
         if ($v === null) return '';
-        return preg_replace('/\s+/u', ' ', trim($v));
+        return trim($v);
     }
 
     private static function sanitizePasswordInput(?string $v): string

@@ -165,20 +165,21 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'name' => 'required|string|max:45',
+            'email' => 'required|email|max:60|unique:users,email',
             'password' => ['required','string','min:16','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
-            'color' => 'required|string|max:100',
-            'animal' => 'required|string|max:100',
-            'padre' => 'required|string|max:100',
+            'color' => 'required|string|max:40',
+            'animal' => 'required|string|max:40',
+            'padre' => 'required|string|max:40',
             'role' => 'required|in:admin,operador',
         ], [
             'name.required' => 'El nombre es obligatorio.',
             'name.string' => 'El nombre debe ser un texto.',
-            'name.max' => 'El nombre no puede superar los 255 caracteres.',
+            'name.max' => 'El nombre no puede superar los 45 caracteres.',
             'email.required' => 'El correo electrónico es obligatorio.',
             'email.email' => 'El correo electrónico debe ser válido.',
             'email.unique' => 'El correo electrónico ya está registrado.',
+            'email.max' => 'El correo electrónico no puede superar los 60 caracteres.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.string' => 'La contraseña debe ser un texto.',
             'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
@@ -186,10 +187,10 @@ class UserController extends Controller
             'password.regex' => 'La contraseña debe contener al menos una letra y un número.',
             'color.required' => 'El color favorito es obligatorio.',
             'color.string' => 'El color favorito debe ser un texto.',
-            'color.max' => 'El color favorito no puede superar los 100 caracteres.',
+            'color.max' => 'El color favorito no puede superar los 40 caracteres.',
             'animal.required' => 'El animal favorito es obligatorio.',
             'animal.string' => 'El animal favorito debe ser un texto.',
-            'animal.max' => 'El animal favorito no puede superar los 100 caracteres.',
+            'animal.max' => 'El animal favorito no puede superar los 40 caracteres.',
             'padre.required' => 'El nombre del padre es obligatorio.',
             'role.required' => 'El rol es obligatorio.',
             'role.in' => 'El rol seleccionado no es válido.'
@@ -205,7 +206,7 @@ class UserController extends Controller
                 ->withInput()
                 ->with('create_failed', true);
         }
-
+            // Verificar límite de administradores antes de crear
         if ($request->input('role') === 'admin' && $this->adminLimitReached()) {
             $msg = 'No se pueden crear más administradores. El máximo permitido es '.$this->maxAdminsAllowed().'.';
             $this->logBitacora('usuario.admin_creacion_bloqueada_limite', [
@@ -221,7 +222,7 @@ class UserController extends Controller
                 ->withInput()
                 ->with('create_failed', true);
         }
-
+            // Validar contraseña del admin actual (segunda capa) si se intenta crear un admin
         if ($request->input('role') === 'admin') {
             $admin = Auth::user();
             if (!$request->filled('admin_password') || !$admin || !Hash::check($request->input('admin_password'), $admin->password)) {
@@ -240,7 +241,7 @@ class UserController extends Controller
                     ->with('create_failed', true);
             }
         }
-
+            // Crear el usuario con las respuestas de seguridad hasheadas
         $user = User::create([
             'name' => $request->input('name'),
             'email' => $request->input('email'),
@@ -290,15 +291,15 @@ class UserController extends Controller
                 ->with('edit_failed', true)
                 ->with('edit_user_id', $user->id);
         }
-
+            // Validar campos básicos y opcionales (contraseña y respuestas de seguridad son opcionales en edición)
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'name' => 'required|string|max:45',
+            'email' => 'required|email|max:60|unique:users,email,' . $user->id,
             'role' => 'required|in:admin,operador',
             'password' => ['nullable','string','min:16','confirmed','regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'],
-            'color_favorito' => 'nullable|string|max:100',
-            'animal_favorito' => 'nullable|string|max:100',
-            'padre_favorito' => 'nullable|string|max:100',
+            'color_favorito' => 'nullable|string|max:40',
+            'animal_favorito' => 'nullable|string|max:40',
+            'padre_favorito' => 'nullable|string|max:40',
         ], [
             'password.min' => 'La nueva contraseña debe tener al menos 16 caracteres.',
             'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
@@ -329,7 +330,7 @@ class UserController extends Controller
                 ->with('edit_failed', true)
                 ->with('edit_user_id', $user->id);
         }
-
+            // Si se intenta modificar un admin (incluyendo promoción a admin) o el usuario es admin, se requiere confirmación de contraseña del actor
         $operacionAdminSensible = ($user->id !== Auth::id()) && ($user->role === 'admin' || $nuevoRol === 'admin');
         if ($operacionAdminSensible) {
             if (!$request->filled('admin_password') || !$actor || !Hash::check($request->input('admin_password'), $actor->password)) {
