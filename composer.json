@@ -55,6 +55,20 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "prod:optimize": [
+            "@php artisan config:clear --ansi",
+            "@php artisan route:clear --ansi",
+            "@php artisan view:clear --ansi",
+            "@php artisan event:clear --ansi",
+            "@php artisan config:cache --ansi",
+            "@php artisan route:cache --ansi",
+            "@php artisan view:cache --ansi",
+            "@php artisan event:cache --ansi"
+        ],
+        "prod:release": [
+            "@php artisan migrate --force --ansi",
+            "@composer prod:optimize"
         ]
     },
     "extra": {

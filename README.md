@@ -35,6 +35,43 @@
 > **IMPORTANTE:**  
 > Cada vez que descargues el proyecto en un nuevo equipo, ejecuta `composer install` para que todas las librerías (como dompdf) se descarguen correctamente.
 
+## Preparación para producción
+
+Esta base ya incluye una plantilla de entorno para producción: `.env.production.example`.
+
+Checklist recomendado:
+
+1. Crear y ajustar entorno productivo:
+	- Copia `.env.production.example` a `.env` en el servidor.
+	- Configura valores reales (`APP_URL`, credenciales de BD, SMTP, reCAPTCHA, etc.).
+	- Genera `APP_KEY` si es un despliegue nuevo.
+
+2. Instalar dependencias optimizadas:
+	- `composer install --no-dev --optimize-autoloader`
+	- `npm ci && npm run build`
+
+3. Migrar y cachear configuración:
+	- `php artisan migrate --force`
+	- `composer run prod:optimize`
+
+4. Permisos y enlaces:
+	- Asegura permisos de escritura en `storage/` y `bootstrap/cache/`.
+	- Ejecuta `php artisan storage:link` si utilizas archivos públicos.
+
+5. Worker de colas (si aplica):
+	- Ejecutar un worker persistente (`php artisan queue:work --tries=3 --timeout=90`) administrado por Supervisor/PM2/systemd.
+
+### Scripts incluidos para release
+
+Se agregaron scripts en `composer.json`:
+
+- `composer run prod:optimize`:
+	limpia y regenera cachés de `config`, `routes`, `views` y `events` (sin depender de `cache:clear`).
+- `composer run prod:release`:
+	ejecuta `migrate --force` y luego `prod:optimize`.
+
+> Sugerencia: en cada despliegue, corre primero el build frontend y luego `composer run prod:release`.
+
 ## Funcionamiento Offline y Build Optimizado
 
 Este sistema está preparado para funcionar completamente sin conexión a internet, incluyendo todos los estilos, fuentes e iconos. Para asegurar la mejor experiencia y evitar parpadeos de diseño (FOUC), sigue estos pasos:
