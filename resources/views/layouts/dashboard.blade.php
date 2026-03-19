@@ -322,7 +322,7 @@
                                 return [
                                     'categorias' => \App\Models\Categoria::count(),
                                     'productos' => \App\Models\Producto::count(),
-                                    'inventario' => class_exists('App\\Models\\inventario') ? \App\Models\inventario::count() : 0,
+                                    'inventario' => class_exists('App\\Models\\Inventario') ? \App\Models\Inventario::count() : 0,
                                     'movimientos' => \Illuminate\Support\Facades\DB::table('movimientos')->count(),
                                     'reportes' => \Illuminate\Support\Facades\DB::table('reportes')->count(),
                                     'usuarios' => \Illuminate\Support\Facades\DB::table('users')->count(),
