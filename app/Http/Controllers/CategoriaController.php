@@ -97,7 +97,7 @@ class CategoriaController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-    {
+    {       // merge es para modificar los datos del request antes de validarlos, en este caso se están limpiando los campos de nombre_categoria y nombre_subcategoria usando la función sanitizeLabel para eliminar espacios extra y caracteres no deseados antes de aplicar las reglas de validación. Esto ayuda a asegurar que los datos sean consistentes y estén en un formato adecuado antes de ser procesados o almacenados en la base de datos.
         $request->merge([
             'nombre_categoria' => $this->sanitizeLabel($request->input('nombre_categoria')),
             'nombre_subcategoria' => $this->sanitizeLabel($request->input('nombre_subcategoria')),

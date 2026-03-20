@@ -173,12 +173,12 @@
           @csrf
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Contraseña actual</label>
-            <input type="password" class="form-control pe-5" name="actual" required minlength="16" maxlength="200" id="actualContrasena">
+            <input type="password" class="form-control pe-5" name="actual" required minlength="16" id="actualContrasena">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('actualContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
           </div>
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Nueva contraseña</label>
-            <input type="password" class="form-control pe-5" name="nueva" required minlength="16" maxlength="200" id="nuevaContrasena" pattern="(?=.*[A-Za-z])(?=.*\d).+">
+            <input type="password" class="form-control pe-5" name="nueva" required minlength="16" id="nuevaContrasena" pattern="(?=.*[A-Za-z])(?=.*\d).+">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('nuevaContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
             <div id="perfil-pwd-meter" style="width:100%;margin-top:6px;">
               <div style="height:8px;border-radius:6px;background:#e9ecef;overflow:hidden;">
@@ -189,7 +189,7 @@
           </div>
           <div class="mb-3 position-relative">
             <label class="form-label fw-bold">Confirmar nueva contraseña</label>
-            <input type="password" class="form-control pe-5" name="confirmar" required minlength="16" maxlength="200" id="confirmarContrasena">
+            <input type="password" class="form-control pe-5" name="confirmar" required minlength="16" id="confirmarContrasena">
             <span class="position-absolute d-flex align-items-center" style="height:100%; right:18px; top:0; cursor:pointer;" onclick="togglePassword('confirmarContrasena', this)"><i class="fa fa-eye text-secondary"></i></span>
           </div>
           <div id="errorContrasena" class="text-danger mb-2 d-none">Las contraseñas no coinciden o son menores a 16 caracteres, y deben incluir letras y números.</div>

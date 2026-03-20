@@ -188,7 +188,7 @@ button:hover{ background:var(--accentH); }
       <form id="change-password-form">
         <!-- Campo nueva contraseña con ojito -->
         <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
-          <input type="password" name="new_password" id="new_password" placeholder="Nueva contraseña" required autocomplete="new-password" minlength="16" maxlength="30" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: 16 a 30 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." style="padding-right:40px;" />
+          <input type="password" name="new_password" id="new_password" placeholder="Nueva contraseña" required autocomplete="new-password" minlength="16" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: mínimo 16 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." style="padding-right:40px;" />
           <span class="toggle-pwd" data-target="new_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -201,7 +201,7 @@ button:hover{ background:var(--accentH); }
         </div>
         <!-- Campo confirmar contraseña con ojito -->
         <div style="position:relative;max-width:360px;margin:0 auto 10px auto;">
-          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" maxlength="30" title="Debe coincidir exactamente con la nueva contraseña." style="padding-right:40px;" />
+          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirmar contraseña" required autocomplete="new-password" minlength="16" title="Debe coincidir exactamente con la nueva contraseña." style="padding-right:40px;" />
           <span class="toggle-pwd" data-target="confirm_password" style="position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -257,7 +257,7 @@ function isSuspiciousPassword(value){
 function getPasswordFeedback(password){
   const pwd = (password || '').trim();
   const missing = [];
-  if (pwd.length < 16 || pwd.length > 30) missing.push('Debe tener entre 16 y 30 caracteres.');
+  if (pwd.length < 16) missing.push('Debe tener al menos 16 caracteres.');
   if (!/[A-Z]/.test(pwd)) missing.push('Debe incluir al menos una letra mayúscula.');
   if (!/[a-z]/.test(pwd)) missing.push('Debe incluir al menos una letra minúscula.');
   if (!/\d/.test(pwd)) missing.push('Debe incluir al menos un número.');

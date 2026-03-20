@@ -139,7 +139,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <input type="text" name="username" placeholder="Usuario" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre de usuario: solo letras y espacios (máx. 40)." />
         <input type="email" name="email" placeholder="Correo" required maxlength="60" title="Correo válido, máximo 60 caracteres." />
         <div class="input-with-eye">
-          <input type="password" name="password" id="register_password" placeholder="Contraseña" required minlength="16" maxlength="30" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: 16 a 30 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." />
+          <input type="password" name="password" id="register_password" placeholder="Contraseña" required minlength="16" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: mínimo 16 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." />
           <span class="toggle-pwd" data-target="register_password">
             <svg width="24" height="24" fill="none" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </span>
@@ -315,8 +315,8 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         if (new Set(value.split('')).size < 4) return true;
         return false;
       };
-      if (pwdVal.length < 16 || pwdVal.length > 30 || !strongRegex.test(pwdVal) || suspiciousPassword(pwdVal)) {
-        registerAlert.textContent = 'Contraseña inválida: usa 16-30 caracteres, con mayúscula, minúscula, número, símbolo y sin patrones repetitivos.';
+      if (pwdVal.length < 16 || !strongRegex.test(pwdVal) || suspiciousPassword(pwdVal)) {
+        registerAlert.textContent = 'Contraseña inválida: usa mínimo 16 caracteres, con mayúscula, minúscula, número, símbolo y sin patrones repetitivos.';
         registerAlert.style.display = 'block';
         pwdInput?.focus();
         return;

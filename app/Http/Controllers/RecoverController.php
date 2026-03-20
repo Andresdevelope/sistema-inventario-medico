@@ -396,7 +396,6 @@ class RecoverController extends Controller
                 'required',
                 'string',
                 'min:16',
-                'max:30',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+$/',
                 function ($attribute, $value, $fail) {
                     if (self::isSuspiciousPassword($value)) {
@@ -410,7 +409,6 @@ class RecoverController extends Controller
             'password.required' => 'La contraseña es obligatoria.',
             'password.string' => 'La contraseña debe ser texto válido.',
             'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
-            'password.max' => 'La contraseña no puede superar 30 caracteres.',
             'password.regex' => 'La contraseña debe incluir al menos una mayúscula, una minúscula, un número y un símbolo, sin espacios.',
         ]);
 

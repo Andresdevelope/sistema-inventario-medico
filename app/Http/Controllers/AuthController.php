@@ -52,7 +52,6 @@ class AuthController extends Controller
                 'required',
                 'string',
                 'min:16',
-                'max:30',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+$/',
                 function ($attribute, $value, $fail) {
                     if (self::isSuspiciousPassword($value)) {
@@ -110,7 +109,6 @@ class AuthController extends Controller
             'password.required' => 'La contraseña es obligatoria.',
             'password.string' => 'La contraseña debe ser texto válido.',
             'password.min' => 'La contraseña debe tener al menos 16 caracteres.',
-            'password.max' => 'La contraseña no puede superar 30 caracteres.',
             'password.regex' => 'La contraseña debe incluir al menos una mayúscula, una minúscula, un número y un símbolo, sin espacios.',
             'color.required' => 'La respuesta de color favorito es obligatoria.',
             'color.string' => 'La respuesta de color favorito debe ser texto válido.',
@@ -253,6 +251,7 @@ class AuthController extends Controller
         [$localPart, $domain] = explode('@', $email, 2);
 
         $typoDomains = [
+            //para detectar dominios comunes con errores de tipeo que podrían indicar correos falsos o mal escritos
             'gmai.com',
             'gmial.com',
             'gmal.com',
