@@ -1,170 +1,111 @@
 
-## Instalación del proyecto
+
+
+# Sistema de Inventario Médico
+
+Sistema web integral para la gestión de inventario, movimientos y reportes en servicios médicos, desarrollado por el equipo de proyecto como solución propia y original.
+
+## Descripción
+
+Esta aplicación permite administrar productos, medicamentos, insumos y movimientos por lotes, con trazabilidad completa, control de stock, reportes, exportaciones y gestión de usuarios y permisos. Incluye reglas de negocio específicas para el sector salud y controles de seguridad avanzados.
+
+## Características principales
+
+- Gestión de catálogo: categorías, subcategorías, productos y proveedores.
+- Inventario por lotes, entradas, salidas, ajustes y trazabilidad.
+- KPIs y reportes operativos, exportación CSV/PDF.
+- Control de usuarios, roles y permisos granulares.
+- Bitácora de auditoría y registro de acciones.
+- Seguridad reforzada: hashing seguro, CSRF, validaciones, reCAPTCHA opcional.
+- Interfaz moderna, responsive y preparada para uso offline.
+
+## Documentación y soporte
+
+Consulta la carpeta `docs/` para:
+- Casos de uso y reglas de negocio (`docs/casos_de_uso.txt`)
+- Guía de despliegue y producción (`docs/deploy_produccion.md`)
+- Lógica de inventario y migraciones (`docs/actualizacion_logica_inventario.md`, `docs/migracion_lotes.md`)
+- Guía de UX/UI y diagramas (`docs/guia_aplicacion_codigo_ux_ui.md`, `docs/diagrama_entidad_relacion.txt`)
+
+## Instalación y primer uso
 
 1. Clona el repositorio:
-	```
-	git clone https://github.com/usuario/tu-repo.git
-	cd tu-repo/laravel
-	```
-
-2. Instala las dependencias de PHP (incluye dompdf y otros):
-	```
-	composer install
-	```
-
+   ```
+   git clone https://github.com/usuario/tu-repo.git
+   cd tu-repo/laravel
+   ```
+2. Instala dependencias PHP:
+   ```
+   composer install
+   ```
 3. Copia el archivo de entorno y configura tus variables:
-	```
-	cp .env.example .env
-	```
-
+   ```
+   cp .env.example .env
+   ```
 4. Genera la clave de la aplicación:
-	```
-	php artisan key:generate
-	```
-
-5. Ejecuta las migraciones y seeders:
-	```
-	php artisan migrate --seed
-	```
-
-6. (Opcional) Instala dependencias de frontend:
-	```
-	npm install && npm run build
-	```
+   ```
+   php artisan key:generate
+   ```
+5. Ejecuta migraciones y seeders:
+   ```
+   php artisan migrate --seed
+   ```
+6. Instala dependencias frontend y compila assets:
+   ```
+   npm install && npm run build
+   ```
 
 > **IMPORTANTE:**  
 > Cada vez que descargues el proyecto en un nuevo equipo, ejecuta `composer install` para que todas las librerías (como dompdf) se descarguen correctamente.
 
-## Preparación para producción
+Más detalles y checklist de producción en `docs/deploy_produccion.md`.
 
-Esta base ya incluye una plantilla de entorno para producción: `.env.production.example`.
+## Despliegue, producción y funcionamiento offline
 
-Checklist recomendado:
+Consulta `docs/deploy_produccion.md` para checklist detallado. Resumen de pasos clave:
 
-1. Crear y ajustar entorno productivo:
-	- Copia `.env.production.example` a `.env` en el servidor.
-	- Configura valores reales (`APP_URL`, credenciales de BD, SMTP, reCAPTCHA, etc.).
-	- Genera `APP_KEY` si es un despliegue nuevo.
-
-2. Instalar dependencias optimizadas:
-	- `composer install --no-dev --optimize-autoloader`
-	- `npm ci && npm run build`
-
+1. Copia `.env.production.example` a `.env` y configura variables reales (`APP_URL`, BD, SMTP, reCAPTCHA, etc.).
+2. Instala dependencias optimizadas:
+   - `composer install --no-dev --optimize-autoloader`
+   - `npm ci && npm run build`
 3. Migrar y cachear configuración:
-	- `php artisan migrate --force`
-	- `composer run prod:optimize`
-
+   - `php artisan migrate --force`
+   - `composer run prod:optimize`
 4. Permisos y enlaces:
-	- Asegura permisos de escritura en `storage/` y `bootstrap/cache/`.
-	- Ejecuta `php artisan storage:link` si utilizas archivos públicos.
-
-5. Worker de colas (si aplica):
-	- Ejecutar un worker persistente (`php artisan queue:work --tries=3 --timeout=90`) administrado por Supervisor/PM2/systemd.
+   - Asegura permisos de escritura en `storage/` y `bootstrap/cache/`.
+   - Ejecuta `php artisan storage:link` si usas archivos públicos.
+5. (Opcional) Worker de colas: `php artisan queue:work --tries=3 --timeout=90`
 
 ### Scripts incluidos para release
+- `composer run prod:optimize`: limpia y regenera cachés de config, rutas, vistas y eventos.
+- `composer run prod:release`: ejecuta migraciones y optimización.
 
-Se agregaron scripts en `composer.json`:
+### Funcionamiento offline
+El sistema funciona sin conexión a internet: todos los estilos, fuentes e iconos están auto-hospedados. Ejecuta el build (`npm run build`) y limpia cachés para evitar parpadeos de diseño.
 
-- `composer run prod:optimize`:
-	limpia y regenera cachés de `config`, `routes`, `views` y `events` (sin depender de `cache:clear`).
-- `composer run prod:release`:
-	ejecuta `migrate --force` y luego `prod:optimize`.
+### reCAPTCHA v2 (opcional)
+Puedes activar o desactivar reCAPTCHA en login/registro/recuperación según tu entorno:
+- Actívalo en `.env` con `RECAPTCHA_ENABLED=true` y define tus claves.
+- Desactívalo con `RECAPTCHA_ENABLED=false`.
+Limpia la caché de configuración tras cualquier cambio: `php artisan config:clear`.
 
-> Sugerencia: en cada despliegue, corre primero el build frontend y luego `composer run prod:release`.
+### Migraciones y reglas de negocio
+Consulta `docs/actualizacion_logica_inventario.md` y `docs/guia_aplicacion_codigo_ux_ui.md` para detalles de reglas, migraciones y novedades de BD.
 
-## Funcionamiento Offline y Build Optimizado
+---
 
-Este sistema está preparado para funcionar completamente sin conexión a internet, incluyendo todos los estilos, fuentes e iconos. Para asegurar la mejor experiencia y evitar parpadeos de diseño (FOUC), sigue estos pasos:
+## Créditos y Licencia de Creación
 
-1. Instala las dependencias locales:
-	```powershell
-	npm install
-	```
-2. Genera los assets optimizados para producción:
-	```powershell
-	npm run build
-	```
-3. Limpia cachés de Laravel:
-	```powershell
-	php artisan view:clear
-	php artisan config:clear
-	php artisan cache:clear
-	php artisan route:clear
-	```
-4. Inicia el servidor de Laravel:
-	```powershell
-	php artisan serve
-	```
-5. Accede a la app desde el navegador. Puedes desconectar internet y el sistema seguirá mostrando todos los estilos y fuentes correctamente.
+Este sistema fue diseñado y desarrollado íntegramente por el siguiente equipo de proyecto:
 
-**Notas:**
-- No es necesario ejecutar `npm run dev` para producción o uso offline.
-- Todos los recursos (Bootstrap, Font Awesome, fuentes) están auto-hospedados y no dependen de CDNs.
-- Los avatares de usuario se generan localmente con iniciales, sin llamadas externas.
+- **Andres Rivero** (programador y desarrollador principal)
+- **Jesus Morillo**
+- **Angel Diaz**
+- **Joswar Capielo**
 
-Si ves algún parpadeo de diseño, asegúrate de haber ejecutado el build y limpiado cachés.
+Todos los derechos de diseño, código y documentación pertenecen a los autores mencionados. Queda prohibida la copia, redistribución o uso comercial sin autorización expresa del equipo creador.
 
-## Inventario/Movimientos: Nuevas reglas y migraciones
-
-Se han incorporado reglas de negocio para separar Distribución de Consumo y capturar datos mínimos del beneficiario en consumos.
-
-Novedades de BD:
-- En `movimientos`: nuevos campos `modalidad` (distribucion|consumo), `tipo_identificacion` (estudiante|trabajador|profesor|comunidad) y `sexo` (F|M|otro), con índices para reportes.
-
-Para aplicar cambios:
-
-```powershell
-php artisan migrate
-```
-
-Luego, limpiar cachés si ves inconsistencias:
-
-```powershell
-php artisan config:clear
-php artisan cache:clear
-php artisan route:clear
-```
-
-Documentación funcional detallada:
-- `docs/actualizacion_logica_inventario.md`
-- `docs/guia_aplicacion_codigo_ux_ui.md`
-
-## reCAPTCHA v2 (opcional)
-
-Este proyecto integra reCAPTCHA v2 en login/registro/recuperación, pero puedes activarlo o desactivarlo según tengas conexión a internet:
-
-- Activarlo (con internet):
-	1. En `.env`, establece `RECAPTCHA_ENABLED=true`.
-	2. Define tus claves: `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET`.
-	3. Limpia la caché de configuración:
-		 ```powershell
-		 php artisan config:clear
-		 ```
-	4. Refresca la página. Verás el widget y el backend validará el token.
-
-- Desactivarlo (sin internet):
-	1. En `.env`, establece `RECAPTCHA_ENABLED=false`.
-	2. Limpia la caché de configuración:
-		 ```powershell
-		 php artisan config:clear
-		 ```
-	3. Refresca la página. No se cargará el widget y el backend no exigirá token.
-
-Notas:
-- En entornos no producción (local/testing), si reCAPTCHA está habilitado pero la red falla, el sistema permite continuar para no bloquear el desarrollo.
-- En producción, si falla la verificación por red, se retornará error para mantener seguridad.
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+© 2026 Equipo de Proyecto Servicios Médicos. Todos los derechos reservados.
 
 - [Simple, fast routing engine](https://laravel.com/docs/routing).
 - [Powerful dependency injection container](https://laravel.com/docs/container).
