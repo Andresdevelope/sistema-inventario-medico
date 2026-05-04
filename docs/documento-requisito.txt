@@ -1,0 +1,1058 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Especificación de requisitos de software
+
+Proyecto: Sistema Digital De Registro De Inventario De Medicamentos E Insumos En La Sección De Servicios Médicos De La Universidad Politécnica Territorial “Alonso Gamero”
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+10/2025
+
+Ficha del documento
+
+
+Fecha
+Revisión
+Autor
+Verificado dep. calidad.
+
+
+Andrés Rivero, Ángel Díaz, Jesús Morillo y Joswar Capielo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Documento validado por las partes en fecha: 
+
+Por el cliente
+Por la empresa suministradora
+
+
+
+
+
+
+
+
+Lcda.
+
+
+
+
+
+
+
+
+
+Contenido
+Ficha del documento	2
+Contenido	3
+1	Introducción	5
+1.1	Propósito	5
+1.2	Alcance	5
+1.3	Personal involucrado	5
+1.4	Definiciones, acrónimos y abreviaturas	7
+1.5	Referencias	7
+1.6	Resumen	7
+2	Descripción general	7
+2.1	Perspectiva del producto	7
+2.2	Funcionalidad del producto	7
+2.3	Características de los usuarios	8
+2.4	Restricciones	8
+2.5	Suposiciones y dependencias	9
+2.5.1	Suposiciones y dependencias	9
+2.6	Evolución previsible del sistema	9
+3	Requisitos específicos	9
+3.1.1	RF 01 – Autenticación de usuarios	9
+3.2	Descripción del requisito: El sistema debe permitir el inicio de sesión seguro mediante credenciales únicas por usuario. Debe incluir recuperación de contraseña por correo y a través de preguntas de seguridad. Solo el Administrador puede acceder a la gestión de usuarios. El Operador accede únicamente a los módulos funcionales. Requisitos comunes de los interfaces.	10
+3.2.1	RF 01.1 – Gestión de usuarios	10
+3.2.1	RF 03 – Gestión de productos	11
+3.2.1	RF 04 – Inventario / Stock	11
+RF 06 – Reportes y análisis	11
+3.2.1	RF 07 – Notificaciones y alertas	12
+3.2.2	Interfaces de usuario	12
+3.2.3	Estilo visual	12
+3.2.4	Distribución de pantallas	12
+3.2.5	Accesibilidad y usabilidad	12
+3.2.6	Interfaces de hardware	13
+3.2.7	El sistema está diseñado para operar en un entorno local, utilizando equipos estándar disponibles en los servicios médicos de la UPTAG. Las interfaces de hardware se limitan a la interacción entre el software y los componentes físicos del sistema, sin requerir dispositivos especializados. Interfaces de software.	13
+3.2.8	Características lógicas de la interfaz	13
+3.2.9	Interfaces de comunicación	13
+3.2.10	Comunicación interna	13
+3.2.11	Comunicación con periféricos	14
+3.2.12	Restricciones	14
+3.3	Requisitos funcionales	14
+3.3.1	Requisito funcional 1	14
+3.3.2	Requisito funcional 2	15
+3.3.3	Requisito funcional 3	15
+3.3.4	Requisito funcional 4	16
+3.3.5	Requisito funcional 5	17
+3.3.6	Requisito funcional 6	17
+3.3.7	Requisito funcional 7	18
+3.3.8	Requisitos no funcionales	18
+3.3.9	Requisitos de rendimiento	18
+3.3.10	Seguridad	19
+3.3.11	Fiabilidad	19
+3.3.12	Disponibilidad	19
+3.3.13	Mantenibilidad	19
+3.3.14	Portabilidad	20
+3.4	Otros requisitos	20
+3.4.1	Requisitos legales e institucionales	20
+3.4.2	Requisitos culturales y operativos	20
+4	Apéndices	20
+4.1.1	A. Glosario de términos	20
+4.1.2	B. Referencias técnicas	21
+
+Introducción
+La intención de este documento es definir los requerimientos funcionales y no funcionales del Sistema de Gestión de Insumos Médicos de la UPTAG, que permitirá administrar de manera eficiente los insumos médicos utilizados en los servicios internos de la universidad.
+Propósito
+El propósito de este documento es especificar los requerimientos funcionales y no funcionales del Sistema de Gestión de Insumos Médicos de la UPTAG, cuyo objetivo es administrar de manera eficiente los insumos médicos utilizados en los servicios internos de la universidad.
+Alcance
+El sistema permitirá:
+Registrar y gestionar usuarios con diferentes roles (Administrador, Operador, Auditor).
+Administrar categorías, subcategorías y productos médicos.
+Controlar inventario, movimientos de entradas, distribución, consumos, ajustes + y ajustes -.
+Generar reportes y análisis de consumo.
+Emitir alertas y notificaciones por stock crítico.
+El sistema será utilizado exclusivamente por el personal autorizado de los Servicios Médicos de la UPTAG.
+Personal involucrado
+Nombre
+Andrés Rivero
+Rol
+Desarrollador y Programador del Sistema
+Categoría profesional
+TSU EN INFORMATICA
+Responsabilidades
+ Implementación del sistema web en Laravel 12.
+ Configuración del entorno local (XAMPP, Composer, Node.js/NPM).
+ Desarrollo de funcionalidades según los requisitos validados.
+ Pruebas funcionales y corrección de errores.
+
+Información de contacto
+Andresrivero3802@gmail.com
+Aprobación
+Aprobado
+
+Nombre
+Jesús Morillo
+Rol
+Programador De Apoyo
+Categoría profesional
+TSU EN INFORMATICA
+Responsabilidades
+ Implementar funciones específicas del sistema según los requisitos definidos.
+ Desarrollar controladores, modelos y vistas en Laravel bajo supervisión técnica.
+ Apoyar en la configuración de dependencias mediante Composer.
+ Compilar y organizar recursos frontend utilizando Node.js y NPM.
+ Realizar pruebas básicas de funcionalidad y corrección de errores en módulos asignados.
+
+Información de contacto
+morilloyisus18@gmail.com
+Aprobación
+Aprobado
+
+
+
+Nombre
+Joswar Capielo 
+Rol
+Analista y Documentador del sistema
+Categoría profesional
+TSU EN INFORMATICA
+Responsabilidades
+ Participar en el levantamiento de requisitos funcionales y no funcionales mediante entrevistas y observación directa.
+ Redactar y validar la Especificación de Requisitos de Software (ERS) según el estándar IEEE 830.
+ Apoyar en la elaboración de diagramas, tablas y estructuras documentales requeridas por la plantilla institucional.
+ Verificar la coherencia entre los requisitos definidos y las funcionalidades implementadas.
+
+Información de contacto
+joswarcolina.a22@gmail.com
+Aprobación
+Aprobado
+
+
+Nombre
+Ángel Díaz
+Rol
+Analista y Documentador del sistema
+Categoría profesional
+TSU EN INFORMATICA
+Responsabilidades
+ Documentar el entorno técnico del sistema, incluyendo dependencias como Composer, Node.js/NPM y Laravel.
+ Colaborar en la revisión de roles, casos de uso y flujos de interacción del sistema.
+ Participar en la validación interna del sistema junto al equipo de desarrollo.
+ Mantener trazabilidad entre requisitos, módulos y pruebas funcionales.
+Información de contacto
+agdp31422335@gmail.com
+Aprobación
+Aprobado
+
+
+Definiciones, acrónimos y abreviaturas
+ RF: Requerimiento Funcional
+ RNF: Requerimiento No Funcional
+Referencias
+Referencia
+Titulo
+Ruta
+Fecha
+Autor
+
+Standard IEEE 830 - 1998 
+IEEE
+1998
+Standard
+
+
+
+
+
+
+Relación completa de todos los documentos relacionados en la especificación de requisitos de software, identificando de cada documento el titulo, referencia (si procede), fecha y organización que lo proporciona.
+Resumen
+Este documento describe los requerimientos del sistema de Servicios Médicos UPTAG, organizados en:
+Introducción.
+Descripción general del sistema.
+Requisitos específicos (funcionales y no funcionales).
+Descripción general
+Perspectiva del producto
+El sistema será una aplicación web desarrollada en Laravel 12 (PHP 8.2) con base de datos MySQL, desplegado en un servidor local con XAMPP.
+Funcionalidad del producto
+Autenticación y gestión de usuarios.
+Gestión de categorías, subcategorías y productos.
+Control de inventario.
+Movimientos (entrada, distribución, consumo, ajuste + y ajustes -) 
+Reportes y análisis en PDF.
+Notificaciones automáticas por stock mínimo y distribución.
+
+
+Características de los usuarios
+Tipo de usuario
+Admin
+Formación
+Licenciada en enfermería
+Habilidades
+ Manejo básico de sistemas informáticos en entorno local.	
+ Lectura e interpretación de reportes médicos y de inventario.  
+Actividades
+Control y manejo del sistema en general
+
+Tipo de usuario
+Operador
+Formación
+
+Habilidades
+
+Actividades
+Control y manejo del sistema en general
+.
+Restricciones
+El desarrollo del sistema de inventario médico estará condicionado por las siguientes limitaciones, que deben ser consideradas en todas las fases del proyecto:
+
+- Lenguaje y framework: El sistema se implementará utilizando el lenguaje PHP y el framework Laravel, conforme a los lineamientos establecidos por la asignatura y las recomendaciones de la comunidad de desarrollo.
+
+- Gestor de base de datos: Se empleará MySQL como sistema gestor de base de datos, por lo que la estructura de datos y las consultas deberán ser compatibles con este motor.
+
+- Sistema operativo: El entorno de desarrollo y despliegue principal será Windows, aunque se procurará mantener la compatibilidad con sistemas Linux para facilitar futuras migraciones o pruebas.
+
+- Normas de seguridad: El sistema deberá incorporar mecanismos de control de acceso, validación de datos y protección frente a vulnerabilidades comunes, tales como inyección SQL, XSS y CSRF, siguiendo las buenas prácticas de desarrollo seguro.
+
+- Restricciones de hardware: El sistema debe ser capaz de operar en servidores con recursos limitados, optimizando el uso de CPU y memoria, y evitando procesos que puedan afectar el rendimiento general.
+
+- Metodología de desarrollo: Se recomienda la adopción de metodologías ágiles, como Scrum o Kanban, para facilitar la gestión de cambios, la colaboración en equipo y la entrega continua de funcionalidades.
+
+- Interfaz de usuario: La aplicación deberá ser accesible desde navegadores web modernos y adaptarse a diferentes resoluciones de pantalla, garantizando la usabilidad y accesibilidad para todos los usuarios.
+
+Estas restricciones buscan asegurar la viabilidad técnica, la seguridad y la calidad del sistema, así como su alineación con los objetivos académicos del proyecto.
+Suposiciones y dependencias
+Suposiciones y dependencias
+El sistema de inventario médico desarrollado en Laravel presenta las siguientes suposiciones y dependencias, derivadas de su arquitectura y entorno de implementación:
+
+- Los usuarios acceden al sistema mediante navegadores web compatibles, en equipos con conectividad estable a la red local o internet.
+- La autenticación y gestión de permisos se realiza a través de los mecanismos nativos de Laravel, utilizando roles y validaciones definidos en la plataforma.
+- El sistema opera sobre un servidor con sistema operativo Windows, con soporte para PHP y MySQL, conforme a la configuración actual del entorno de desarrollo.
+- La persistencia de datos depende del correcto funcionamiento del motor de base de datos MySQL y de la integridad de las migraciones y modelos definidos en el proyecto.
+- El sistema utiliza dependencias gestionadas por Composer, incluyendo el framework Laravel y librerías asociadas, por lo que requiere que dichas dependencias estén instaladas y actualizadas.
+- La infraestructura tecnológica de la institución (hardware, red, políticas de seguridad) constituye un factor externo que puede influir en la disponibilidad y rendimiento del sistema.
+- La veracidad y consistencia de la información almacenada depende de los datos proporcionados por los usuarios y de los controles de validación implementados en los formularios y controladores.
+
+Estas suposiciones y dependencias reflejan el estado actual del sistema y su contexto de operación, proporcionando un marco realista para la evaluación y documentación del proyecto.
+Evolución previsible del sistema
+ Historial de movimientos detallado: reportes avanzados que permitan analizar patrones de consumo dentro del servicio médico.
+Reportes personalizados: filtros avanzados para generar informes específicos según fechas, categorías o responsables.
+ Escalabilidad: Adaptación para soportar mayor volumen de usuarios, productos y transacciones, optimizando el rendimiento y la arquitectura.
+Requisitos específicos
+RF 01 – Autenticación de usuarios
+
+Autenticación de usuario
+Entradas:
+- Email (string, requerido, formato válido, dominio institucional preferente)
+- Contraseña (string, requerido, longitud >= 16, validación de complejidad)
+- reCAPTCHA Token (string, opcional según configuración)
+- Respuestas a preguntas de seguridad (strings, requeridas para recuperación)
+Prioridad del requisito
+Alta / Esencial
+1. Usuario ingresa email y contraseña (+ reCAPTCHA si está habilitado).
+2. El sistema valida reCAPTCHA (si aplica). Si falla, rechaza el intento.
+3. Verifica si la cuenta está bloqueada (locked_until > ahora). Si bloqueada, muestra mensaje y no permite acceso.
+4. Valida credenciales: si correctas, limpia contadores de fallos, crea sesión, registra inicio en bitácora y redirige al dashboard.
+5. Si credenciales incorrectas, incrementa contador de fallos. Si alcanza el umbral, bloquea la cuenta por tiempo definido, notifica por correo y registra en bitácora.
+6. Para recuperación, usuario solicita restablecimiento: el sistema envía enlace al correo o solicita respuestas de seguridad. Si validado, permite cambio de contraseña.
+7. Para acciones críticas (gestión de usuarios, permisos), el sistema puede requerir doble validación (reingreso de contraseña o código temporal).
+8. El sistema registra todos los eventos relevantes: inicio de sesión, bloqueos, recuperaciones, cambios de contraseña, intentos fallidos, cambios de permisos.
+• La recuperación de contraseña debe ofrecer dos modalidades: envío de enlace seguro al correo institucional y validación mediante preguntas de seguridad predefinidas por el usuario.
+• El sistema debe permitir la reactivación de cuentas bloqueadas solo por el Administrador o tras el vencimiento del periodo de bloqueo.
+• Si el servidor de reCAPTCHA no responde, aplica política de fallback (denegar o permitir según configuración) y registra incidente.
+• Si el servicio de correo falla al notificar bloqueo o recuperación, registra error en logs y bitácora.
+• Si el usuario olvida respuestas de seguridad, puede solicitar asistencia al administrador (registro en bitácora).
+• Los roles y permisos deben ser gestionados de forma granular, permitiendo asignar permisos específicos a cada usuario o grupo, y protegiendo las acciones críticas mediante doble validación si es necesario.
+RF 01.1 – Gestión de usuarios
+• Intentos múltiples: bloqueo temporal, mensajes claros sin revelar si el correo existe.
+• Protección de información: no mostrar detalles que permitan enumerar usuarios.
+• Registrar todos los eventos críticos en bitácora y logs.
+• Errores en doble validación o recuperación generan alertas internas para revisión administrativa.
+Gestión de usuarios
+RF 01.1
+• Código HTTP 200 + sesión activa y payload con datos mínimos del usuario (id, nombre, rol).
+• Errores: 401 (credenciales), 423 (locked), 400 (bad request/reCAPTCHA), 403 (doble validación fallida).
+• Mensajes de recuperación y bloqueo enviados por correo y registrados en bitácora.
+Tipo
+Requisito
+• users: id, name, email, password, role, active, locked_until, failed_attempts, security_questions (json), created_at, updated_at
+• bitacora: id, user_id, action, module, ip, metadata, created_at
+Entrevistas con personal médico UPTAG
+Prioridad del requisito
+Alta / Esencial
+
+
+
+Descripción del requisito: El Administrador podrá registrar, editar, activar/desactivar y eliminar usuarios. Cada usuario debe tener asignado un rol (Administrador u Operador). Esta funcionalidad está restringida exclusivamente al Administrador.
+Actualización y ampliación:
+• El sistema debe permitir la gestión avanzada de usuarios, incluyendo la asignación de múltiples roles y permisos granulares (por módulo o acción específica).
+• El Administrador puede activar, desactivar, bloquear o desbloquear usuarios, y restablecer contraseñas de forma segura.
+• El Superadministrador está protegido contra eliminación o degradación accidental.
+• Debe existir un registro histórico de cambios en los usuarios (alta, baja, cambios de rol, bloqueos, desbloqueos, restablecimientos), accesible solo para el Administrador.
+• El sistema debe validar la unicidad de correo electrónico y nombre de usuario, y permitir la actualización de datos personales bajo reglas de seguridad.
+• La interfaz de gestión debe mostrar el historial de actividad y estado de cada usuario, con filtros avanzados por rol, estado y fecha.
+RF 01.2 – Bitácora de actividades
+Bitácora de actividades
+RF 01.2
+Nombre de requisito
+Bitácora de actividades
+Tipo
+Requisito
+Fuente del requisito
+Validación interna del equipo técnico
+Prioridad del requisito
+Alta / Esencial
+Descripción del requisito: El sistema debe registrar automáticamente todas las acciones relevantes realizadas por los usuarios: creación, edición, eliminación, movimientos de insumos, inicio de sesión. La bitácora debe incluir fecha, hora, usuario, módulo y acción. Solo el Administrador puede visualizarla.
+Actualización y ampliación:
+• La bitácora debe registrar de forma automática y detallada todos los eventos críticos del sistema: autenticaciones, bloqueos, recuperaciones, cambios de permisos, movimientos de inventario, generación de reportes, y cualquier acción administrativa relevante.
+• Cada registro debe incluir: fecha y hora exacta, usuario responsable (o anónimo si aplica), módulo afectado, tipo de acción, dirección IP, y metadatos adicionales (por ejemplo, cambios realizados, valores anteriores y nuevos).
+• El sistema debe permitir la consulta de la bitácora mediante filtros avanzados: por usuario, módulo, tipo de acción, rango de fechas y nivel de criticidad.
+• La visualización de la bitácora está restringida a Administradores y Superadministradores, con opción de exportar registros en formato PDF o Excel para auditoría.
+• Debe existir un mecanismo de retención y depuración periódica de registros, configurable por el Administrador.
+• El acceso y consulta de la bitácora también debe quedar registrado para garantizar la trazabilidad completa.
+RF 02 – Gestión de categorías y subcategorías
+Gestión de categorías y subcategorías
+RF 02
+Nombre de requisito
+Gestión de categorías y subcategorías
+Tipo
+Requisito
+Fuente del requisito
+Observación de procesos internos
+Prioridad del requisito
+Media / Deseado
+Descripción del requisito: El sistema debe permitir crear, editar y eliminar categorías de insumos médicos. Cada categoría puede tener subcategorías asociadas según tipo de presentación. Esta funcionalidad está disponible para Administrador y Operador.
+Actualización y ampliación:
+• El sistema debe garantizar la unicidad de nombres de categoría y subcategoría dentro de la misma jerarquía, evitando duplicados y permitiendo la edición segura.
+• Las subcategorías deben estar siempre asociadas a una categoría existente, y su eliminación solo será posible si no existen productos asociados.
+• La eliminación de una categoría con dependencias (productos o subcategorías) debe estar bloqueada; el sistema sugerirá desactivar la categoría o reasignar los productos antes de eliminar.
+• Todas las acciones de creación, edición, activación/desactivación y eliminación deben quedar registradas en la bitácora, incluyendo el usuario responsable y los cambios realizados.
+• La interfaz debe permitir la visualización jerárquica de categorías y subcategorías, con filtros y búsqueda avanzada.
+• El sistema debe validar la integridad referencial y mostrar mensajes claros ante errores o restricciones.
+• Debe existir un mecanismo para reactivar categorías o subcategorías previamente desactivadas, conservando su historial.
+
+
+RF 03 – Gestión de productos
+Gestión de productos
+RF 03
+Nombre de requisito
+Gestión de productos
+Tipo
+Requisito
+Fuente del requisito
+Entrevistas con personal médico UPTAG
+Prioridad del requisito
+Alta / Esencial
+Descripción del requisito: El sistema debe permitir registrar productos con nombre, descripción, categoría y subcategoría. Debe incluir la definición de stock mínimo por producto y la opción de activar/inactivar productos. Disponible para Administrador y Operador.
+Actualización y ampliación:
+• El sistema debe permitir la gestión de productos por lotes, incluyendo número de lote, fecha de caducidad, tipo de unidad (unidad, caja, frasco, etc.) y proveedor asociado.
+• Cada producto debe tener trazabilidad completa: historial de movimientos, cambios de estado, y registro de lotes y fechas de vencimiento.
+• La activación/inactivación de productos debe impedir movimientos futuros, pero conservar el historial y permitir la reactivación bajo control administrativo.
+• El sistema debe validar la unicidad de nombre y SKU/código, y evitar la creación de productos con fechas de caducidad inválidas o lotes duplicados.
+• Debe permitir la actualización de stock mínimo y alertar automáticamente si el stock cae por debajo del umbral definido.
+• Todas las acciones (creación, edición, activación, inactivación, cambios de lote, actualización de proveedor) deben quedar registradas en la bitácora.
+• La interfaz debe mostrar el stock actual, el estado, los lotes activos y próximos a vencer, y permitir búsquedas avanzadas por nombre, lote, proveedor o estado.
+RF 04 – Inventario / Stock
+Inventario / Stock
+RF 04
+Nombre de requisito
+Inventario / Stock
+Tipo
+Requisito
+Fuente del requisito
+Validación técnica del equipo
+Prioridad del requisito
+Alta / Esencial
+		
+Descripción del requisito: El sistema debe mostrar el stock actual por producto. Debe emitir alertas automáticas cuando el stock esté por debajo del mínimo definido. Los ajustes de inventario deben quedar registrados con fecha y usuario.
+Actualización y ampliación:
+• El sistema debe gestionar el inventario por lotes, permitiendo visualizar existencias por producto, lote, fecha de caducidad y tipo de unidad.
+• Debe emitir alertas automáticas y notificaciones cuando el stock total o el de un lote específico esté por debajo del mínimo, o cuando existan lotes próximos a vencer.
+• Todos los ajustes de inventario (entradas, salidas, ajustes positivos/negativos) deben quedar registrados con trazabilidad completa: usuario, fecha, motivo, producto, lote y cantidad.
+• El sistema debe impedir movimientos sobre productos o lotes inactivos o vencidos, y registrar cualquier intento en la bitácora.
+• La interfaz debe permitir la consulta avanzada del inventario, con filtros por producto, lote, estado, fecha de vencimiento y proveedor.
+• Debe existir un historial de ajustes y movimientos accesible para auditoría, con exportación a PDF/Excel.
+• El sistema debe soportar la actualización masiva de inventario bajo reglas de validación y registro de cambios.
+
+
+RF 05 – Control de movimientos
+
+Control de movimientos
+RF 05
+Nombre de requisito
+Control de movimientos
+Tipo
+Requisito
+Fuente del requisito
+Entrevistas con personal médico UPTAG
+Prioridad del requisito
+Alta / Esencial
+		
+Descripción del requisito: El sistema debe permitir registrar entradas (donaciones) y salidas (uso médico) de insumos. Antes de registrar una salida, debe validar la existencia de stock suficiente. Cada movimiento debe incluir un motivo obligatorio.
+Actualización y ampliación:
+• El sistema debe permitir registrar diferentes modalidades de movimiento: entradas (compra, donación, ajuste +), salidas (consumo, distribución, ajuste -), y transferencias internas entre destinos.
+• Antes de registrar una salida, el sistema debe validar la existencia de stock suficiente por producto y por lote, aplicando la política FEFO/FIFO según configuración.
+• Cada movimiento debe estar asociado a un motivo obligatorio, usuario responsable, fecha, producto, cantidad, lote y destino (si aplica).
+• El sistema debe impedir movimientos sobre productos/lotes inactivos, vencidos o con stock insuficiente, y registrar cualquier intento fallido en la bitácora.
+• Debe existir trazabilidad completa de todos los movimientos, con historial consultable y exportable para auditoría.
+• El sistema debe permitir la reversión de movimientos bajo reglas estrictas y registro de justificación, solo por usuarios autorizados.
+• La interfaz debe mostrar el historial de movimientos con filtros avanzados por tipo, producto, lote, usuario, motivo y fecha.
+
+
+
+RF 06 – Reportes y análisis
+
+Reporte y Análisis
+RF 06
+Nombre de requisito
+Reportes y análisis
+Tipo
+Requisito
+Fuente del requisito
+Revisión de necesidades administrativas
+Prioridad del requisito
+Alta / Esencial
+
+
+Descripción del requisito: El sistema debe generar reportes de insumos disponibles, productos con stock crítico de consumo mensual. Debe permitir exportar los reportes en formato PDF.
+Actualización y ampliación:
+• El sistema debe generar reportes avanzados de inventario, movimientos, consumo mensual, productos próximos a vencer, y matriz de movimientos por periodo, producto, lote y destino.
+• Los reportes deben ser personalizables mediante filtros por fecha, categoría, subcategoría, producto, proveedor, usuario y tipo de movimiento.
+• Debe permitir la exportación de todos los reportes en formato PDF, con opción de impresión directa.
+• Los reportes deben incluir indicadores clave: stock crítico, productos vencidos/próximos a vencer, consumo por destino, y alertas generadas.
+• Debe existir un historial de reportes generados, con registro de usuario, fecha y parámetros utilizados.
+• La interfaz debe permitir la descarga y consulta rápida de reportes recientes, así como la programación de reportes automáticos para usuarios autorizados.
+
+
+
+
+RF 07 – Notificaciones y alertas
+Notificaciones y Alertas
+RF 06
+Nombre de requisito
+Notificaciones y alertas
+Tipo
+Requisito
+Fuente del requisito
+Validación interna del equipo técnico
+Prioridad del requisito
+Alta / Esencial
+
+Descripción del requisito: El sistema debe emitir alertas automáticas cuando el stock de un producto esté por debajo del mínimo. Debe incluir un panel para visualizar alertas activas y resueltas.
+
+Interfaces de usuario
+El sistema contará con una interfaz web responsiva, accesible desde navegadores modernos en equipos conectados a la red local. La interfaz está diseñada para facilitar la navegación y el uso por parte de personal administrativo y médico, sin requerir conocimientos técnicos avanzados.
+Estilo visual
+
+Colores institucionales:
+- Naranja principal: #FF6F00 (botones, acentos, iconos de acción)
+- Azul oscuro: #0D223F (fondos de menú lateral, encabezados principales)
+- Blanco: #FFFFFF (fondos de tarjetas, formularios, tablas)
+- Gris claro: #F5F5F5 (fondos secundarios, separación de secciones)
+- Rojo: #D32F2F (alertas críticas, errores)
+- Verde: #388E3C (alertas de éxito, confirmaciones)
+
+Tipografía:
+- Fuente principal: 'Roboto', sans-serif (Google Fonts)
+- Tamaños adaptativos: 14px a 18px según dispositivo y jerarquía
+- Peso: regular (400) para texto, bold (700) para títulos y botones
+
+Diseño y componentes:
+- Estructura modular con menú lateral fijo (azul oscuro), encabezado superior fijo y área de contenido central.
+- Botones grandes, con esquinas ligeramente redondeadas y colores de acción (naranja para principal, gris para secundario).
+- Formularios con validación visual en tiempo real (bordes y mensajes en rojo para error, verde para éxito).
+- Tablas responsivas con paginación, filtros por columna y resaltado de filas seleccionadas.
+- Alertas y notificaciones con íconos claros y colores diferenciados según tipo (rojo para error, naranja para advertencia, verde para éxito).
+- Uso de iconografía Material Icons para acciones y estados.
+
+Otros detalles:
+- Sombra sutil en tarjetas y modales para dar profundidad.
+- Espaciado generoso entre secciones y componentes para mejorar la legibilidad.
+- Soporte para modo oscuro (beta): invierte fondos y ajusta colores de texto/acento.
+Distribución de pantallas
+Pantalla de inicio de sesión: campos para usuario y contraseña, con mensajes de error en caso de credenciales incorrectas.
+Panel principal: menú lateral con acceso a módulos (Inventario, Productos, Categorías, Reportes, Usuarios, Bitácora).
+Gestión de productos: formulario con campos desplegables para categoría/subcategoría, stock mínimo, estado activo/inactivo.
+Movimientos de insumos: interfaz para registrar entradas y salidas, con validación de stock y motivo obligatorio.
+Reportes: visualización de tablas y gráficas, con opción de exportar en PDF o Excel.
+Bitácora: listado cronológico de acciones realizadas por los usuarios, accesible solo para el Administrador.
+Accesibilidad y usabilidad
+Bootstrap 5 como framework base para garantizar compatibilidad con múltiples resoluciones.
+Mensajes de confirmación y error claros y amigables, con retroalimentación visual inmediata.
+Navegación intuitiva, con agrupación lógica de funciones y rutas coherentes.
+
+.
+Interfaces de hardware
+El sistema está diseñado para operar en un entorno local, utilizando equipos estándar disponibles en los servicios médicos de la UPTAG. Las interfaces de hardware se limitan a la interacción entre el software y los componentes físicos del sistema, sin requerir dispositivos especializados. Interfaces de software.
+Características lógicas de la interfaz
+Servidor local: el sistema se instala en una máquina con XAMPP (Apache + MySQL), configurada como servidor principal.
+Almacenamiento: los respaldos automáticos se guardan en discos duros locales o unidades externas conectadas al servidor.
+Estaciones cliente:
+Procesador: Intel i5 6th generación
+Memoria RAM: 8 RAM
+Navegador compatible: Chrome, Firefox actualizados
+Periféricos:
+Mouse y teclado estándar
+Monitor con resolución mínima de 1366×768
+Configuración de entorno
+Software base:
+XAMPP con Apache 2.4 y MySQL 8.0
+PHP 8.2.12
+Laravel 12
+Composer instalado localmente
+Node.js y NPM para compilación de recursos frontend
+Acceso:
+El sistema se accede mediante navegador web en la red local, sin conexión a internet.
+
+Interfaces de comunicación
+El sistema está diseñado para operar exclusivamente en un entorno local, sin requerir conexión a internet ni integración con sistemas externos. Por lo tanto, no existen interfaces de comunicación con servicios web, APIs externas ni plataformas remotas.
+Comunicación interna
+Protocolo de red: el sistema utiliza el protocolo HTTP para la comunicación entre estaciones cliente y el servidor local mediante navegador web.
+Dirección IP fija: el servidor debe estar configurado con una IP estática dentro de la red LAN de la UPTAG para garantizar accesibilidad constante.
+Puerto de servicio: el sistema opera sobre el puerto estándar 80 (HTTP) o 8080 si se requiere configuración alternativa en XAMPP.
+Acceso simultáneo: múltiples estaciones pueden acceder al sistema de forma concurrente mediante navegador, sin necesidad de autenticación externa.
+Comunicación con periféricos
+Impresoras locales: los reportes generados en PDF pueden ser enviados a impresoras conectadas por USB o red local, sin requerir drivers específicos.
+Almacenamiento externo: los respaldos pueden exportarse a unidades de almacenamiento conectadas físicamente al servidor (discos duros, memorias USB).
+Restricciones
+
+---
+
+## RF-01 — Autenticación de usuarios (Rediseñado)
+
+### Entradas
+- **username**: string, requerido, único, sensible a mayúsculas/minúsculas.
+- **password**: string, requerido, longitud mínima 16 caracteres, validación de complejidad.
+- **recaptcha_token**: string, requerido solo si reCAPTCHA está habilitado.
+
+### Flujo principal
+1. El usuario envía `username`, `password` y, si aplica, `recaptcha_token`.
+2. El sistema valida el token reCAPTCHA (si está habilitado).  
+	 - Si falla, responde HTTP 400 con mensaje "Verificación reCAPTCHA fallida".
+3. Verifica si la cuenta está bloqueada (`locked_until > ahora`).  
+	 - Si está bloqueada, responde HTTP 423 con mensaje genérico de bloqueo.
+4. Valida credenciales:
+	 - Si son correctas:
+		 - Limpia contadores de fallos.
+		 - Crea sesión.
+		 - Registra inicio en bitácora.
+		 - Responde HTTP 200 con payload mínimo del usuario (id, nombre, rol).
+	 - Si son incorrectas:
+		 - Incrementa contador de fallos.
+		 - Si alcanza el umbral (ej. 5 intentos en 15 min):
+			 - Bloquea la cuenta (`locked_until = ahora + 15min`).
+			 - Notifica por correo (si corresponde).
+			 - Registra evento en bitácora.
+			 - Responde HTTP 423 con mensaje de bloqueo.
+		 - Si no alcanza el umbral, responde HTTP 401 con mensaje genérico.
+
+### Flujo alternativo
+- Si el servidor reCAPTCHA no responde:
+	- Aplica política de fallback (denegar o permitir según configuración).
+	- Registra incidente en bitácora.
+- Si falla el envío de correo de notificación:
+	- Registra error en logs y bitácora con nivel WARNING.
+- Si ocurre un error inesperado:
+	- Responde HTTP 500 y registra en logs/bitácora.
+
+### Manejo de errores
+- Mensajes genéricos, nunca indicar si el usuario existe o no.
+- Bloqueo temporal tras múltiples intentos fallidos.
+- Registro de eventos críticos en bitácora y logs.
+- Protección contra enumeración de usuarios.
+
+### Salidas
+- **Éxito:** HTTP 200, sesión activa, payload: `{ id, nombre, rol }`.
+- **Error de credenciales:** HTTP 401, mensaje genérico.
+- **Cuenta bloqueada:** HTTP 423, mensaje genérico.
+- **Error reCAPTCHA:** HTTP 400, mensaje específico.
+- **Error interno:** HTTP 500, mensaje genérico.
+
+### Campos mínimos en la base de datos
+**Tabla `users`:**
+- id (PK)
+- username (string, único, case-sensitive)
+- password (hash)
+- role (string)
+- active (boolean)
+- locked_until (datetime, nullable)
+- failed_attempts (int, opcional)
+- created_at (datetime)
+- updated_at (datetime)
+
+**Tabla `bitacora`:**
+- id (PK)
+- user_id (nullable, FK a users)
+- action (string)
+- module (string)
+- ip (string)
+- metadata (json)
+- created_at (datetime)
+
+### Parámetros y constantes
+- `LOCK_DURATION_MINUTES = 15`
+- `FAILED_ATTEMPTS_THRESHOLD = 5`
+- `FAILED_ATTEMPTS_WINDOW_MINUTES = 15`
+
+### Criterios de aceptación
+- El sistema responde HTTP 200 y retorna datos mínimos del usuario al autenticarse correctamente.
+- El sistema bloquea la cuenta tras 5 intentos fallidos en 15 minutos y responde HTTP 423.
+- El sistema nunca revela si el usuario existe o no en los mensajes de error.
+- Todos los eventos críticos (bloqueos, errores, accesos) se registran en la bitácora.
+- Si reCAPTCHA está habilitado, la autenticación solo es posible con un token válido.
+
+---
+• Categoria_id (int, requerido para subcategoría)
+
+Flujo principal:
+1. Usuario (Admin/Operador) envía formulario con nombre y descripción (y subcategoría si aplica).
+2. El sistema valida unicidad de nombre y jerarquía.
+3. Si es válido, crea registro en categorías/subcategorías y registra la acción en bitácora.
+4. Permite editar, activar/desactivar y reactivar categorías/subcategorías, registrando cada acción en bitácora.
+5. Permite visualizar jerarquía y buscar/filtrar por nombre, estado y fecha.
+
+Flujo alternativo:
+• Si se intenta eliminar una categoría con productos o subcategorías asociadas, el sistema bloquea la eliminación y sugiere desactivar o reasignar dependencias.
+• Si se intenta crear una subcategoría con Categoria_id inexistente, rechaza la operación.
+• Si se reactiva una categoría/subcategoría, se conserva el historial.
+
+Manejo de errores:
+• Nombre duplicado: responde 409 Conflict.
+• Categoria_id inválido: responde 400 Bad Request.
+• Error de integridad referencial: responde 400 y muestra mensaje claro.
+• Cualquier acción fallida se registra en bitácora.
+
+Salidas:
+• Listado de categorías y subcategorías anidadas (JSON o renderizado).
+• Mensajes de éxito o error claros.
+
+Campos mínimos BD implicados:
+• categorias: id, nombre, descripcion, active (boolean), created_at, updated_at
+• subcategorias: id, nombre, categoria_id (FK), active (boolean), created_at, updated_at
+• bitacora: id, user_id, action, module, metadata, created_at
+
+Parámetros:
+• MAX_NAME_LENGTH = 100
+
+Criterios de aceptación:
+• Crear, editar, eliminar, activar/desactivar y reactivar categorías y subcategorías conforme a validaciones.
+• Bloqueo de eliminación cuando hay dependencias.
+• Registro de todas las acciones en bitácora.
+• Visualización jerárquica y filtros avanzados disponibles.
+Requisito funcional 3
+RF-03 — Gestión de productos
+
+
+Entradas:
+• Nombre (string, requerido, max 150)
+• SKU/código (string, opcional, único)
+• Descripción (string, opcional)
+• Categoria_id (int, requerido)
+• Subcategoria_id (int, requerido)
+• Proveedor_id (int, opcional)
+• Stock_inicial (int, >=0)
+• Stock_minimo (int, >=0)
+• Estado (activo/inactivo)
+• Lote (string, opcional)
+• Fecha_caducidad (date, opcional)
+• Tipo de unidad (string, requerido: unidad, caja, frasco, etc.)
+
+Validaciones:
+• Nombre requerido, único y longitud máxima 150 caracteres.
+• SKU/código único si se proporciona.
+• Categoria, subcategoría y proveedor deben existir y estar activos.
+• Stock_inicial y stock_minimo deben ser enteros >= 0.
+• Fecha de caducidad válida y posterior a la fecha actual si se indica.
+• No se permiten productos con nombre, SKU o lote duplicado.
+• Tipo de unidad debe ser uno de los valores permitidos.
+• No se permite crear productos con fechas de caducidad vencidas.
+• Validar integridad referencial en todas las relaciones.
+
+Flujo principal:
+1. Usuario (Admin/Operador) envía formulario con todos los campos requeridos.
+2. El sistema valida unicidad de nombre y SKU, existencia de categoría/subcategoría, formato de fechas y valores numéricos.
+3. Si es válido, crea el producto y, si stock_inicial > 0, crea movimiento de entrada inicial (por lote si aplica).
+4. Registra todas las acciones (creación, edición, activación/inactivación, cambios de lote/proveedor) en bitácora.
+5. Permite editar, activar/inactivar y reactivar productos, conservando historial y trazabilidad.
+6. Permite búsquedas y filtros avanzados por nombre, lote, proveedor, estado, fecha de caducidad.
+
+Flujo alternativo:
+• Si se intenta crear producto con nombre o SKU duplicado, rechaza la operación.
+• Si se intenta asignar categoría/subcategoría/proveedor inexistente, rechaza la operación.
+• Si se inactiva un producto, impide nuevas salidas pero mantiene historial y permite reactivación.
+
+Manejo de errores:
+• Nombre o SKU duplicado: responde 409 Conflict.
+• Integridad referencial fallida: responde 400 Bad Request.
+• Fechas inválidas o stock negativo: responde 400 y muestra mensaje claro.
+• Cualquier acción fallida se registra en bitácora.
+
+Salidas:
+• Ficha del producto con stock actual, lotes activos, estado y trazabilidad.
+• Mensajes de éxito o error claros.
+
+Campos mínimos BD implicados:
+• productos: id, nombre, sku, descripcion, categoria_id, subcategoria_id, proveedor_id, stock_minimo, estado, lote, fecha_caducidad, tipo_unidad, created_at, updated_at
+• movimientos: id, producto_id, tipo (entrada/salida/ajuste), cantidad, motivo, usuario_id, lote, created_at
+• bitacora: id, user_id, action, module, metadata, created_at
+
+Parámetros:
+• DEFAULT_STOCK_MIN = 0
+• MAX_NAME_LENGTH = 150
+
+Criterios de aceptación:
+• Producto creado con todos los campos requeridos y validaciones.
+• Stock inicial registrado correctamente y asociado a lote si aplica.
+• Producto inactivo no visible en operaciones normales, pero con historial accesible.
+• Registro de todas las acciones en bitácora.
+Requisito funcional 4
+RF-04 — Inventario / Stock
+
+Entradas:
+• Producto_id (int, requerido)
+• Lote (string, opcional)
+• Consultas: filtros por categoría, subcategoría, proveedor, estado, fecha de caducidad, rango de fechas
+
+Flujo principal:
+1. Usuario solicita vista/consulta de inventario con filtros avanzados.
+2. El sistema calcula stock actual por producto y por lote (sum entradas - sum salidas + ajustes).
+3. Muestra stock, stock mínimo, estado (OK/CRÍTICO), lotes activos y próximos a vencer.
+4. Permite registrar ajustes de inventario (entrada/salida/ajuste) con motivo obligatorio, cantidad, tipo y lote.
+5. Registra todos los movimientos y ajustes en bitácora.
+
+Flujo alternativo:
+• Si se intenta ajustar inventario de producto/lote inactivo o vencido, el sistema bloquea la operación y muestra mensaje.
+• Si el ajuste provoca stock negativo, deniega o requiere aprobación según política.
+• Si hay inconsistencia en movimientos, reporta incidencia y bloquea operación hasta auditoría.
+
+Manejo de errores:
+• Producto/lote inexistente o inactivo: responde 400 Bad Request.
+• Error de cálculo de stock: reporta y bloquea operación.
+• Cualquier acción fallida se registra en bitácora.
+
+Salidas:
+• Tabla con stock actual, stock mínimo, estado (OK/CRÍTICO), lotes activos, próximos a vencer y últimos movimientos.
+• Mensajes de éxito o error claros.
+
+Campos mínimos BD implicados:
+• productos: id, nombre, stock_minimo, estado, lote, fecha_caducidad, tipo_unidad, created_at, updated_at
+• movimientos: id, producto_id, tipo (entrada/salida/ajuste), cantidad, motivo, usuario_id, lote, created_at
+• bitacora: id, user_id, action, module, metadata, created_at
+
+Parámetros:
+• ALERT_THRESHOLD = stock_minimo configurable por producto
+
+Criterios de aceptación:
+• Stock calculado correctamente por producto y lote.
+• Alertas y estados aparecen cuando corresponde.
+• Ajustes y movimientos registrados en bitácora.
+• Visualización avanzada y filtros disponibles.
+Requisito funcional 5
+RF-05 — Control de movimientos
+
+Entradas:
+• Producto_id (int, requerido)
+• Tipo de movimiento (entrada, distribución, consumo, ajuste+, ajuste-)
+• Cantidad (int > 0, requerido)
+• Motivo (string, opcional)
+• Lote (string, requerido para productos por lote)
+• Destino/usuario_consumidor (opcional para distribuciones/salidas)
+• Fecha de movimiento (date, automático)
+
+
+Flujo principal:
+1. Usuario autorizado completa formulario de movimiento con todos los campos requeridos.
+2. El sistema valida cantidad positiva, producto/lote activo, stock suficiente para salidas de tipo consumo, y permisos.
+3. Si es válido:
+	- Si el movimiento es consumo, descuenta la cantidad del stock.
+	- Si el movimiento es distribución, solo registra el evento pero no descuenta stock.
+	- Para entradas, ajustes y  distribuciones, aplica la lógica correspondiente.
+4. Registra el movimiento en transacción y en bitácora.
+5. Permite consultar historial de movimientos con filtros avanzados.
+
+Flujo alternativo:
+• Si stock insuficiente para salida, rechaza la operación y muestra mensaje.
+• Si se intenta movimiento sobre producto/lote inactivo o vencido, bloquea la operación.
+• Si se requiere reversión, solo usuarios autorizados pueden realizarla y queda registrada en bitácora.
+
+Manejo de errores:
+• Concurrencia: usar transacciones/locks para evitar condiciones de carrera.
+• Error de integridad o DB: rollback y mostrar mensaje claro.
+• Cualquier acción fallida se registra en bitácora.
+
+Salidas:
+• Confirmación del movimiento, nuevo stock y registro en historial.
+• Mensajes de éxito o error claros.
+
+Campos mínimos BD implicados:
+• movimientos: id, producto_id, tipo, cantidad, motivo, usuario_id, lote, destino, referencia, created_at
+• productos: id, nombre, stock_minimo, estado, lote, fecha_caducidad, tipo_unidad, created_at, updated_at
+• bitacora: id, user_id, action, module, metadata, created_at
+
+Parámetros:
+• MIN_MOVEMENT_QUANTITY = 1
+
+Criterios de aceptación:
+• No se permiten salidas si no hay stock suficiente.
+• Movimientos se registran correctamente y actualizan stock.
+• Reversiones solo por usuarios autorizados y con registro en bitácora.
+• Historial y trazabilidad completa disponible.
+Requisito funcional 6
+RF-06 — Reportes y análisis
+
+
+Entradas:
+- Parámetros de consulta: rango de fechas (fecha_inicio, fecha_fin), categoría, subcategoría, producto, tipo de movimiento, proveedor, usuario, export (boolean), formato_export (pdf/xlsx/csv).
+- Filtros avanzados: stock mínimo, lotes vencidos, movimientos por usuario, etc.
+
+Flujo principal:
+1. Usuario autorizado accede a módulo de reportes y selecciona filtros/criterios.
+2. El sistema valida parámetros (fechas, existencia de entidades, permisos).
+3. Si el dataset es grande, lanza job asíncrono y notifica al usuario cuando esté listo.
+4. Si es consulta estándar, ejecuta query optimizada y muestra resultados en tabla y gráficas interactivas.
+5. Si export=true, genera archivo en formato solicitado (PDF) y lo ofrece para descarga.
+6. Registra la generación del reporte en la bitácora con usuario, filtros y timestamp.
+
+Flujo alternativo:
+A. Si el usuario solicita un reporte recurrente, puede programar la generación automática y recibir notificación/correo cuando esté disponible.
+B. Si el usuario no tiene permisos suficientes, se muestra mensaje de acceso denegado y se registra intento en bitácora.
+C. Si el reporte supera el límite de filas configurado, se fuerza paginación o se limita el rango de fechas.
+
+Manejo de errores:
+- Si la consulta excede el tiempo máximo, se ejecuta en background y se notifica al usuario.
+- Si los parámetros son inválidos, se muestra mensaje claro y no se ejecuta la consulta.
+- Si no hay datos para los filtros seleccionados, se muestra mensaje informativo.
+
+Salidas:
+- Visualización en UI: tabla dinámica, gráficas (barras, líneas, pastel), totales y subtotales.
+- Archivo descargable: PDF.
+- Registro en bitácora de cada generación/exportación.
+
+Campos mínimos BD consultados:
+- movimientos, productos, categorias, subcategorias, proveedores, users, bitacora.
+
+Parámetros:
+- MAX_REPORT_ROWS (configurable, por defecto 10,000).
+- PAGINATION_REQUIRED (true si filas > MAX_REPORT_ROWS).
+- FORMATS_ALLOWED = [pdf, xlsx, csv].
+- JOB_TIMEOUT = configurable (por defecto 60s).
+
+Criterios de aceptación:
+- El sistema genera reportes correctos y consistentes según los filtros aplicados.
+- Exportaciones son descargables, legibles y reflejan los datos consultados.
+- Se registra en bitácora cada generación/exportación con usuario y filtros.
+- El sistema maneja correctamente errores y notifica al usuario según corresponda.
+Requisito funcional 7
+RF-07 — Notificaciones y alertas
+
+
+Entradas:
+- Triggers automáticos: cambio de stock, registro de movimiento, vencimiento de lote, stock <= stock_mínimo, error crítico en sistema.
+- Triggers manuales: usuario genera alerta desde panel.
+- Parámetros: producto_id, tipo_alerta, nivel_alerta, destinatarios, comentario (opcional).
+
+Flujo principal:
+1. Evento (trigger) es detectado por el sistema (ej. movimiento reduce stock, lote vence, etc.).
+2. El sistema valida existencia de producto y configuración de umbrales/niveles de alerta.
+3. Si la condición de alerta se cumple y no hay alerta activa similar (throttling), crea registro en tabla alertas.
+4. Notifica a destinatarios configurados vía UI (panel), correo electrónico y/o push (si aplica).
+5. El usuario administrador/operador puede marcar la alerta como resuelta, agregando comentario obligatorio.
+6. Todas las acciones quedan registradas en bitácora.
+
+Flujo alternativo:
+A. Si el trigger es manual, el usuario puede seleccionar tipo y nivel de alerta, y agregar comentario.
+B. Si el producto ya tiene una alerta activa del mismo tipo/nivel, solo se actualiza timestamp y se evita duplicidad.
+C. Si el usuario no tiene permisos para gestionar alertas, se muestra mensaje de acceso denegado y se registra intento.
+
+Manejo de errores:
+- Si el envío de correo falla, se reintenta vía colas y se registra el error para revisión.
+- Si el panel de alertas no carga, se muestra mensaje de contingencia y se sugiere recargar.
+- Si los parámetros del trigger son inválidos, se descarta la alerta y se registra en bitácora.
+- Throttling: evitar múltiples alertas iguales en menos de ALERT_THROTTLE_MINUTES.
+
+Salidas:
+- Panel de alertas en UI con filtros (activo, resuelto, tipo, producto, fecha).
+- Notificaciones en tiempo real (UI).
+- Historial de alertas y acciones asociadas.
+- Registro en bitácora de cada evento relevante.
+
+Campos mínimos BD:
+- alertas: id, producto_id, tipo, nivel, estado (activo/resuelto), fecha_generada, fecha_resuelta, comentarios, created_by, updated_by, destinatarios, trigger, timestamp_ultimo_envio.
+- bitacora: para trazabilidad de acciones sobre alertas.
+
+Parámetros:
+- ALERT_THROTTLE_MINUTES = 60 (configurable).
+- ALERT_TYPES = [stock_minimo, vencimiento, error_sistema, manual].
+
+Criterios de aceptación:
+- El sistema crea alertas solo cuando corresponde y evita duplicidad.
+- Los usuarios reciben notificaciones según configuración y permisos.
+- El panel refleja correctamente el estado y permite gestión de alertas.
+- Todas las acciones quedan trazadas en bitácora.
+Requisitos no funcionales
+Requisitos de rendimiento
+ El 95% de las transacciones estándar deben completarse en menos de 2 segundos.
+ Hasta 50 transacciones por hora en módulos críticos como movimientos de insumos.
+ Exportación de reportes (PDF) en menos de 5 segundos para hasta 100 registros.
+ Generación de alertas por stock mínimo en menos de 1 segundo tras el movimiento.
+ Disponibilidad del servidor local estimada en 99% durante horario operativo.
+
+Seguridad
+Encriptación de contraseñas mediante bcrypt.
+Validación de formularios en frontend y backend.
+Protección contra SQL Injection, CSRF y XSS.
+Middleware de roles y permisos para controlar el acceso a módulos.
+Registro de acciones en bitácora de auditoría: inicio de sesión, creación, edición, eliminación, movimientos.
+Restricción de acceso a rutas sensibles según rol.
+Comprobación de integridad en movimientos y exportaciones mediante validaciones internas.
+
+Fiabilidad
+El sistema debe mantener una tasa de error inferior al 1% en operaciones estándar.
+Tiempo medio entre fallos (MTBF) estimado en más de 30 días en entorno local.
+Tolerancia a errores: validación de entradas, manejo de excepciones y mensajes claros ante fallos.
+Registro de incidentes técnicos en la bitácora para análisis posterior.
+Recuperación segura ante errores de exportación o movimientos inválidos.
+
+Disponibilidad
+El sistema debe estar disponible el 99% del tiempo durante el horario operativo institucional.
+Acceso garantizado desde terminales conectadas a la red local mediante IP fija.
+Reinicio automático del servidor en caso de interrupción no planificada.
+Módulo de exportación y consulta debe estar disponible en todo momento para el administrador.
+Mantenibilidad
+El mantenimiento debe ser realizado por el equipo de desarrollo técnico.
+Tareas de mantenimiento incluyen:
+Actualización de dependencias (Composer, NPM).
+Revisión de rutas y controladores.
+Generación de estadísticas semanales y mensuales.
+Limpieza de bitácora y respaldo de base de datos.
+El sistema debe permitir ajustes sin afectar la estructura principal gracias a su arquitectura modular.
+Portabilidad
+El sistema está diseñado para entorno local, pero puede migrarse a servidor institucional con ajustes mínimos.
+Uso de Laravel, PHP, Composer y Node.js, tecnologías ampliamente portables.
+El 90% del código es independiente del servidor físico, gracias al uso de rutas relativas y configuración por entorno.
+Compatible con sistemas operativos Windows, Linux y macOS.
+Exportación de reportes y compilación de frontend no dependen de plataforma específica.
+Otros requisitos
+Esta sección contempla requisitos adicionales que no se incluyen en las categorías anteriores, pero que son relevantes para el desarrollo, implementación y uso del sistema.
+Requisitos legales e institucionales
+El sistema debe cumplir con las normas de confidencialidad de datos médicos y administrativos establecidas por la UPTAG.
+La información registrada no debe ser compartida con terceros ni almacenada fuera del entorno local sin autorización institucional.
+Los reportes generados deben incluir identificación institucional (nombre del servicio, fecha, logo si aplica) para su validez documental.
+El sistema debe permitir la auditoría interna mediante bitácora de actividades, en cumplimiento con los procesos de control universitario.
+Requisitos culturales y operativos
+La interfaz debe estar en idioma español, con terminología adaptada al contexto médico-administrativo de la UPTAG.
+Los formularios deben respetar la estructura organizativa local, incluyendo categorías de insumos utilizadas por el personal médico.
+El sistema debe operar sin conexión a internet, respetando las condiciones de infraestructura tecnológica de la institución.
+Apéndices
+Esta sección incluye información complementaria que apoya la comprensión y validación del documento de requisitos, sin formar parte directa de la especificación funcional.
+A. Glosario de términos
+Insumo médico: Material o producto utilizado en la atención médica (gasas, jeringas, medicamentos).
+Stock mínimo: Cantidad mínima definida para cada producto, que al ser alcanzada genera una alerta.
+Bitácora: Registro cronológico de acciones realizadas por los usuarios dentro del sistema.
+Movimiento: Entrada (donación) o salida (uso) de insumos médicos.
+B. Referencias técnicas
+Laravel 12 – Documentación oficial: https://laravel.com/docs
+DomPDF – Generación de PDF: https://github.com/dompdf/dompdf
+Composer – Gestión de dependencias PHP: https://getcomposer.org
+Node.js y NPM – Compilación de recursos frontend: https://nodejs.org
+

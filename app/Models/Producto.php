@@ -79,19 +79,5 @@ class Producto extends Model
      * Mantiene mayúsculas, reemplaza espacios por guiones, limita a 20 caracteres
      * y agrega sufijo incremental si ya existe.
      */
-    public static function generateUniqueCodigo(string $nombre): string
-    {
-        $base = strtoupper(preg_replace('/[^A-Za-z0-9]+/', '-', trim($nombre)));
-        $base = trim(preg_replace('/-+/', '-', $base), '-');
-        $base = substr($base, 0, 20);
-        if ($base === '') { $base = 'PROD'; }
-        $codigo = $base;
-        $i = 1;
-        while (self::where('codigo', $codigo)->exists()) {
-            $codigo = $base . '-' . $i;
-            $i++;
-        }
-        return $codigo;
-    }
     // Eliminado: No se genera código automáticamente, el usuario debe ingresar el código real del medicamento.
 }

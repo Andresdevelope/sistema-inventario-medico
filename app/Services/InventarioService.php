@@ -294,11 +294,14 @@ class InventarioService
                 }
                 $lote = $data['lote'] ?? null;
                 $inv = $this->findOrCreateInventario($producto, $lote, $fv);
-                // Reglas por tipo de producto: Medicamento => blíster con contenido obligatorio; Insumo => unidad
-                if ($tipoProd === 'medicamento') {
+                // Reglas por unidad de medida: mg/mcg => blíster con contenido obligatorio; resto => unidad directa
+                $unidadMedida = strtolower($producto->unidad_medida ?? '');
+                $esBlister = in_array($unidadMedida, ['mg', 'mcg']);
+
+                if ($esBlister) {
                     $contenido = (int)($data['contenido_por_blister'] ?? 0);
                     if ($contenido <= 0) {
-                        throw new InvalidArgumentException('Para medicamentos, el contenido por blíster es obligatorio y debe ser mayor que 0');
+                        throw new InvalidArgumentException('Para productos en mg/mcg (tabletas/cápsulas), el contenido por blíster es obligatorio y debe ser mayor que 0');
                     }
                     // Si el inventario ya existe y tiene um_operativa distinta o contenido distinto, bloquear mezcla
                     if (!empty($inv->um_operativa) || !empty($inv->contenido_por_blister)) {
@@ -310,10 +313,10 @@ class InventarioService
                         $inv->um_operativa = 'blister';
                         $inv->contenido_por_blister = $contenido;
                     }
-                } else { // insumo
-                    // Para insumo, um_operativa unidad y contenido_por_blister null
+                } else {
+                    // Para unidades que no son blíster (ml, g, UI, mEq, %, U), um_operativa = unidad
                     if (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad') {
-                        throw new InvalidArgumentException('El lote seleccionado fue creado como blíster. Cree un nuevo lote o use productos de tipo insumo correctamente.');
+                        throw new InvalidArgumentException('El lote seleccionado fue creado como blíster. Cree un nuevo lote para este producto.');
                     }
                     $inv->um_operativa = 'unidad';
                     $inv->contenido_por_blister = null;

@@ -80,10 +80,15 @@
 
 	<script type="text/php">
 		if (isset($pdf)) {
-			$font = $fontMetrics->get_font('DejaVu Sans', 'normal');
-			$text = utf8_decode('Sistema de Inventario Médico · Página {PAGE_NUM} de {PAGE_COUNT}');
-			$pdf->page_text(40, $pdf->get_height() - 40, $text, $font, 9);
-		}
+       $font = $fontMetrics->get_font("DejaVu Sans", "normal");
+        $size = 10;
+        $text = "{PAGE_NUM} / {PAGE_COUNT}";
+        $width = $fontMetrics->get_text_width($text, $font, $size);
+        $x = ($pdf->get_width() - $width) / 2;
+        $y = $pdf->get_height() - 35;
+        
+        $pdf->page_text($x, $y, $text, $font, $size);
+    }
 	</script>
 </body>
 </html>

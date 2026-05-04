@@ -60,21 +60,21 @@ class MovimientosController extends Controller
 
         // Incluir tipo_producto para auto-clasificación en la vista (Medicamento/Insumo)
         // Limitamos el set inicial para evitar renderizar cientos de opciones; el resto se consulta vía AJAX.
-        $productos = Producto::orderBy('nombre')
+        $productos = Producto::query()->orderBy('nombre', 'asc')
             ->limit(50)
-            ->get(['id','nombre','codigo','tipo_producto']);
-        $destinos = \App\Models\Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre','codigo']);
+            ->get(['id','nombre','codigo','tipo_producto','unidad_medida']);
+        $destinos = \App\Models\Destino::query()->where('activo', '=', true)->orderBy('nombre', 'asc')->get(['id','nombre','codigo']);
         // Últimos movimientos (paginados)
         $ultimos = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,fecha_vencimiento'])
             ->orderByDesc('fecha')
             ->orderByDesc('id')
             ->paginate((int)$request->input('per_page', 10))
             ->appends($request->query());
-        $productosFrecuentes = Movimiento::select('producto_id', DB::raw('COUNT(*) as total'))
+        $productosFrecuentes = Movimiento::query()->select(['producto_id', DB::raw('COUNT(*) as total')])
             ->whereNotNull('producto_id')
             ->groupBy('producto_id')
             ->orderByDesc('total')
-            ->with('producto:id,nombre,codigo,tipo_producto')
+            ->with('producto:id,nombre,codigo,tipo_producto,unidad_medida')
             ->limit(8)
             ->get()
             ->map(function ($row) {
@@ -288,7 +288,7 @@ class MovimientosController extends Controller
             ], 403);
         }
 
-        $inventarios = \App\Models\Inventario::where('producto_id', $productoId)
+        $inventarios = Inventario::query()->where('producto_id', '=', $productoId)
             // Mostrar primero los inventarios con cantidad > 0; los agotados al final
             ->orderByRaw('CASE WHEN cantidad <= 0 THEN 1 ELSE 0 END ASC')
             // FEFO/FIFO para los que tienen stock
@@ -314,7 +314,7 @@ class MovimientosController extends Controller
             ], 403);
         }
 
-        $distribuciones = Movimiento::where('producto_id', $producto->id)
+        $distribuciones = Movimiento::query()->where('producto_id', '=', $producto->id)
             ->whereNotNull('destino_id')
             ->selectRaw(implode(', ', [
                 'destino_id',
@@ -350,7 +350,7 @@ class MovimientosController extends Controller
             ->filter(fn(array $row) => $row['total_distribuido'] > 0 || $row['total_consumido'] > 0 || $row['saldo_estimado'] !== 0)
             ->values();
 
-        $stockReal = (int) Inventario::where('producto_id', $producto->id)->sum('cantidad');
+        $stockReal = (int) Inventario::query()->where('producto_id', '=', $producto->id)->sum('cantidad');
         $totalDistribuidoHistorico = (int) $distribuciones->sum('total_distribuido');
         $saldoDestinosEstimado = (int) $distribuciones->sum('saldo_estimado');
 
@@ -408,8 +408,8 @@ class MovimientosController extends Controller
         $consumos = $query->orderByDesc('fecha')->orderByDesc('id')->paginate($perPage)->appends($request->query());
 
         // Datos para filtros
-        $destinos = \App\Models\Destino::where('activo', true)->orderBy('nombre')->get(['id','nombre']);
-        $productos = Producto::orderBy('nombre')->get(['id','nombre','codigo']);
+        $destinos = \App\Models\Destino::query()->where('activo', '=', true)->orderBy('nombre', 'asc')->get(['id','nombre']);
+        $productos = Producto::query()->orderBy('nombre', 'asc')->get(['id','nombre','codigo']);
 
         // Bitácora: ingreso a historial de consumo
         try {
@@ -428,7 +428,7 @@ class MovimientosController extends Controller
         return view('movimientos.historial_consumo', compact('consumos','destinos','productos'));
     }
 
-    private function normalizarTexto($valor): ?string
+    private function normalizarTexto(mixed $valor): ?string
     {
         if (! is_string($valor)) {
             return null;

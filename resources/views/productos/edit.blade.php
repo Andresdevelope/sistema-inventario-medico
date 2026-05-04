@@ -68,7 +68,12 @@
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <div class="form-floating mb-3 position-relative">
-                            <input type="text" name="unidad_medida" id="unidad_medida" class="form-control ps-5 @error('unidad_medida') is-invalid @enderror" placeholder="Unidad de Medida" value="{{ old('unidad_medida', $producto->unidad_medida) }}" minlength="2" maxlength="20" required>
+                            <select name="unidad_medida" id="unidad_medida" class="form-select ps-5 @error('unidad_medida') is-invalid @enderror" required>
+                                <option value="" disabled {{ old('unidad_medida', $producto->unidad_medida) ? '' : 'selected' }}>Selecciona una unidad</option>
+                                @foreach($unidadesMedida as $key => $label)
+                                    <option value="{{ $key }}" {{ old('unidad_medida', $producto->unidad_medida) == $key ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
                             <label for="unidad_medida"><i class="fas fa-ruler me-2"></i> Unidad de Medida</label>
                         </div>
                         @error('unidad_medida')

@@ -479,7 +479,7 @@
           <select name="producto_id" class="form-select" required>
             <option value="">Seleccione...</option>
             @foreach($productos as $p)
-              <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}" data-tipo="{{ strtolower($p->tipo_producto ?? '') }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
+              <option value="{{ $p->id }}" @selected(old('producto_id')==$p->id) data-nombre="{{ $p->nombre }}" data-codigo="{{ $p->codigo }}" data-tipo="{{ strtolower($p->tipo_producto ?? '') }}" data-unidad-medida="{{ strtolower($p->unidad_medida ?? '') }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
             @endforeach
           </select>
 
@@ -1196,10 +1196,12 @@
     beneficiarioWrap.style.display = esConsumo ? 'block' : 'none';
     // Banner blíster visible en Entrada y Consumo
     bannerBlister.style.display = (esIngresoOPos || esConsumo) ? 'block' : 'none';
-    // Mostrar el campo "Contenido por blíster" sólo para medicamentos en Entrada/Ajuste +
+    // Mostrar el campo "Contenido por blíster" sólo para productos con unidad mg/mcg en Entrada/Ajuste +
     const opt = productoSel.options[productoSel.selectedIndex];
     const tipo = (opt?.dataset?.tipo || '').toLowerCase();
-    contenidoBlisterWrap.style.display = (esIngresoOPos && tipo === 'medicamento') ? 'block' : 'none';
+    const unidadMedida = (opt?.dataset?.unidadMedida || '').toLowerCase();
+    const esBlister = (unidadMedida === 'mg' || unidadMedida === 'mcg');
+    contenidoBlisterWrap.style.display = (esIngresoOPos && esBlister) ? 'block' : 'none';
     // Enlace a Historial de Consumo sólo cuando está activa la pestaña Consumo
     const consumoHistLink = document.getElementById('consumo-hist-link');
     if (consumoHistLink) consumoHistLink.style.display = esConsumo ? 'block' : 'none';
@@ -1658,6 +1660,7 @@
       opt.dataset.nombre = item.nombre || '';
       opt.dataset.codigo = item.codigo || '';
       opt.dataset.tipo = (item.tipo || '').toLowerCase();
+      opt.dataset.unidadMedida = (item.unidad_medida || '').toLowerCase();
       opt.textContent = `${item.nombre} (${item.codigo})`;
     }
 
@@ -1792,8 +1795,8 @@
     if (!contenidoBlisterInput) return;
     const inv = inventariosActuales.find(r => Number(r.id) === Number(id));
     if (!inv) return;
-    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
-    if (tipo !== 'medicamento') { return; }
+    const um = (productoSel.options[productoSel.selectedIndex]?.dataset?.unidadMedida || '').toLowerCase();
+    if (um !== 'mg' && um !== 'mcg') { return; }
     if ((inv.um_operativa || '').toLowerCase() === 'blister' && Number(inv.contenido_por_blister || 0) > 0) {
       contenidoBlisterInput.value = String(Number(inv.contenido_por_blister));
       contenidoBlisterInput.setAttribute('readonly', 'readonly');
@@ -1804,13 +1807,13 @@
     }
   }
 
-  // Muestra equivalente en unidades para medicamentos (cantidad × contenido_por_blister)
+  // Muestra equivalente en unidades para productos con blíster (cantidad × contenido_por_blister)
   function updateEquivalenteUnidades() {
     if (!contenidoBlisterInput || !inputCantidad) return;
-    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
+    const um = (productoSel.options[productoSel.selectedIndex]?.dataset?.unidadMedida || '').toLowerCase();
     const calc = document.getElementById('calc-equivalente');
     if (!calc) return;
-    if (tipo !== 'medicamento') { calc.textContent = ''; return; }
+    if (um !== 'mg' && um !== 'mcg') { calc.textContent = ''; return; }
     const cant = Number(inputCantidad.value || 0);
     const cont = Number(contenidoBlisterInput.value || 0);
     if (cant > 0 && cont > 0) {
@@ -1823,8 +1826,8 @@
   // Valida que, si se está usando un lote existente, el contenido por blíster coincida
   function validarContenidoVsInventario() {
     if (!contenidoBlisterInput) return true;
-    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
-    if (tipo !== 'medicamento') return true;
+    const um = (productoSel.options[productoSel.selectedIndex]?.dataset?.unidadMedida || '').toLowerCase();
+    if (um !== 'mg' && um !== 'mcg') return true;
     const loteVal = (loteInput.value || '').trim();
     const fvVal = (fvInput.value || '').trim();
     const match = inventariosActuales.find(r => (r.lote || '') === loteVal && (r.fecha_vencimiento || '') === fvVal);
@@ -1840,16 +1843,16 @@
     return true;
   }
 
-  // Validación adicional en submit para medicamentos: contenido por blíster coherente
+  // Validación adicional en submit para productos con blíster: contenido por blíster coherente
   form.addEventListener('submit', (e) => {
     if (!contenidoBlisterInput) return;
     if (!(tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos')) return;
-    const tipo = (productoSel.options[productoSel.selectedIndex]?.dataset?.tipo || '').toLowerCase();
-    if (tipo !== 'medicamento') return;
+    const um = (productoSel.options[productoSel.selectedIndex]?.dataset?.unidadMedida || '').toLowerCase();
+    if (um !== 'mg' && um !== 'mcg') return;
     const cont = Number(contenidoBlisterInput.value || 0);
     if (cont <= 0) {
       e.preventDefault();
-      if (typeof showToast === 'function') showToast('Debes indicar el contenido por blíster (entero > 0) para medicamentos.', 'error');
+      if (typeof showToast === 'function') showToast('Debes indicar el contenido por blíster (entero > 0) para productos en ' + um.toUpperCase() + '.', 'error');
       return;
     }
     if (!validarContenidoVsInventario()) {
@@ -1864,6 +1867,8 @@
     if (!chip) return;
     const opt = productoSel.options[productoSel.selectedIndex];
     const tipo = (opt?.dataset?.tipo || '').toLowerCase();
+    const um = (opt?.dataset?.unidadMedida || '').toLowerCase();
+    const esBlister = (um === 'mg' || um === 'mcg');
     if (!opt || !tipo) { chip.style.display='none'; return; }
     chip.style.display='inline-block';
     chip.className = 'badge';
@@ -1874,14 +1879,16 @@
     chip.textContent = text;
     // Ajustar banner de UM operativa
     const bannerText = document.getElementById('banner-blister-text');
-    const mostrarBanner = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos' || (tipoSel.value === 'egreso' && (modalidadInput.value || '') === 'consumo'));
+    const esIngresoOPos = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos');
+    const esConsumo = (tipoSel.value === 'egreso' && (modalidadInput.value || '') === 'consumo');
+    const mostrarBanner = (esIngresoOPos || esConsumo);
     bannerBlister.style.display = mostrarBanner ? 'block' : 'none';
     if (bannerText) {
-      if (tipo === 'medicamento') {
-        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>blíster</b>. No se registran pastillas sueltas.';
-        contenidoBlisterWrap.style.display = (tipoSel.value === 'ingreso' || tipoSel.value === 'ajuste_pos') ? 'block' : 'none';
-      } else if (tipo === 'insumo') {
-        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>unidad</b>.';
+      if (esBlister) {
+        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>blíster</b> (' + um.toUpperCase() + '). No se registran pastillas sueltas.';
+        contenidoBlisterWrap.style.display = esIngresoOPos ? 'block' : 'none';
+      } else if (um) {
+        bannerText.innerHTML = '<strong>Nota:</strong> Este producto opera en <b>unidad directa</b> (' + um.toUpperCase() + '). No requiere contenido por blíster.';
         contenidoBlisterWrap.style.display = 'none';
       } else {
         bannerText.innerHTML = '<strong>Nota:</strong> Selecciona un producto para ver su unidad operativa.';

@@ -197,7 +197,27 @@
         requestAnimationFrame(()=>{ d.style.opacity='1'; d.style.transform='translateX(0)'; });
         setTimeout(()=>{ d.style.opacity='0'; d.style.transform='translateX(40px)'; setTimeout(()=>d.remove(),400); },2700);
     }
-    function confirmar(mensaje, cb){ const modal=document.getElementById('modal-confirmar'); modal.style.display='flex'; document.getElementById('confirmar-mensaje').textContent=mensaje; const btnOk=document.getElementById('btn-aceptar-confirmar'); const btnNo=document.getElementById('btn-cancelar-confirmar'); const close=()=>{modal.style.display='none'; btnOk.removeEventListener('click',okH); btnNo.removeEventListener('click',noH);} ; const okH=()=>{cb&&cb(); close();}; const noH=()=>close(); btnOk.addEventListener('click',okH,{once:true}); btnNo.addEventListener('click',noH,{once:true}); }
+    function confirmar(mensaje, cb, options={}){
+        const modal = document.getElementById('modal-confirmar');
+        const btnOk = document.getElementById('btn-aceptar-confirmar');
+        const btnNo = document.getElementById('btn-cancelar-confirmar');
+        modal.style.display = 'flex';
+        document.getElementById('confirmar-mensaje').textContent = mensaje;
+        btnOk.textContent = options.primaryText || 'Sí, continuar';
+        btnOk.className = options.primaryClass || 'btn btn-danger btn-sm fw-bold';
+        btnNo.textContent = options.secondaryText || 'Cancelar';
+        btnNo.style.display = options.showCancel === false ? 'none' : '';
+
+        const close = () => {
+            modal.style.display = 'none';
+            btnOk.removeEventListener('click', okH);
+            btnNo.removeEventListener('click', noH);
+        };
+        const okH = () => { if (typeof cb === 'function') cb(); close(); };
+        const noH = () => close();
+        btnOk.addEventListener('click', okH, { once: true });
+        btnNo.addEventListener('click', noH, { once: true });
+    }
     function csrf(){ const m=document.querySelector('meta[name="csrf-token"]'); return m?m.content:''; }
     function sanitizeLabelClient(v=''){ return String(v || '').trim().replace(/\s+/gu, ' '); }
     function getSuspiciousReason(v=''){
@@ -420,15 +440,27 @@
             const subVacias = deps.subcategorias_vacias ?? Math.max((deps.subcategorias_totales || 0) - subEnUso, 0);
             if(meds>0 || subEnUso>0){
                 const msg = `La categoría "${nombre}" está en uso: ${meds} medicamento(s) registrados y ${subEnUso} subcategoría(s) con datos.\nReasigna o elimina esos registros antes de continuar.`;
-                confirmar(msg, ()=>{});
+                confirmar(msg, null, {
+                    primaryText: 'Cancelar',
+                    primaryClass: 'btn btn-primary btn-sm fw-bold',
+                    showCancel: false
+                });
                 return;
             }
             let mensaje = `¿Eliminar la categoría "${nombre}"?`;
             if(subVacias>0){
                 mensaje += `\nSe eliminarán también ${subVacias} subcategoría(s) vacías.`;
             }
-            confirmar(mensaje, ()=> eliminarCategoria(id));
-        } catch(e){ confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id)); }
+            confirmar(mensaje, ()=> eliminarCategoria(id), {
+                primaryText: 'Sí, eliminar',
+                primaryClass: 'btn btn-danger btn-sm fw-bold',
+                secondaryText: 'Cancelar'
+            });
+        } catch(e){ confirmar(`¿Eliminar la categoría "${nombre}"?`, ()=> eliminarCategoria(id), {
+                primaryText: 'Sí, eliminar',
+                primaryClass: 'btn btn-danger btn-sm fw-bold',
+                secondaryText: 'Cancelar'
+            }); }
     }
 
     async function validarYConfirmarEliminarSubcategoria(id, nombre){
@@ -438,11 +470,23 @@
             const deps = js.dependencias || {medicamentos:0};
             if(deps.medicamentos>0){
                 const msg = `La subcategoría "${nombre}" tiene ${deps.medicamentos} medicamento(s) asociados.\nNo se recomienda eliminarla. Reasigna los medicamentos primero.`;
-                confirmar(msg, ()=>{});
+                confirmar(msg, null, {
+                    primaryText: 'Cancelar',
+                    primaryClass: 'btn btn-primary btn-sm fw-bold',
+                    showCancel: false
+                });
             } else {
-                confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id));
+                confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id), {
+                    primaryText: 'Sí, eliminar',
+                    primaryClass: 'btn btn-danger btn-sm fw-bold',
+                    secondaryText: 'Cancelar'
+                });
             }
-        } catch(e){ confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id)); }
+        } catch(e){ confirmar(`¿Eliminar subcategoría "${nombre}"?`, ()=> eliminarSubcategoria(id), {
+                primaryText: 'Sí, eliminar',
+                primaryClass: 'btn btn-danger btn-sm fw-bold',
+                secondaryText: 'Cancelar'
+            }); }
     }
 
     async function peticion(url, method='GET', data=null){ const opts={ method, headers:{ 'Accept':'application/json','X-CSRF-TOKEN':csrf() } }; if(data){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(data); } const res = await fetch(url, opts); let js; try { js = await res.json(); } catch { throw new Error('Respuesta no válida'); } if(!res.ok || js.success===false){ throw new Error(js.message || 'Error en servidor'); } return js; }

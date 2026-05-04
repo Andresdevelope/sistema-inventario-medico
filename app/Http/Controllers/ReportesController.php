@@ -159,7 +159,8 @@ class ReportesController extends Controller
             'cutoff' => $matriz['cutoff'],
             'destinos' => $matriz['destinos'],
             'rows' => $matriz['rows'],
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a4', 'landscape')
+          ->setOption(['isPhpEnabled' => true]);
         // Bitácora export
         try { if (Auth::check()) { Bitacora::create([
             'user_id'=>Auth::id(),'accion'=>'reportes.export.pdf.inventario',
@@ -205,7 +206,8 @@ class ReportesController extends Controller
             'to' => $to,
             'destino' => $destinoEtiqueta,
             'mostrar_insumos' => $mostrarInsumos,
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a4', 'landscape')
+          ->setOption(['isPhpEnabled' => true]);
 
         try {
             if (Auth::check()) {
@@ -262,7 +264,8 @@ class ReportesController extends Controller
             'from' => $from,
             'to' => $to,
             'destino' => $destinoEtiqueta,
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a4', 'landscape')
+          ->setOption(['isPhpEnabled' => true]);
 
         try {
             if (Auth::check()) {
@@ -322,5 +325,4 @@ class ReportesController extends Controller
             return [null, "La {$label} indicada no es válida."];
         }
     }
-
 }
