@@ -2,9 +2,9 @@
 
 @section('content')
 <div class="container mt-4">
-  <div class="d-flex align-items-center justify-content-between mb-3">
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
     <h2 class="m-0">Historial de Consumo</h2>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
       <a href="{{ route('movimientos.index') }}" class="btn btn-orange"><i class="fa fa-exchange me-1"></i> Registrar Movimiento <span class="btn-badge ms-1">MOV</span></a>
       <a href="{{ route('reportes.index') }}" class="btn btn-orange"><i class="fa fa-bar-chart me-1"></i> Reportes <span class="btn-badge ms-1">REP</span></a>
     </div>
@@ -67,21 +67,28 @@
     .table-mov-ultimos .badge.bg-dark { background: #1f2937 !important; color: #f9fafb !important; border: 1px solid #374151; }
     .table-mov-ultimos .badge.bg-info { background: #ecfeff !important; color: #155e75 !important; border: 1px solid #67e8f9; }
     .table-mov-ultimos .badge.bg-secondary { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1; }
-    .table-mov-ultimos .badge.bg-light.text-dark { background: #f8fafc !important; color: #334155 !important; border: 1px solid #cbd5e1; }
+    /* Card-Table responsive */
+    @media (max-width: 767px) {
+      .resp-table thead { display: none; }
+      .resp-table tbody tr { display:block; border:1px solid #e2e6ee; border-radius:10px; margin-bottom:.75rem; background:#fff; box-shadow:0 2px 8px -2px rgba(120,140,160,.12); }
+      .resp-table tbody td { display:flex; justify-content:space-between; align-items:center; padding:.45rem .65rem; border:none; border-bottom:1px solid #f0f3f6; font-size:.82rem; white-space:normal; }
+      .resp-table tbody td:last-child { border-bottom:none; }
+      .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.65rem; text-transform:uppercase; color:#6b7280; letter-spacing:.4px; flex-shrink:0; margin-right:.5rem; }
+    }
   </style>
 
   <div class="card shadow-sm mb-4">
     <div class="card-body">
-      <form method="GET" class="row g-3">
-        <div class="col-md-3">
+      <form method="GET" class="row g-2">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Desde</label>
           <input type="date" class="form-control" name="desde" value="{{ request('desde') }}">
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Hasta</label>
           <input type="date" class="form-control" name="hasta" value="{{ request('hasta') }}">
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Destino</label>
           <select name="destino_id" class="form-select">
             <option value="">Todos</option>
@@ -90,7 +97,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Producto</label>
           <select name="producto_id" class="form-select">
             <option value="">Todos</option>
@@ -99,7 +106,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Sexo</label>
           <select name="sexo" class="form-select">
             <option value="">Todos</option>
@@ -108,7 +115,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
           <label class="form-label">Tipo identificación</label>
           <select name="tipo_identificacion" class="form-select">
             <option value="">Todos</option>
@@ -117,7 +124,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-6 col-sm-3 col-md-2">
           <label class="form-label">Por página</label>
           <select name="per_page" class="form-select">
             @foreach([10,20,50] as $pp)
@@ -125,8 +132,8 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary"><i class="fa fa-search me-1"></i> Filtrar</button>
+        <div class="col-6 col-sm-3 col-md-1 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100"><i class="fa fa-search"></i></button>
         </div>
       </form>
     </div>
@@ -139,7 +146,7 @@
         <small class="text-muted">Modalidad: <span class="badge bg-dark">consumo</span></small>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover align-middle table-mov-ultimos">
+        <table class="table table-hover align-middle table-mov-ultimos resp-table">
           <thead class="table-light">
             <tr>
               <th>Fecha</th>
@@ -163,25 +170,25 @@
                 $fvBadge = $fvC ? ($dias < 0 ? 'danger' : ($dias <= 30 ? 'warning text-dark' : 'info')) : null;
               @endphp
               <tr>
-                <td>{{ \Carbon\Carbon::parse($m->fecha)->format('d/m/Y') }}</td>
-                <td><span class="badge bg-secondary">{{ $m->destino->nombre ?? '-' }}</span></td>
-                <td>
+                <td data-label="Fecha">{{ \Carbon\Carbon::parse($m->fecha)->format('d/m/Y') }}</td>
+                <td data-label="Destino"><span class="badge bg-secondary">{{ $m->destino->nombre ?? '-' }}</span></td>
+                <td data-label="Producto">
                   <strong>{{ $m->producto->nombre ?? '—' }}</strong>
                   <span class="text-muted">({{ $m->producto->codigo ?? '' }})</span>
                 </td>
-                <td>{{ $m->inventario->lote ?? '—' }}</td>
-                <td>
+                <td data-label="Lote">{{ $m->inventario->lote ?? '—' }}</td>
+                <td data-label="Vence">
                   @if($fvC)
                     <span class="badge bg-{{ $fvBadge }}">{{ $fvC->format('d/m/Y') }}</span>
                   @else
                     <span class="text-muted">—</span>
                   @endif
                 </td>
-                <td>{{ $m->cantidad }}</td>
-                <td><span class="badge bg-light text-dark">{{ strtoupper($m->sexo ?? '-') }}</span></td>
-                <td><span class="badge bg-light text-dark">{{ strtoupper($m->tipo_identificacion ?? '-') }}</span></td>
-                <td>{{ $m->usuario->name ?? '-' }}</td>
-                <td class="text-truncate" style="max-width:220px;" title="{{ $m->observaciones }}">{{ $m->observaciones ?? '-' }}</td>
+                <td data-label="Cant.">{{ $m->cantidad }}</td>
+                <td data-label="Sexo"><span class="badge bg-light text-dark">{{ strtoupper($m->sexo ?? '-') }}</span></td>
+                <td data-label="Ident."><span class="badge bg-light text-dark">{{ strtoupper($m->tipo_identificacion ?? '-') }}</span></td>
+                <td data-label="Usuario">{{ $m->usuario->name ?? '-' }}</td>
+                <td data-label="Obs." class="text-truncate" style="max-width:220px;" title="{{ $m->observaciones }}">{{ $m->observaciones ?? '-' }}</td>
               </tr>
             @empty
               <tr>

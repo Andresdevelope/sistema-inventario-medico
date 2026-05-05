@@ -101,8 +101,16 @@
                 max-height: calc(100vh - 220px);
             }
         }
+        /* ── Card-Table responsive ── */
+        @media (max-width: 767px) {
+            .resp-table thead { display: none; }
+            .resp-table tbody tr { display:block; border:1px solid #e2e6ee; border-radius:10px; margin-bottom:.75rem; background:#fff; }
+            .resp-table tbody td { display:flex; justify-content:space-between; align-items:center; padding:.45rem .65rem; border:none; border-bottom:1px solid #f0f3f6; font-size:.82rem; }
+            .resp-table tbody td:last-child { border-bottom:none; }
+            .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.65rem; text-transform:uppercase; color:#6b7280; letter-spacing:.4px; flex-shrink:0; margin-right:.5rem; }
+        }
     </style>
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-1">
         <h2 class="mb-0">Gestión de Usuarios</h2>
         <button class="btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;" data-bs-toggle="modal" data-bs-target="#createUserModal">
             <i class="fa fa-user-plus me-1"></i> Nuevo Usuario
@@ -225,7 +233,7 @@
             refreshEditAdminPasswordVisibility();
         }
     </script>
-    <table class="table table-bordered table-hover mt-3 align-middle">
+    <table class="table table-bordered table-hover mt-3 align-middle resp-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -240,18 +248,18 @@
                         @foreach($users as $user)
                                 @php($isSuperAdminRow = $user->role === 'admin' && (int)$user->id === (int)($superAdminId ?? 0))
                                 <tr>
-                                    <td>{{ $user->id }}</td>
-                                    <td>{{ $user->name }}</td>
-                                    <td>{{ $user->email }}</td>
-                                    <td><span class="badge {{ $isSuperAdminRow ? 'bg-danger' : ($user->role === 'admin' ? 'bg-dark' : 'bg-secondary') }}">{{ $isSuperAdminRow ? 'superadmin' : $user->role }}</span></td>
-                                    <td>
+                                    <td data-label="ID">{{ $user->id }}</td>
+                                    <td data-label="Nombre">{{ $user->name }}</td>
+                                    <td data-label="Email">{{ $user->email }}</td>
+                                    <td data-label="Rol"><span class="badge {{ $isSuperAdminRow ? 'bg-danger' : ($user->role === 'admin' ? 'bg-dark' : 'bg-secondary') }}">{{ $isSuperAdminRow ? 'superadmin' : $user->role }}</span></td>
+                                    <td data-label="Estado">
                                         @if($user->locked_until)
                                             <span class="badge bg-danger">Bloqueado</span>
                                         @else
                                             <span class="badge bg-success">Activo</span>
                                         @endif
                                     </td>
-                                    <td>
+                                    <td data-label="Acciones">
                                         <button class="btn btn-sm" style="background:var(--accent);border-color:var(--accent);color:#fff;" data-bs-toggle="modal" data-bs-target="#editUserModal"
                                                 data-id="{{ $user->id }}"
                                                 data-name="{{ $user->name }}"

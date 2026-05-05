@@ -107,10 +107,101 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 .container.right-panel-active .overlay-left{ transform:translateX(0); }
 .overlay-right{ right:0; transform:translateX(0); }
 .container.right-panel-active .overlay-right{ transform:translateX(20%); }
-@media (max-width: 768px){
-  .container{ min-height:560px; }
-  .form-container{ width:100%; }
+/* ── Responsive (Tablets & Mobile): Diseño premium adaptado ── */
+@media (max-width: 850px){
+  .auth-header { 
+    position: relative; 
+    padding: 16px 20px; 
+    background: transparent; 
+    display: flex;
+    justify-content: center;
+  }
+  .auth-header .brand {
+    background: rgba(255,255,255,0.8);
+    padding: 8px 16px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .auth-page { 
+    padding: 16px; 
+    align-items: center; 
+    min-height: 100svh; 
+    /* Fondo premium en móviles y tablets, sin áreas "grises" */
+    background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(238,247,253,1) 100%);
+  }
+  /* Ocultar el pseudo-elemento blur ya que usamos gradiente plano */
+  .auth-page::before, .auth-page::after { display: none; }
+  
+  .container {
+    width: 100% !important;
+    max-width: 420px !important;
+    min-height: auto !important;
+    border-radius: 20px !important;
+    box-shadow: 0 12px 35px rgba(0,0,0,.15) !important;
+    overflow: hidden !important;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.5);
+  }
+  
+  /* Ocultamos el panel lateral animado para pantallas pequeñas/medianas */
+  .overlay-container { display: none !important; }
+  
+  /* Formularios en mobile/tablet: apilados y ocupan 100% */
+  .form-container {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    left: 0 !important;
+    top: auto !important;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 1 !important;
+    transition: none !important;
+  }
+  
+  /* Por defecto: mostrar login, ocultar registro */
+  .sign-up-container { display: none !important; }
+  .sign-in-container { display: block !important; }
+  
+  /* Animación suave al cambiar */
+  @keyframes fadeInMobile { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+  
+  /* Con right-panel-active: mostrar registro, ocultar login */
+  .container.right-panel-active .sign-in-container { display: none !important; }
+  .container.right-panel-active .sign-up-container { 
+    display: block !important; 
+    opacity: 1 !important; 
+    animation: fadeInMobile .3s ease-out forwards;
+  }
+  
+  form { 
+    border-radius: 0; 
+    padding: 32px 24px 36px; 
+    height: auto; 
+    background: transparent;
+  }
+  .input-with-eye { max-width: 100%; }
+  
+  /* Mostrar el texto dinámico que estaba en el overlay como un subtítulo */
+  form h1::after {
+    content: "Sistema Médico UPTAG";
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+  
+  /* Links de switch mobile */
+  .mobile-auth-switch { display: block !important; }
 }
+
+/* El switch mobile se oculta en desktop */
+.mobile-auth-switch { display:none; margin-top:.75rem; font-size:13px; color:var(--muted); text-align:center; }
 /* Modal de éxito (registro) - diseño profesional y responsive */
 .success-modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:10001; padding:16px; }
 .success-modal-card{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); width:min(520px,92vw); max-width:92vw; padding:28px 24px; text-align:center; animation:modalIn .28s ease-out; }
@@ -152,6 +243,10 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
           <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}" style="margin:8px 0 12px;"></div>
         @endif
         <button type="submit">Registrarse</button>
+        {{-- Link visible solo en mobile para volver al login --}}
+        <div class="mobile-auth-switch">
+          ¿Ya tienes cuenta? <a href="#" id="mobileGoSignIn">Inicia sesión</a>
+        </div>
       </form>
     </div>
     <div class="form-container sign-in-container">
@@ -173,6 +268,10 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         @endif
         <a href="{{ url('/recover') }}">¿Olvidaste tu contraseña?</a>
         <button type="submit">Entrar</button>
+        {{-- Link visible solo en mobile para cambiar a registro --}}
+        <div class="mobile-auth-switch">
+          ¿No tienes cuenta? <a href="#" id="mobileGoSignUp">Regístrate aquí</a>
+        </div>
       </form>
     </div>
     <div class="overlay-container">
@@ -218,12 +317,23 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   // Intento inicial de detección; si el script de reCAPTCHA tarda, el usuario
   // al primer submit forzará la creación del widget y luego se detectará.
   setTimeout(detectRecaptchaIndexes, 600);
-  // Transición de paneles
+  // Transición de paneles (desktop)
   signUpButton?.addEventListener('click', () => {
     container.classList.add('right-panel-active');
   });
   signInButton?.addEventListener('click', () => {
     container.classList.remove('right-panel-active');
+  });
+  // Switch mobile
+  document.getElementById('mobileGoSignUp')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    container.classList.add('right-panel-active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.getElementById('mobileGoSignIn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    container.classList.remove('right-panel-active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   // Interceptar submit de registro para manejar respuesta JSON y redirigir

@@ -24,13 +24,13 @@
 
     <!-- Opción A: Barra compacta inline (limpia) -->
     <form id="compactSearchForm" method="GET" class="row g-2 mb-3 align-items-center" role="search" aria-label="Buscar medicamentos">
-        <div class="col-auto">
+        <div class="col-12 col-sm-auto flex-grow-1">
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
                 <input type="text" name="search" id="searchInput" value="{{ request('search') }}" class="form-control" placeholder="Buscar por nombre, código o presentación" aria-label="Buscar medicamentos">
             </div>
         </div>
-        <div class="col-auto">
+        <div class="col-12 col-sm-auto">
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-tags" aria-hidden="true"></i></span>
                 <select name="categoria" class="form-select">
@@ -41,7 +41,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-auto">
+        <div class="col-6 col-sm-auto">
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-list-ol" aria-hidden="true"></i></span>
                 <select name="per_page" class="form-select">
@@ -111,6 +111,43 @@
                     .sticky-actions{ position:sticky; right:0; background:var(--slate-surface); z-index:2; box-shadow:-2px 0 8px -4px rgba(0,0,0,0.18); }
                     .table-sm th, .table-sm td{ font-size:0.92rem; padding:0.45rem 0.55rem; }
 
+                    /* ── Card-Table responsive para mobile ── */
+                    @media (max-width: 767px) {
+                        .resp-table thead { display: none; }
+                        .resp-table.table-responsive { overflow-x: unset; }
+                        .resp-table tbody tr {
+                            display: block;
+                            border: 1px solid var(--slate-border);
+                            border-radius: var(--r-md, 10px);
+                            margin-bottom: .75rem;
+                            background: var(--slate-surface);
+                            box-shadow: 0 2px 8px -2px rgba(120,140,160,.12);
+                        }
+                        .resp-table tbody td {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: .45rem .65rem;
+                            border: none;
+                            border-bottom: 1px solid var(--slate-line);
+                            font-size: .82rem;
+                            white-space: normal;
+                        }
+                        .resp-table tbody td:last-child { border-bottom: none; }
+                        .resp-table tbody td::before {
+                            content: attr(data-label);
+                            font-weight: 700;
+                            font-size: .68rem;
+                            text-transform: uppercase;
+                            color: var(--txt-dim);
+                            letter-spacing: .4px;
+                            margin-right: .5rem;
+                            white-space: nowrap;
+                            flex-shrink: 0;
+                        }
+                        .sticky-actions { position: static; box-shadow: none; }
+                    }
+
                     .sp-thead th{ background:var(--slate-surface); color:var(--txt-sec); text-transform:uppercase; font-size:.72rem; letter-spacing:.4px; border-bottom:1px solid var(--slate-line); position:sticky; top:0; z-index:1; }
                     .sp-thead a{ color:var(--txt-sec); font-weight:700; }
                     .sp-thead a:hover{ color:var(--accent); }
@@ -151,7 +188,7 @@
                         border-color:var(--slate-border);
                     }
                 </style>
-                <table class="table table-hover table-sm align-middle mb-0 text-nowrap sp-table">
+                <table class="table table-hover table-sm align-middle mb-0 sp-table resp-table">
                     <thead class="text-center align-middle sp-thead">
                         <tr>
                             @php
@@ -189,7 +226,6 @@
                                 </a>
                             </th>
                             <th scope="col" style="width: 120px;">Estado</th>
-                            <!-- Columna de stock eliminada para que el stock solo se vea en inventario y detalle -->
                             <th scope="col" style="width: 110px;">Proveedor</th>
                             <th scope="col" class="sticky-actions" style="width: 110px;">Acciones</th>
                         </tr>
@@ -197,21 +233,20 @@
                     <tbody>
                         @forelse($productos as $producto)
                         <tr>
-                            <td class="fw-bold sp-text-accent small">{{ $producto->codigo }}</td>
-                            <td class="small"><span class="fw-semibold">{{ $producto->nombre }}</span></td>
-                            <td><span class="sp-chip small">{{ $producto->categoria->nombre ?? '-' }}</span></td>
-                            <td><span class="sp-chip-muted small">{{ $producto->subcategoria->nombre ?? '-' }}</span></td>
-                            <td><span class="sp-text-muted small">{{ $producto->presentacion }}</span></td>
-                            <td>
+                            <td data-label="Código" class="fw-bold sp-text-accent small">{{ $producto->codigo }}</td>
+                            <td data-label="Nombre" class="small"><span class="fw-semibold">{{ $producto->nombre }}</span></td>
+                            <td data-label="Categoría"><span class="sp-chip small">{{ $producto->categoria->nombre ?? '-' }}</span></td>
+                            <td data-label="Subcat."><span class="sp-chip-muted small">{{ $producto->subcategoria->nombre ?? '-' }}</span></td>
+                            <td data-label="Presentación"><span class="sp-text-muted small">{{ $producto->presentacion }}</span></td>
+                            <td data-label="Estado">
                                 @php
                                     $estado = 'ok'; $estadoTxt = 'Activo';
                                     if($producto->fecha_vencimiento){
                                         $fv = \Carbon\Carbon::parse($producto->fecha_vencimiento);
                                         if($fv->isPast()){ $estado='danger'; $estadoTxt='Vencido'; }
                                         else {
-                                            // Calcular días enteros restantes, sin decimales
                                             $dias = \Carbon\Carbon::now()->startOfDay()->diffInDays($fv->copy()->startOfDay(), false);
-                                            $diasEnteros = (int) $dias; // asegurar entero
+                                            $diasEnteros = (int) $dias;
                                             if($diasEnteros <= 30){ $estado='warn'; $estadoTxt = 'Próx. (' . $diasEnteros . ' días)'; }
                                             else { $estado='ok'; $estadoTxt = 'Activo'; }
                                         }
@@ -222,9 +257,8 @@
                                     <span class="sp-state-pill">{{ $estadoTxt }}</span>
                                 </span>
                             </td>
-                            <!-- Celda de stock eliminada -->
-                            <td><span class="sp-chip-muted small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
-                            <td class="text-center sticky-actions">
+                            <td data-label="Proveedor"><span class="sp-chip-muted small">{{ $producto->proveedor->nombre ?? '-' }}</span></td>
+                            <td data-label="Acciones" class="text-center sticky-actions">
                                 <div class="d-flex flex-nowrap justify-content-center gap-1">
                                     <a href="{{ route('productos.show', $producto) }}" class="btn sp-btn-outline-accent btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalle"><i class="fas fa-eye"></i></a>
                                     <a href="{{ route('productos.edit', $producto) }}" class="btn sp-btn-outline-muted btn-sm px-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar"><i class="fas fa-edit"></i></a>

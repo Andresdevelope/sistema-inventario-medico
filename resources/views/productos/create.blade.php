@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mt-4">
     <div class="card shadow-sm border-0">
-        <div class="card-header med-header text-white d-flex justify-content-between align-items-center">
+        <div class="card-header med-header text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
           <h4 class="mb-0"><i class="fas fa-capsules me-2"></i>Añadir Nuevo Medicamento</h4>
           <span class="small"><i class="fas fa-user me-1"></i>Será creado por: <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong></span>
         </div>
@@ -25,7 +25,7 @@
       <form action="{{ route('productos.store') }}" method="POST">
         @csrf
         <div class="row g-4">
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <div class="form-floating mb-3 position-relative">
                             <input type="text" name="nombre" id="nombre" class="form-control ps-5 @error('nombre') is-invalid @enderror" placeholder="Nombre" value="{{ old('nombre') }}" minlength="3" maxlength="50" pattern="(?=(?:.*\d){0,4}$)(?=.*[A-Za-zÁÉÍÓÚáéíóúÑñ])[A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s\-\.,\(\)/\+%]{3,50}" title="Ingresa un nombre real de medicamento (ej. Amoxicilina 500 mg). Máximo 4 números." required>
                             <label for="nombre"><i class="fas fa-capsules me-2"></i> Nombre</label>
@@ -87,7 +87,7 @@
               <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <div class="form-floating mb-3 position-relative">
               <select name="categoria_id" id="categoria_id" class="form-select ps-5 @error('categoria_id') is-invalid @enderror" required>
                 <option value="" disabled {{ old('categoria_id') ? '' : 'selected' }}>Selecciona una categoría</option>
@@ -126,26 +126,28 @@
             @error('stock_minimo')
               <div class="invalid-feedback d-block">{{ $message }}</div>
             @enderror
-                        <div class="form-floating mb-3 position-relative d-flex align-items-center gap-2">
-              <select name="proveedor_id" id="proveedor_id" class="form-select ps-5 @error('proveedor_id') is-invalid @enderror" required style="max-width: 70%;">
-                <option value="" disabled {{ old('proveedor_id') ? '' : 'selected' }}>Selecciona un proveedor</option>
-                @foreach($proveedores as $proveedor)
-                  <option value="{{ $proveedor->id }}" 
-                      data-contacto="{{ $proveedor->contacto }}" 
-                      data-direccion="{{ $proveedor->direccion }}" 
-                      data-email="{{ $proveedor->email }}" {{ old('proveedor_id') == $proveedor->id ? 'selected' : '' }}>{{ $proveedor->nombre }}</option>
-                @endforeach
-              </select>
-                            <label for="proveedor_id" class="form-label"><i class="fas fa-truck me-2"></i> Seleccionar proveedor</label>
-                            <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#modalProveedor">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button type="button" class="btn btn-warning" id="btnEditarProveedor" data-bs-toggle="modal" data-bs-target="#modalEditarProveedor" disabled>
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger" id="btnEliminarProveedor" disabled>
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div class="mb-3 position-relative">
+              <label for="proveedor_id" class="form-label"><i class="fas fa-truck me-2"></i> Seleccionar proveedor</label>
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <select name="proveedor_id" id="proveedor_id" class="form-select @error('proveedor_id') is-invalid @enderror" required style="min-width:0; flex:1;">
+                  <option value="" disabled {{ old('proveedor_id') ? '' : 'selected' }}>Selecciona un proveedor</option>
+                  @foreach($proveedores as $proveedor)
+                    <option value="{{ $proveedor->id }}"
+                        data-contacto="{{ $proveedor->contacto }}"
+                        data-direccion="{{ $proveedor->direccion }}"
+                        data-email="{{ $proveedor->email }}" {{ old('proveedor_id') == $proveedor->id ? 'selected' : '' }}>{{ $proveedor->nombre }}</option>
+                  @endforeach
+                </select>
+                <button type="button" class="btn btn-link px-2" data-bs-toggle="modal" data-bs-target="#modalProveedor" title="Nuevo proveedor">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnEditarProveedor" data-bs-toggle="modal" data-bs-target="#modalEditarProveedor" disabled title="Editar proveedor">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnEliminarProveedor" disabled title="Eliminar proveedor">
+                    <i class="fas fa-trash"></i>
+                </button>
+              </div>
                         </div>
             @error('proveedor_id')
               <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -166,13 +168,13 @@
             @enderror
                     </div>
                 </div>
-                <div class="row mt-4">
-                  <div class="col-md-6">
-                    <div class="alert alert-info py-2 mb-3 small" role="status">
+                <div class="row mt-4 g-3">
+                  <div class="col-12 col-md-6">
+                    <div class="alert alert-info py-2 mb-0 small" role="status">
                       <i class="fas fa-info-circle me-1"></i> Este registro guardará al usuario <strong>{{ Auth::user()->name ?? 'Usuario' }}</strong> como creador.
                     </div>
                   </div>
-                  <div class="col-md-6 d-flex justify-content-end gap-2">
+                  <div class="col-12 col-md-6 d-flex justify-content-end gap-2">
                     <button type="submit" class="btn btn-med-primary px-4"><i class="fas fa-save me-1"></i>Guardar</button>
                     <a href="{{ route('productos.index') }}" class="btn btn-med-outline px-4">Cancelar</a>
                   </div>
@@ -242,6 +244,11 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #ff9800;
     border-color: #ff9800;
     color: #ffffff;
+  }
+  /* Form responsive tweaks */
+  @media (max-width: 767px) {
+    .card-body.p-4 { padding: 1rem !important; }
+    .form-floating { margin-bottom: .75rem !important; }
   }
 </style>
 @endpush

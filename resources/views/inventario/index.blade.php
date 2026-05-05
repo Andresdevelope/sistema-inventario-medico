@@ -119,7 +119,7 @@
 
 @section('content')
 <div class="container mt-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
         <h2 class="m-0">Inventario Consolidado</h2>
         <div class="d-flex gap-2">
             <a href="{{ route('movimientos.index') }}" class="btn inv-btn-primary d-flex align-items-center gap-2">
@@ -132,7 +132,7 @@
 
     <!-- KPIs -->
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
@@ -143,7 +143,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
@@ -154,7 +154,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
@@ -167,12 +167,12 @@
         </div>
     </div>
     <!-- Formulario de búsqueda y filtros -->
-    <form method="GET" class="row g-3 mb-4 align-items-end">
-        <div class="col-md-3">
+    <form method="GET" class="row g-2 mb-4 align-items-end">
+        <div class="col-12 col-md-3">
             <label for="search" class="form-label">Nombre</label>
             <input type="text" name="search" id="search" value="{{ request('search') }}" class="form-control" maxlength="35" placeholder="Buscar por nombre...">
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
             <label for="categoria" class="form-label">Categoría</label>
             <select name="categoria" id="categoria" class="form-select">
                 <option value="">Todas</option>
@@ -181,7 +181,7 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-sm-6 col-md-3">
             <label for="categoria_inventario" class="form-label">Área (Inventario)</label>
             <select name="categoria_inventario" id="categoria_inventario" class="form-select">
                 <option value="">Todas</option>
@@ -189,11 +189,11 @@
                 <option value="odontologia" @selected(request('categoria_inventario')==='odontologia')>Odontología</option>
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-sm-6 col-md-2">
             <label for="fecha" class="form-label">Fecha de Ingreso</label>
             <input type="date" name="fecha" id="fecha" value="{{ request('fecha') }}" class="form-control">
         </div>
-        <div class="col-md-1">
+        <div class="col-6 col-sm-3 col-md-1">
             <label for="per_page" class="form-label">Ver</label>
             <select class="form-select" name="per_page" id="per_page" onchange="this.form.submit()">
                 @foreach([10,25,50,100] as $pp)
@@ -201,21 +201,17 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-1">
-            <button type="submit" class="btn btn-sm inv-btn-primary w-100">
-            <i class="fa fa-search me-1"></i> Buscar
-            </button>
+        <div class="col-3 col-sm-2 col-md-1">
+            <button type="submit" class="btn btn-sm inv-btn-primary w-100"><i class="fa fa-search"></i></button>
         </div>
-        <div class="col-md-1">
-            <a href="{{ route('inventario.index') }}" class="btn btn-sm inv-btn-outline w-100">
-            <i class="fa fa-eraser me-1"></i> Limpiar
-            </a>
+        <div class="col-3 col-sm-2 col-md-1">
+            <a href="{{ route('inventario.index') }}" class="btn btn-sm inv-btn-outline w-100"><i class="fa fa-eraser"></i></a>
         </div>
     </form>
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
-            <table class="table table-hover align-middle table-inventario">
+            <table class="table table-hover align-middle table-inventario resp-table">
                 <thead class="table-light">
                     <tr>
                         <th>Producto</th>
@@ -250,28 +246,25 @@
                         $tooltipVence = $vencMeta['tooltipVence'];
                     @endphp
                     <tr>
-                        <td>{{ $producto->nombre }}</td>
-                        <td><span class="badge inv-badge-code">{{ $producto->codigo }}</span></td>
-                        <td>{{ $producto->categoria->nombre ?? '-' }}</td>
-                        <!-- Proveedor oculto -->
-                        <td>{{ $producto->presentacion }}</td>
-                        <td>{{ $producto->unidad_medida }}</td>
-                        <!-- Categoría Inventario ocultada -->
-                        <td>
-                            <span class="badge {{ $isLow ? 'inv-badge-stock-low' : 'inv-badge-stock-ok' }}">
-                                {{ $stockMostrar }}
-                            </span>
+                        <td data-label="Producto">{{ $producto->nombre }}</td>
+                        <td data-label="Código"><span class="badge inv-badge-code">{{ $producto->codigo }}</span></td>
+                        <td data-label="Categoría">{{ $producto->categoria->nombre ?? '-' }}</td>
+                        <td data-label="Presentación">{{ $producto->presentacion }}</td>
+                        <td data-label="Unidad">{{ $producto->unidad_medida }}</td>
+                        <td data-label="Stock">
+                            <span class="badge {{ $isLow ? 'inv-badge-stock-low' : 'inv-badge-stock-ok' }}">{{ $stockMostrar }}</span>
                             <div class="stock-bar mt-1" title="{{ $tooltipStock ?? ('Stock actual: ' . $stockMostrar) }}">
                                 <div class="stock-bar__fill {{ $colorBarraClass }}" style="width: {{ $porcentajeBarra }}%;"></div>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Vencimiento">
                             <span class="badge inv-badge-exp inv-badge-exp-{{ $badgeClass }}" title="{{ $fechaVencimiento ? ($tooltipVence ?? ('Vence: ' . \Carbon\Carbon::parse($fechaVencimiento)->format('d/m/Y'))) : 'Sin fecha' }}">{{ $labelVence }}</span>
                         </td>
-                        <td>
+                        <td data-label="Acciones">
+                            <div class="d-flex flex-wrap gap-1">
                             <a href="{{ route('productos.show', ['producto' => $producto, 'from' => 'inventario']) }}" class="btn inv-btn-outline btn-sm">Ver</a>
                             <button type="button"
-                                class="btn inv-btn-distr btn-sm ms-2 btn-ver-distribucion"
+                                class="btn inv-btn-distr btn-sm btn-ver-distribucion"
                                 data-product-id="{{ $producto->id }}"
                                 data-producto="{{ $producto->nombre }}"
                                 data-endpoint="{{ route('movimientos.distribuciones', $producto->id) }}"
@@ -279,6 +272,7 @@
                                 @if(empty($producto->has_distribuciones)) disabled aria-disabled="true" @endif>
                                 DISTR
                             </button>
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -309,6 +303,14 @@
 :root {
     --sys-orange: #ff7a1a;
     --sys-orange-hover: #ff9a50;
+}
+/* ── Card-Table responsive ── */
+@media (max-width: 767px) {
+    .resp-table thead { display: none; }
+    .resp-table tbody tr { display:block; border:1px solid #e2e6ee; border-radius:10px; margin-bottom:.75rem; background:#fff; box-shadow:0 2px 8px -2px rgba(120,140,160,.12); }
+    .resp-table tbody td { display:flex; justify-content:space-between; align-items:center; padding:.45rem .65rem; border:none; border-bottom:1px solid #f0f3f6; font-size:.82rem; white-space:normal; }
+    .resp-table tbody td:last-child { border-bottom:none; }
+    .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.68rem; text-transform:uppercase; color:#7a8690; letter-spacing:.4px; margin-right:.5rem; white-space:nowrap; flex-shrink:0; }
 }
 
 .inv-btn-primary {

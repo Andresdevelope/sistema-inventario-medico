@@ -60,7 +60,7 @@
     </div>
     <div class="row g-3">
         <!-- LISTA CATEGORÍAS -->
-        <div class="col-lg-4 col-md-5">
+        <div class="col-12 col-md-5 col-lg-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
                     <h6 class="mb-0 fw-bold">Listado</h6>
@@ -75,7 +75,7 @@
             </div>
         </div>
         <!-- DETALLE -->
-        <div class="col-lg-8 col-md-7">
+        <div class="col-12 col-md-7 col-lg-8">
             <div id="detalle-categoria-container" class="h-100">
                 <div class="card shadow-sm h-100">
                     <div class="card-body d-flex flex-column justify-content-center align-items-center text-muted">
@@ -128,8 +128,12 @@
 
 /* Botones del header de categoría: Editar y Subcategoría con fondo blanco y hover naranja */
 .modal-content #modal-titulo.text-primary { color: var(--sys-orange) !important; }
-/* Título del modal Editar Subcategoría en naranja */
 #modalEditarSubcategoria .modal-content h5.text-primary { color: var(--sys-orange) !important; }
+/* Responsive: limitar alto de la lista en mobile */
+@media (max-width: 767px) {
+  #lista-categorias { max-height: 40vh !important; }
+  #detalle-categoria-container .card { min-height: 200px; }
+}
 .card-header button[data-action="editar-categoria"],
 .card-header button[data-action="nueva-sub"] {
     background-color: #ffffff !important;

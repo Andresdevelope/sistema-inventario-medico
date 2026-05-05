@@ -162,7 +162,59 @@
         /*
             Responsividad para pantallas menores a 900px
         */
-        @media (max-width:900px){ .sidebar{width:200px;} .content-area{padding:1.2rem 1.1rem 3.2rem 1.1rem;} .quick-strip{flex-direction:column; align-items:flex-start; gap:.8rem;} .topbar{padding:0 1rem;} }
+        /* ─── Responsividad ─── */
+        /* Tablet (768–900px): sidebar un poco más estrecho */
+        @media (min-width:768px) and (max-width:900px){
+            .sidebar{width:200px;}
+            .content-area{padding:1.2rem 1.1rem 3.2rem 1.1rem;}
+            .quick-strip{flex-direction:column; align-items:flex-start; gap:.8rem;}
+            .topbar{padding:0 1rem;}
+        }
+        /* Mobile (<768px): sidebar como drawer deslizable */
+        @media (max-width:767.98px){
+            .topbar { padding: 0 .85rem; gap: .5rem; }
+            .topbar .logo span { display: none; } /* ocultar texto del logo si hay */
+            .main-layout { flex-direction: column; }
+            .content-area { padding: 1rem .85rem 3rem .85rem; }
+            .quick-strip { flex-direction: column; align-items: flex-start; gap: .8rem; }
+            /* Sidebar: escondido por defecto, slide-in via JS */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1050;
+                transform: translateX(-100%);
+                transition: transform 280ms cubic-bezier(.25,.46,.45,.94);
+                box-shadow: 4px 0 24px rgba(0,0,0,.18);
+                overflow-y: auto;
+                width: 260px;
+            }
+            .sidebar.sidebar-open { transform: translateX(0); }
+            /* Backdrop oscuro al abrir el sidebar */
+            .sidebar-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,.45);
+                z-index: 1049;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 280ms ease;
+            }
+            .sidebar-backdrop.show { opacity: 1; pointer-events: all; }
+            /* Botón cerrar dentro del sidebar (mobile) */
+            .sidebar-close-btn { display: flex !important; }
+            /* Tiles grid: 2 columnas en mobile */
+            .tiles-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            /* Notif panel: no salir de pantalla */
+            .notif-panel { width: min(300px, calc(100vw - 1.25rem)); right: -.25rem; }
+            /* Toast container: ancho adaptado */
+            #toast-container { right: .75rem; left: .75rem; width: auto; }
+            /* User pill: ocultar nombre en topbar muy pequeño */
+            .user-pill .name { display: none; }
+        }
+        /* El botón de cerrar sidebar solo existe en mobile */
+        .sidebar-close-btn { display: none; }
 
         /* Overlay de transición para cierre de sesión */
         #logout-loader-overlay{
@@ -214,6 +266,15 @@
 <div class="layout-shell">
     {{-- Topbar: barra superior con logo, acciones y usuario --}}
     <div class="topbar" role="banner" aria-label="Barra superior">
+        {{-- Botón hamburguesa: solo visible en mobile --}}
+        <button class="icon-btn sidebar-close-btn" id="sidebarToggle"
+                type="button"
+                aria-label="Abrir menú de navegación"
+                aria-expanded="false"
+                aria-controls="mainSidebar"
+                style="display:flex; flex-shrink:0;">
+            <i class="fa fa-bars" aria-hidden="true"></i>
+        </button>
         <div class="logo">
             <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG">
             Servicios Médicos
@@ -260,7 +321,19 @@
     {{-- Main layout: sidebar y área de contenido --}}
     <div class="main-layout">
         {{-- Sidebar: menú lateral de navegación y logout --}}
-        <aside class="sidebar" role="navigation" aria-label="Menú lateral">
+        <aside class="sidebar" id="mainSidebar" role="navigation" aria-label="Menú lateral">
+            {{-- Cabecera del drawer: solo visible en mobile --}}
+            <div class="sidebar-close-btn" style="align-items:center; justify-content:space-between; padding:.75rem 1.1rem .5rem; border-bottom:1px solid var(--slate-line); margin-bottom:.4rem;">
+                <div class="logo" style="font-size:.9rem; gap:.5rem;">
+                    <img src="{{ asset('logouptag.png') }}" alt="Logo" style="width:26px;height:26px;border-radius:6px;">
+                    Servicios Médicos
+                </div>
+                <button type="button" id="sidebarCloseBtn"
+                        class="icon-btn" style="width:32px;height:32px;"
+                        aria-label="Cerrar menú">
+                    <i class="fa fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
             <div class="nav-section">
                 <div class="nav-title">Navegación</div>
                 <ul class="nav-list">
@@ -454,6 +527,47 @@ const toggleTilesBtn=document.getElementById('toggleTiles'); const tilesGrid=doc
                 // Fallback robusto: si falla fetch, enviar formulario de manera tradicional.
                 form.submit();
             }
+        });
+    });
+})();
+
+// ─── Sidebar drawer para mobile ───
+(function(){
+    const sidebar   = document.getElementById('mainSidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const closeBtn  = document.getElementById('sidebarCloseBtn');
+    if (!sidebar) return;
+
+    // Crear backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
+    function openSidebar() {
+        sidebar.classList.add('sidebar-open');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        toggleBtn?.setAttribute('aria-expanded', 'true');
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('sidebar-open');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+        toggleBtn?.setAttribute('aria-expanded', 'false');
+    }
+
+    toggleBtn?.addEventListener('click', () => {
+        sidebar.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+    });
+    closeBtn?.addEventListener('click', closeSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('sidebar-open')) closeSidebar();
+    });
+    // Cerrar al navegar (links del sidebar)
+    sidebar.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth < 768) closeSidebar();
         });
     });
 })();

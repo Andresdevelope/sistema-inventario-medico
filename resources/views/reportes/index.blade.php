@@ -11,7 +11,7 @@
     <div class="col-12">
       <label class="form-label fw-semibold text-uppercase small text-muted">Modalidad de reporte</label>
       <div class="row g-3 report-mode-grid" role="radiogroup" aria-label="Seleccionar modalidad de reporte">
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
           <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-inventario" value="inventario" autocomplete="off" @checked($modalidadSeleccionada==='inventario')>
           <label
             class="report-mode-card"
@@ -32,7 +32,7 @@
           </label>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
           <input type="radio" class="btn-check" name="modalidad_reporte" id="modo-consumo" value="consumo" autocomplete="off" @checked($modalidadSeleccionada==='consumo')>
           <label
             class="report-mode-card"
@@ -54,15 +54,15 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Desde</label>
       <input type="date" name="from" class="form-control" value="{{ $from ?? '' }}" required>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Hasta</label>
       <input type="date" name="to" class="form-control" value="{{ $to ?? '' }}" required>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Periodo</label>
       <select name="periodo" id="periodo" class="form-select">
         <option value="">Personalizado</option>
@@ -71,7 +71,7 @@
         @endforeach
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Destino (opcional)</label>
       <select name="destino_id" class="form-select">
         <option value="">Todos</option>
@@ -80,7 +80,7 @@
         @endforeach
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Tipo</label>
       <select name="tipo" class="form-select">
         <option value="" @selected(($tipo ?? '')==='')>Todos</option>
@@ -88,7 +88,7 @@
         <option value="insumo" @selected(($tipo ?? '')==='insumo')>Insumo</option>
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Categoría</label>
       <select name="categoria_id" id="categoria_id" class="form-select">
         <option value="">Todas</option>
@@ -97,7 +97,7 @@
         @endforeach
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-sm-6 col-md-3">
       <label class="form-label">Subcategoría</label>
       <select name="subcategoria_id" id="subcategoria_id" class="form-select">
         <option value="">Todas</option>
@@ -196,7 +196,7 @@
       <div class="alert alert-warning">No se encontraron saldos para el corte seleccionado.</div>
     @endif
     <div class="row g-3 mb-3">
-      <div class="col-md-3">
+      <div class="col-12 col-sm-6 col-md-3">
         <div class="p-3 bg-white rounded shadow-sm border">
           <div class="text-muted small">Unidades egresadas</div>
           <div class="fs-4 fw-bold">{{ $resumen['total_unidades'] }}</div>
@@ -606,6 +606,14 @@
   filter: brightness(1.03);
 }
 
+/* ── Card-Table responsive ── */
+@media (max-width: 767px) {
+  .resp-table thead { display: none; }
+  .resp-table tbody tr { display:block; border:1px solid #e2e6ee; border-radius:10px; margin-bottom:.75rem; background:#fff; }
+  .resp-table tbody td { display:flex; justify-content:space-between; align-items:center; padding:.45rem .65rem; border:none; border-bottom:1px solid #f0f3f6; font-size:.82rem; white-space:normal; }
+  .resp-table tbody td:last-child { border-bottom:none; }
+  .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.65rem; text-transform:uppercase; color:#7a8690; letter-spacing:.4px; flex-shrink:0; margin-right:.5rem; }
+}
 .reportes-scope .btn-export-pdf:active {
   transform: translateY(0);
 }

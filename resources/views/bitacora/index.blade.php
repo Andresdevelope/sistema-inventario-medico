@@ -100,10 +100,18 @@
         .table-hover tbody tr:hover > td {
             background-color: #fffbeb;
         }
+        /* ── Card-Table responsive ── */
+        @media (max-width: 767px) {
+            .resp-table thead { display: none; }
+            .resp-table tbody tr { display:block; border:1px solid #e2e6ee; border-radius:10px; margin-bottom:.75rem; background:#fff; }
+            .resp-table tbody td { display:flex; flex-direction:column; padding:.5rem .75rem; border:none; border-bottom:1px solid #f0f3f6; font-size:.82rem; white-space:normal; }
+            .resp-table tbody td:last-child { border-bottom:none; }
+            .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.65rem; text-transform:uppercase; color:#6b7280; letter-spacing:.4px; margin-bottom:.2rem; }
+        }
     </style>
 
     <form method="GET" class="row g-2 mb-3">
-        <div class="col-md-3">
+        <div class="col-12 col-md-3">
             <label class="form-label">Usuario</label>
             <select name="user" class="form-select">
                 <option value="">Todos</option>
@@ -112,25 +120,25 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-md-3">
             <label class="form-label">Acción contiene</label>
             <input name="accion" id="filtro-accion" class="form-control" value="{{ request('accion') }}" placeholder="crear, actualizar, eliminar...">
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-sm-6 col-md-2">
             <label class="form-label">Desde</label>
             <input type="datetime-local" name="desde" class="form-control" value="{{ request('desde') }}">
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-sm-6 col-md-2">
             <label class="form-label">Hasta</label>
             <input type="datetime-local" name="hasta" class="form-control" value="{{ request('hasta') }}">
         </div>
-        <div class="col-md-2 d-flex align-items-end">
+        <div class="col-12 col-md-2 d-flex align-items-end">
             <button class="btn btn-bitacora w-100"><i class="fa fa-search me-1"></i> Filtrar</button>
         </div>
     </form>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
+        <table class="table table-bordered table-hover align-middle resp-table">
             <thead>
                 <tr>
                     <th style="width: 110px;">Fecha/Hora</th>
@@ -148,9 +156,9 @@
                     $rawFallback = !$hasSections ? trim((string)($b->detalles ?? '')) : '';
                 @endphp
                 <tr>
-                    <td><span class="text-muted small">{{ \Carbon\Carbon::parse($b->fecha_hora)->format('Y-m-d H:i:s') }}</span></td>
-                    <td>{{ optional($b->user)->name ?? 'Sistema' }}</td>
-                    <td>
+                    <td data-label="Fecha/Hora"><span class="text-muted small">{{ \Carbon\Carbon::parse($b->fecha_hora)->format('Y-m-d H:i:s') }}</span></td>
+                    <td data-label="Usuario">{{ optional($b->user)->name ?? 'Sistema' }}</td>
+                    <td data-label="Acción">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="accion-pill accion-pill-{{ $ui['badge_class'] ?? 'secondary' }}">
                                 <i class="fa {{ $ui['badge_icon'] ?? 'fa-clipboard-list' }}"></i>

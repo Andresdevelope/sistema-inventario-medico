@@ -17,7 +17,7 @@
 
 @section('content')
 <div class="container mt-4">
-  <div class="d-flex align-items-center justify-content-between mb-3">
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
     <h2 class="m-0">Registrar Movimiento</h2>
     <div class="d-flex gap-2">
       <a href="{{ route('inventario.index') }}" class="btn btn-orange d-flex align-items-center">
@@ -92,13 +92,15 @@
     $hasTopProductos = !empty($productosFrecuentes);
   @endphp
 
-  <ul class="nav nav-tabs mb-3" id="tabs-mov" role="tablist" aria-label="Seleccionar tipo de movimiento">
+  <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:0;">
+  <ul class="nav nav-tabs mb-0" id="tabs-mov" role="tablist" aria-label="Seleccionar tipo de movimiento" style="flex-wrap:nowrap; min-width:max-content;">
     <li class="nav-item"><a href="#" class="nav-link {{ $isEntrada ? 'active' : '' }}" role="tab" aria-selected="{{ $isEntrada ? 'true' : 'false' }}" tabindex="0" data-tab="entrada"><i class="fa fa-plus me-1"></i>Entrada</a></li>
     <li class="nav-item"><a href="#" class="nav-link {{ $isDistribucion ? 'active' : '' }}" role="tab" aria-selected="{{ $isDistribucion ? 'true' : 'false' }}" tabindex="0" data-tab="distribucion"><i class="fa fa-share me-1"></i>Distribución <span class="badge tab-badge ms-1">DESTINOS</span></a></li>
     <li class="nav-item"><a href="#" class="nav-link {{ $isConsumo ? 'active' : '' }}" role="tab" aria-selected="{{ $isConsumo ? 'true' : 'false' }}" tabindex="0" data-tab="consumo"><i class="fa fa-user me-1"></i>Consumo <span class="badge tab-badge ms-1">BENEFICIARIOS</span></a></li>
     <li class="nav-item"><a href="#" class="nav-link {{ $isAjustePos ? 'active' : '' }}" role="tab" aria-selected="{{ $isAjustePos ? 'true' : 'false' }}" tabindex="0" data-tab="ajuste_pos"><i class="fa fa-plus-circle me-1"></i>Ajuste +</a></li>
     <li class="nav-item"><a href="#" class="nav-link {{ $isAjusteNeg ? 'active' : '' }}" role="tab" aria-selected="{{ $isAjusteNeg ? 'true' : 'false' }}" tabindex="0" data-tab="ajuste_neg"><i class="fa fa-minus-circle me-1"></i>Ajuste -</a></li>
   </ul>
+  </div>
   <!-- Indicador persistente de sección actual para orientación del usuario -->
   <div class="d-flex align-items-center mb-3" id="section-indicator-wrap">
     <span id="section-indicator" class="section-indicator" aria-live="polite">Sección actual: {{ $isEntrada ? 'Entrada' : ($isDistribucion ? 'Distribución' : ($isConsumo ? 'Consumo' : ($isAjustePos ? 'Ajuste +' : 'Ajuste -'))) }}</span>
@@ -274,7 +276,16 @@
       color: var(--txt, #1f2937);
     }
 
-    /* Badges y micro-estados específicos del panel de lotes */
+    /* ── mb-3 para tabs después del scroll wrapper ── */
+  #tabs-mov { margin-bottom: .75rem; }
+  /* ── Card-Table responsive para móvil ── */
+  @media (max-width: 767px) {
+    .resp-table thead { display: none; }
+    .resp-table tbody tr { display:block; border:1px solid var(--slate-border,#d9e0e6); border-radius:.75rem; margin-bottom:.75rem; background:var(--slate-surface,#fff); }
+    .resp-table tbody td { display:flex; justify-content:space-between; align-items:center; padding:.45rem .65rem; border:none; border-bottom:1px solid var(--slate-border,#e5e7eb); font-size:.82rem; white-space:normal; }
+    .resp-table tbody td:last-child { border-bottom:none; }
+    .resp-table tbody td::before { content:attr(data-label); font-weight:700; font-size:.65rem; text-transform:uppercase; color:var(--txt-dim,#6b7280); letter-spacing:.4px; flex-shrink:0; margin-right:.5rem; }
+  }
     .table-lotes .badge-prioridad {
       background: linear-gradient(135deg, var(--accent, #FF6A17), #ff9f58) !important;
       color: #fff !important;
@@ -629,7 +640,7 @@
         </div>
       </div>
       <div id="inventarios-producto" class="table-responsive">
-        <table class="table table-sm table-hover align-middle table-lotes">
+        <table class="table table-sm table-hover align-middle table-lotes resp-table">
           <thead class="table-light">
             <tr>
               <th>#</th>
@@ -681,7 +692,7 @@
         </form>
       </div>
       <div class="table-responsive">
-        <table class="table table-hover align-middle table-mov-ultimos">
+        <table class="table table-hover align-middle table-mov-ultimos resp-table">
           <thead class="table-light">
             <tr>
               <th>Fecha</th>
