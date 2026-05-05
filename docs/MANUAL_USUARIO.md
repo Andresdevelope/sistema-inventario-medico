@@ -1,143 +1,142 @@
 # Manual de Usuario — Sistema de Inventario Médico
 
-Índice
-- Acceso y Autenticación
-- Recuperación de contraseña
-- Dashboard / Inicio
-- Perfil de usuario
-- Gestión de categorías y subcategorías
-- Gestión de productos (medicamentos/insumos)
-- Gestión de proveedores
-- Módulo de Movimientos (Ingresos / Egresos / Ajustes)
-- Inventario y lotes
-- Reportes
-- Usuarios (admin)
-- Notificaciones
-- Bitácora
+Bienvenido al **Manual de Usuario** del Sistema de Inventario Médico UPTAG. Este documento está diseñado para guiar al personal médico, de almacén y administrativo en el uso eficiente y seguro de la plataforma.
 
 ---
 
-## Acceso y Autenticación
-1. Pantalla de login
-   - URL: `/login` (también la raíz `/` muestra la vista de autenticación).
-   - Campos: usuario (username) y contraseña.
-   - Requisitos: la cuenta debe existir y no estar bloqueada.
-   - Política: tras 3 intentos fallidos el usuario queda bloqueado y sólo un administrador puede desbloquearlo.
-   - Salida (logout): POST a `/logout` (protegido con CSRF).
-
-2. Registro (si está habilitado)
-   - Endpoint: `POST /register`.
-   - Campos obligatorios: username, email, password, respuestas de seguridad (color, animal, padre).
-   - ReCAPTCHA opcional: si `services.recaptcha.enabled` está activado, el formulario incluye reCAPTCHA v2.
-   - Nota de seguridad: la contraseña mínima es de 16 caracteres con mayúscula, minúscula, número y símbolo.
-
-## Recuperación de contraseña
-- Vista: `/recover`.
-- Flujo:
-  1. Enviar email para solicitar token (`POST /recover/check-email`).
-  2. Validar preguntas de seguridad (`POST /recover/check-security`).
-  3. Verificar token enviado por correo (`POST /recover/verify-email-token`).
-  4. Cambiar contraseña (`POST /recover/change-password`).
-- Throttle aplicado (`throttle:recover`) para evitar abuso.
-
-## Dashboard / Inicio
-- URL: `/dashboard` (requiere `auth`).
-- Muestra métricas principales: total de categorías, total de productos.
-- Notas:
-  - Algunas notificaciones y avisos pueden mostrarse luego del login (cache por usuario).
-
-## Perfil de usuario
-- Vista: `/perfil` (requiere `auth`).
-- Acciones:
-  - Validar seguridad (`POST /perfil/validar-seguridad`).
-  - Cambiar contraseña (`POST /perfil/cambiar-contrasena`).
-
-## Gestión de categorías y subcategorías
-- Vista: `/categorias` (permiso `categorias.ver`).
-- Crear categoría / subcategoría: `POST /categorias` (permiso `categorias.crear`).
-  - Campos: `nombre_categoria` (requerido), `nombre_subcategoria` (opcional).
-  - Reglas de validación: longitud 2–80, debe contener letras reales, evita entradas numéricas o ruido.
-  - Respuesta JSON con `success` y objeto creado.
-- Editar categoría: `PUT /categorias/{id}` (permiso `categorias.editar`).
-- Editar subcategoría: acción `updateSubcategoria` (`PUT` a ruta personalizada en frontend).
-- Eliminar: `DELETE /categorias/{id}` (permiso `categorias.eliminar`).
-  - Si existen productos dependientes o subcategorías en uso, la operación falla con `422` y listado de dependencias.
-- API útiles:
-  - `GET /categorias-listar` → obtiene categorías con subcategorías en JSON.
-  - `GET /subcategorias/by-categoria/{id}` → subcategorías por categoría (AJAX).
-  - `GET /categorias/{id}/dependencias` → conteos de dependencias antes de eliminar.
-
-## Gestión de productos (medicamentos / insumos)
-- Listado: `GET /productos` (permiso `medicamentos.ver`)
-  - Filtros: búsqueda, orden, paginación, filtro por categoría.
-- Crear: `GET /productos/create` (vista) y `POST /productos`.
-  - Campos clave: `nombre`, `codigo`, `presentacion`, `unidad_medida`, `tipo_producto` (medicamento|insumo), `categoria_inventario`, `categoria_id`, `subcategoria_id`, `proveedor_id`, `stock`, `stock_minimo`, `fecha_ingreso`, `fecha_vencimiento`.
-  - Validaciones: códigos en mayúsculas, nombre con letras y máximo 4 números, stock entero 1–9999, fecha_vencimiento > fecha_ingreso y > hoy.
-  - Al crear con stock > 0 se crea un inventario inicial (lote null) para reflejar stock.
-- Editar: `PUT /productos/{id}` con validaciones similares.
-  - Si se cambia fecha de vencimiento, se actualizan inventarios sin lote o con la fecha antigua.
-- Ver detalle: `GET /productos/{id}`.
-- Eliminar: `DELETE /productos/{id}` — sólo permitido si no hay movimientos; si hay inventarios sin movimientos, se eliminan antes.
-- Búsqueda AJAX para movimientos: `GET /productos/buscar?q=...&tipo=...` retorna paginación mínima.
-
-## Gestión de proveedores
-- Rutas AJAX bajo `proveedores/ajax` (prefijo) para crear/editar/eliminar vía AJAX:
-  - `POST /proveedores/ajax` crear (storeAjax)
-  - `PUT /proveedores/ajax/{id}` actualizar (updateAjax)
-  - `DELETE /proveedores/ajax/{id}` eliminar (destroyAjax)
-
-## Módulo de Movimientos
-- Vista: `GET /movimientos` (requiere permisos para operar movimientos).
-- Tipos permitidos: `ingreso`, `egreso`, `ajuste_pos`, `ajuste_neg`.
-- Modalidad en egresos: `consumo` o `distribucion`.
-- Reglas básicas:
-  - Ingresos y ajustes positivos requieren `fecha_vencimiento` y `lote`.
-  - Egresos en modalidad `consumo` requieren datos de beneficiario: `tipo_identificacion` y `sexo`.
-  - Distribuciones requieren seleccionar `destino`.
-  - Validaciones de lote y motivo para evitar datos basura.
-- Endpoint para registrar: `POST /movimientos`.
-  - Centraliza la lógica en `InventarioService::procesarMovimiento`.
-- Consultas auxiliares:
-  - `GET /movimientos/inventarios/{productoId}` → lista de lotes (inventarios) por producto.
-  - `GET /movimientos/distribuciones/{producto}` → resumen de distribuciones por destino.
-  - `GET /consumo/historial` → historial de consumos (filtrable).
-
-## Inventario y lotes
-- Modelo: `Inventario` con campos claves: `producto_id`, `lote`, `cantidad`, `fecha_vencimiento`, `um_operativa`, `contenido_por_blister`, `stock_minimo`, `estado`.
-- Principales reglas de negocio (servicio `App\Services\InventarioService`):
-  - FEFO/FIFO: consumo prioriza fecha de vencimiento más próxima (FEFO), con NULL al final; y en empates created_at asc (FIFO).
-  - Sincronización: si hay registros en `inventarios`, el campo `productos.stock` se sincroniza con la suma de inventarios.
-  - Validaciones por tipo de producto: `medicamento` ↔ `um_operativa` = `blister` y exige `contenido_por_blister` > 0; `insumo` ↔ `unidad`.
-  - Políticas para uso de lotes vencidos: consumo siempre bloqueado; distribución y ajustes pueden configurar bloqueo desde `config/inventario.php`.
-  - Ajustes negativos y egresos consumen lotes por FEFO respetando compatibilidad y bloqueo.
-  - Distribuciones historiadas no alteran inventario (registran envíos sin afectar cantidades locales).
-
-## Reportes
-- Vista/índice `GET /reportes`.
-- Exportes a PDF:
-  - Inventario completo: `GET /reportes/export-pdf/inventario`.
-  - Consumo: `GET /reportes/export-pdf/consumo`.
-  - Detalle consumo: `GET /reportes/export-pdf/detalle-consumo`.
-- Servicios de generación: `App\Services\ReportesMovimientosService` — funciones: `resumen`, `inventarioMatrizPorDestino`, `detalle`, `salidasFarmaciaInterna`, `evolucionMensual`.
-
-## Usuarios (administración)
-- Rutas protegidas por middleware `is_admin` y permisos:
-  - `GET /usuarios` (lista), `POST /usuarios` (crear), `PUT /usuarios/{id}` (actualizar), `DELETE /usuarios/{id}` (eliminar), `PUT /usuarios/{id}/unlock` (desbloquear cuenta).
-  - `GET /usuarios/{id}/permisos` y `PUT /usuarios/{id}/permisos` para asignar permisos.
-  - `GET /usuarios-lista` para AJAX.
-- Restricciones: creación de admins limitada por `config('inventario.max_admins')`.
-
-## Notificaciones
-- Campana: `GET /notificaciones/movimientos` (throttle 20 por minuto) y marcar como leídas `POST /notificaciones/movimientos/leer`.
-
-## Bitácora
-- Registro automático de eventos importantes (login, login fallido, bloqueo, movimientos, acceso a módulos, CRUD de entidades).
-- Vista (solo admin): `GET /bitacora`.
+## 📋 Índice
+1. [Acceso y Autenticación](#1-acceso-y-autenticacion)
+2. [Panel Principal (Dashboard)](#2-panel-principal-dashboard)
+3. [Mi Perfil](#3-mi-perfil)
+4. [Gestión de Categorías y Productos](#4-gestion-de-categorias-y-productos)
+5. [Módulo de Movimientos](#5-modulo-de-movimientos)
+6. [Gestión de Proveedores](#6-gestion-de-proveedores)
+7. [Reportes y Exportación](#7-reportes-y-exportacion)
+8. [Administración del Sistema](#8-administracion-del-sistema)
 
 ---
 
-Notas finales
-- Las rutas mencionadas requieren autenticación y permisos según la acción. Si te aparece "Acceso restringido", consulta con un administrador.
-- Para acciones destructivas (eliminar categoría/producto) el sistema valida dependencias y evita pérdida accidental de datos.
+## 1. Acceso y Autenticación
 
-Si quieres, puedo generar versiones en PDF o preparar capturas de pantalla y pasos detallados por pantalla para incluir en este manual.
+El sistema requiere que todos los usuarios se autentiquen para garantizar la trazabilidad de las operaciones.
+
+### 1.1 Iniciar Sesión
+1. Ingresa a la URL del sistema. Por defecto, serás redirigido a la pantalla de **Login**.
+2. Ingresa tu **Usuario** y **Contraseña**.
+3. (Opcional) Si el sistema tiene activado el control de seguridad, deberás resolver el reCAPTCHA.
+4. Haz clic en **Entrar**.
+
+> [!WARNING]  
+> **Política de Bloqueo:** Por razones de seguridad, si ingresas credenciales incorrectas 3 veces consecutivas, tu cuenta será **bloqueada**. Solo un Administrador del sistema podrá desbloquearla.
+
+### 1.2 Recuperación de Contraseña
+Si olvidaste tu contraseña:
+1. Haz clic en **¿Olvidaste tu contraseña?** en la pantalla de inicio.
+2. Ingresa tu correo electrónico asociado a la cuenta.
+3. Responde correctamente a tus **Preguntas de Seguridad** (Color, Animal y Nombre del padre).
+4. Recibirás un correo con un token de verificación de 6 dígitos.
+5. Ingresa el token y establece tu nueva contraseña (mínimo 16 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos).
+
+---
+
+## 2. Panel Principal (Dashboard)
+
+Una vez que inicias sesión, accederás al **Dashboard**. Esta pantalla te proporciona un resumen rápido del estado del almacén.
+
+- **Tarjetas de Resumen:** Visualiza rápidamente el total de productos registrados, categorías activas y movimientos recientes.
+- **Notificaciones (Campana):** En la parte superior derecha, encontrarás un icono de campana. Aquí recibirás alertas automáticas (por ejemplo, si un producto está por agotarse o si hay lotes próximos a vencer).
+
+---
+
+## 3. Mi Perfil
+
+En la sección de tu perfil, puedes gestionar tu información personal y credenciales.
+- **Cambio de Contraseña:** Es recomendable cambiar tu contraseña periódicamente. Para hacerlo, primero deberás validar tus respuestas de seguridad.
+- **Preferencias:** Ajustes básicos de la cuenta.
+
+---
+
+## 4. Gestión de Categorías y Productos
+
+El inventario está organizado jerárquicamente para facilitar la búsqueda.
+
+### 4.1 Categorías y Subcategorías
+Las categorías agrupan los productos (ej. *Analgésicos*, *Material Quirúrgico*).
+- **Crear:** Ve al módulo de Categorías y haz clic en "Nueva Categoría". Puedes añadir subcategorías al mismo tiempo.
+- **Editar/Eliminar:** Usa los botones de acción en la tabla. 
+> [!IMPORTANT]  
+> No puedes eliminar una categoría si existen productos asociados a ella. Debes reasignar o eliminar los productos primero.
+
+### 4.2 Productos (Medicamentos e Insumos)
+El catálogo principal del sistema. Hay dos tipos de productos:
+1. **Medicamentos:** Requieren control de lotes y fechas de vencimiento. Se gestionan por unidades operativas (ej. *Blíster*, *Caja*).
+2. **Insumos:** Material médico (jeringas, gasas) que puede o no requerir un control de vencimiento estricto.
+
+**Para registrar un producto:**
+1. Ve a **Productos > Nuevo Producto**.
+2. Completa la información básica: Nombre, Código, Presentación, Tipo.
+3. Define el **Stock Mínimo**. Esto le dirá al sistema cuándo debe alertarte por escasez.
+4. (Opcional) Puedes ingresar un stock inicial, lo cual generará automáticamente un movimiento de ingreso sin lote específico.
+
+---
+
+## 5. Módulo de Movimientos
+
+El corazón del sistema. Aquí se registra absolutamente todo lo que entra y sale del almacén.
+
+### Tipos de Movimientos
+| Tipo de Movimiento | Descripción | Requisitos de captura |
+| :--- | :--- | :--- |
+| **Ingreso** | Recepción de nueva mercancía desde un proveedor. | Lote, Fecha de Vencimiento, Cantidad, Proveedor. |
+| **Egreso (Consumo)** | Entrega de medicamentos/insumos a pacientes. | Lote automático (FEFO), Beneficiario, Tipo de Identificación. |
+| **Egreso (Distribución)** | Envío de mercancía a otras áreas (ej. Emergencias). | Destino interno, Cantidad. |
+| **Ajuste Positivo** | Corrección de inventario por sobrantes. | Lote, Vencimiento, Justificación. |
+| **Ajuste Negativo** | Corrección por mermas, daños o pérdidas. | Lote automático, Justificación detallada. |
+
+### Lógica de Lotes (FEFO/FIFO)
+El sistema utiliza el método **FEFO** *(First Expired, First Out - Primero en Vencer, Primero en Salir)*. 
+Cuando registras un **Consumo** o un **Ajuste Negativo**, el sistema **automáticamente** descontará la cantidad del lote que esté más próximo a vencer. No necesitas seleccionar el lote manualmente; el sistema protege el inventario para evitar que los medicamentos se caduquen en los estantes.
+
+> [!CAUTION]  
+> El sistema **bloquea automáticamente** la entrega (consumo) de lotes que ya hayan superado su fecha de vencimiento.
+
+---
+
+## 6. Gestión de Proveedores
+
+Módulo para mantener una base de datos de los laboratorios y distribuidores.
+- Permite registrar Nombre, RIF/NIT, Teléfono, Correo y Dirección.
+- Se utiliza en los Movimientos de Ingreso para mantener la trazabilidad de origen de cada lote.
+
+---
+
+## 7. Reportes y Exportación
+
+El sistema permite auditar el almacén mediante reportes exportables en formato PDF.
+
+- **Inventario General:** Muestra el stock actual de todos los productos.
+- **Inventario por Destinos:** Matriz que muestra cuánto se ha distribuido a cada área de la institución.
+- **Historial de Consumos:** Reporte detallado de los egresos entregados a pacientes.
+- **Evolución Mensual:** Gráficas y tablas para entender el flujo del almacén en un período de tiempo.
+
+Para generar un reporte, ve a la sección **Reportes**, selecciona el tipo, aplica los filtros deseados y haz clic en **Exportar PDF**.
+
+---
+
+## 8. Administración del Sistema
+
+*(Solo para usuarios con rol de Administrador)*
+
+### 8.1 Gestión de Usuarios
+- Permite crear nuevas cuentas para el personal.
+- Asignación de roles y permisos granulares (ej. permitir ver productos pero no autorizar egresos).
+- Desbloqueo de cuentas que hayan excedido el límite de intentos fallidos.
+
+### 8.2 Bitácora de Auditoría
+El sistema registra **todas** las acciones críticas en la base de datos (inicios de sesión, registros fallidos, movimientos de inventario, eliminación de registros).
+- Los administradores pueden consultar la Bitácora para rastrear "quién hizo qué y cuándo". No se puede alterar ni borrar la bitácora.
+
+---
+
+> [!TIP]  
+> **Recomendación Operativa:** Mantén siempre actualizados los stocks mínimos de los productos críticos. Revisa regularmente las notificaciones de la campana para anticiparte a la caducidad de los lotes.
