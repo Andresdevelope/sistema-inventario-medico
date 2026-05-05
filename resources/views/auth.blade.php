@@ -185,6 +185,19 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   }
   .input-with-eye { max-width: 100%; }
   
+  /* Asegurar que el recaptcha no se estire con flex y quede centrado, para que el popup se alinee bien */
+  .g-recaptcha {
+    margin: 12px auto !important;
+    display: inline-block;
+    align-self: center;
+  }
+  
+  /* Forzar que la ventana de selección de imágenes del reCAPTCHA se centre en móviles */
+  div[style*="z-index: 2000000000"] {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  
   /* Mostrar el texto dinámico que estaba en el overlay como un subtítulo */
   form h1::after {
     content: "Sistema Médico UPTAG";

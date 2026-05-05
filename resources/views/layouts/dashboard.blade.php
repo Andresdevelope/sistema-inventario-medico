@@ -272,7 +272,7 @@
                 aria-label="Abrir menú de navegación"
                 aria-expanded="false"
                 aria-controls="mainSidebar"
-                style="display:flex; flex-shrink:0;">
+                style="flex-shrink:0;">
             <i class="fa fa-bars" aria-hidden="true"></i>
         </button>
         <div class="logo">
