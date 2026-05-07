@@ -241,7 +241,7 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
         <h1>Crear Cuenta</h1>
         <div id="register-alert" class="alert-box" role="alert"></div>
         <input type="text" name="username" placeholder="Usuario" required maxlength="40" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+" title="Nombre de usuario: solo letras y espacios (máx. 40)." />
-        <input type="email" name="email" placeholder="Correo" required maxlength="60" title="Correo válido, máximo 60 caracteres." />
+        <input type="email" name="email" placeholder="Correo" required maxlength="100" title="Correo válido, máximo 100 caracteres." />
         <div class="input-with-eye">
           <input type="password" name="password" id="register_password" placeholder="Contraseña" required minlength="16" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S+" title="Contraseña: mínimo 16 caracteres, al menos una mayúscula, una minúscula, un número, un símbolo y sin espacios." />
           <span class="toggle-pwd" data-target="register_password">
