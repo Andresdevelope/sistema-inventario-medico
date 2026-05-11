@@ -107,49 +107,102 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 .container.right-panel-active .overlay-left{ transform:translateX(0); }
 .overlay-right{ right:0; transform:translateX(0); }
 .container.right-panel-active .overlay-right{ transform:translateX(20%); }
-/* ── Responsive (Tablets & Mobile): Diseño premium adaptado ── */
-@media (max-width: 850px){
-  .auth-header { 
-    position: relative; 
-    padding: 16px 20px; 
-    background: transparent; 
-    display: flex;
-    justify-content: center;
+/* ── Responsive Mobile: Nuevo diseño logo arriba + card formulario abajo ── */
+@media (max-width: 850px) {
+
+  /* Ocultar el header de desktop */
+  .auth-header { display: none !important; }
+
+  /* Fondo degradado suave */
+  .auth-page {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 20px 32px;
+    min-height: 100svh;
+    background: linear-gradient(160deg, #fff9f2 0%, #fff 40%, #f0f6ff 100%);
   }
-  .auth-header .brand {
-    background: rgba(255,255,255,0.8);
-    padding: 8px 16px;
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  }
-  .auth-page { 
-    padding: 16px; 
-    align-items: center; 
-    min-height: 100svh; 
-    /* Fondo premium en móviles y tablets, sin áreas "grises" */
-    background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(238,247,253,1) 100%);
-  }
-  /* Ocultar el pseudo-elemento blur ya que usamos gradiente plano */
   .auth-page::before, .auth-page::after { display: none; }
-  
+
+  /* ── Bloque logo + título mobile (solo visible en mobile) ── */
+  .mobile-brand {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .mobile-brand img {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    object-fit: cover;
+    box-shadow: 0 10px 28px rgba(255,140,0,0.28), 0 2px 8px rgba(0,0,0,0.08);
+    border: 2px solid rgba(255,255,255,0.9);
+  }
+  .mobile-brand h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.3px;
+  }
+  .mobile-brand p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  /* Asegurar que h2 del brand quede centrado (override del global h2) */
+  .mobile-brand h2 { text-align: center; }
+
+  /* ── Card principal mobile ── */
   .container {
     width: 100% !important;
-    max-width: 420px !important;
+    max-width: 430px !important;
     min-height: auto !important;
-    border-radius: 20px !important;
-    box-shadow: 0 12px 35px rgba(0,0,0,.15) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
     overflow: hidden !important;
     margin: 0 auto;
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.5);
+    background: #fff !important;
+    position: relative !important;
   }
-  
-  /* Ocultamos el panel lateral animado para pantallas pequeñas/medianas */
+
+  /* Ocultar el panel lateral animado */
   .overlay-container { display: none !important; }
-  
-  /* Formularios en mobile/tablet: apilados y ocupan 100% */
+
+  /* ── Tabs mobile en la parte superior del card ── */
+  .mobile-tabs {
+    display: flex !important;
+    border-radius: 22px 22px 0 0;
+    overflow: hidden;
+    border-bottom: 2px solid #f0f4f8;
+  }
+  .mobile-tab-btn {
+    flex: 1;
+    padding: 15px 10px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: color .2s, border-color .2s;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .mobile-tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── Formularios mobile ── */
   .form-container {
     position: relative !important;
     width: 100% !important;
@@ -161,60 +214,98 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
     z-index: 1 !important;
     transition: none !important;
   }
-  
-  /* Por defecto: mostrar login, ocultar registro */
+
+  /* Por defecto: login visible, registro oculto */
   .sign-up-container { display: none !important; }
   .sign-in-container { display: block !important; }
-  
-  /* Animación suave al cambiar */
-  @keyframes fadeInMobile { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-  
-  /* Con right-panel-active: mostrar registro, ocultar login */
+
+  @keyframes fadeInMobile { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
   .container.right-panel-active .sign-in-container { display: none !important; }
-  .container.right-panel-active .sign-up-container { 
-    display: block !important; 
-    opacity: 1 !important; 
-    animation: fadeInMobile .3s ease-out forwards;
+  .container.right-panel-active .sign-up-container {
+    display: block !important;
+    opacity: 1 !important;
+    animation: fadeInMobile .25s ease-out forwards;
   }
-  
-  form { 
-    border-radius: 0; 
-    padding: 32px 24px 36px; 
-    height: auto; 
+
+  /* Formulario interior */
+  form {
+    border-radius: 0;
+    padding: 24px 24px 28px;
+    height: auto;
     background: transparent;
+    text-align: left;
   }
-  .input-with-eye { max-width: 100%; }
-  
-  /* Asegurar que el recaptcha no se estire con flex y quede centrado, para que el popup se alinee bien */
+  form h1 { display: none; } /* Título reemplazado por tabs */
+
+  /* Inputs */
+  input {
+    background: #f4f6f9;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    padding: 13px 14px;
+    margin: 0 0 12px;
+    font-size: 14px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus {
+    background: #fff;
+    border-color: var(--accentH);
+    box-shadow: 0 0 0 3px rgba(230,126,0,0.15);
+  }
+
+  .input-with-eye { max-width: 100%; margin-bottom: 12px; }
+  .input-with-eye input { margin: 0; }
+
+  /* reCAPTCHA centrado */
   .g-recaptcha {
-    margin: 12px auto !important;
-    display: inline-block;
-    align-self: center;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 4px 0 14px !important;
+    transform: scale(0.9);
+    transform-origin: center;
   }
-  
-  /* Forzar que la ventana de selección de imágenes del reCAPTCHA se centre en móviles */
   div[style*="z-index: 2000000000"] {
     left: 50% !important;
     transform: translateX(-50%) !important;
   }
-  
-  /* Mostrar el texto dinámico que estaba en el overlay como un subtítulo */
-  form h1::after {
-    content: "Sistema Médico UPTAG";
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--accent);
-    margin-top: 8px;
-    margin-bottom: 12px;
+
+  /* Botón submit */
+  button[type="submit"] {
+    width: 100%;
+    border-radius: 12px !important;
+    padding: 14px !important;
+    font-size: 14px !important;
+    letter-spacing: 0.8px;
+    background: linear-gradient(135deg, var(--accentH) 0%, var(--accent) 60%, #ff9f1c 100%) !important;
+    box-shadow: 0 6px 20px rgba(255,140,0,0.30);
+    margin-top: 4px;
   }
-  
-  /* Links de switch mobile */
-  .mobile-auth-switch { display: block !important; }
+  button[type="submit"]:hover { opacity: .92; }
+
+  /* Link olvidé contraseña */
+  a[href*="recover"] {
+    display: block;
+    text-align: right;
+    font-size: 12px;
+    margin: -4px 0 14px;
+  }
+
+  /* Switch mobile */
+  .mobile-auth-switch {
+    display: block !important;
+    text-align: center;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+  }
 }
 
 /* El switch mobile se oculta en desktop */
 .mobile-auth-switch { display:none; margin-top:.75rem; font-size:13px; color:var(--muted); text-align:center; }
+/* mobile-brand y mobile-tabs ocultos en desktop */
+.mobile-brand { display: none; }
+.mobile-tabs { display: none; }
 /* Modal de éxito (registro) - diseño profesional y responsive */
 .success-modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:10001; padding:16px; }
 .success-modal-card{ background:var(--panel); border-radius:16px; box-shadow:0 18px 40px rgba(0,0,0,.06); width:min(520px,92vw); max-width:92vw; padding:28px 24px; text-align:center; animation:modalIn .28s ease-out; }
@@ -228,13 +319,28 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
 
 @section('content')
 <div class="auth-page">
+  {{-- Header desktop (oculto en mobile por CSS) --}}
   <header class="auth-header">
     <div class="brand">
       <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG" style="width:45px;height:45px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06);object-fit:cover;background:#fff;" />
       <h1>Servicios Medico </h1>
     </div>
   </header>
+
+  {{-- Bloque logo + título SOLO MOBILE (oculto en desktop por CSS) --}}
+  <div class="mobile-brand">
+    <img src="{{ asset('logouptag.png') }}" alt="Logo UPTAG" />
+    <h2>Servicios Médicos UPTAG</h2>
+    <p>Sistema de gestión de inventario médico</p>
+  </div>
+
   <div class="container" id="container">
+
+    {{-- Tabs SOLO MOBILE (ocultos en desktop por CSS) --}}
+    <div class="mobile-tabs" id="mobileTabs">
+      <button class="mobile-tab-btn active" id="mobileTabLogin">Iniciar Sesión</button>
+      <button class="mobile-tab-btn" id="mobileTabRegister">Crear Cuenta</button>
+    </div>
     <div class="form-container sign-up-container">
       <form method="POST" action="{{ route('register') }}" id="register-form">
         @csrf
@@ -337,16 +443,31 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   signInButton?.addEventListener('click', () => {
     container.classList.remove('right-panel-active');
   });
-  // Switch mobile
+  // Switch mobile (links dentro del form)
   document.getElementById('mobileGoSignUp')?.addEventListener('click', (e) => {
     e.preventDefault();
     container.classList.add('right-panel-active');
+    document.getElementById('mobileTabLogin')?.classList.remove('active');
+    document.getElementById('mobileTabRegister')?.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   document.getElementById('mobileGoSignIn')?.addEventListener('click', (e) => {
     e.preventDefault();
     container.classList.remove('right-panel-active');
+    document.getElementById('mobileTabLogin')?.classList.add('active');
+    document.getElementById('mobileTabRegister')?.classList.remove('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  // Tabs mobile
+  document.getElementById('mobileTabLogin')?.addEventListener('click', () => {
+    container.classList.remove('right-panel-active');
+    document.getElementById('mobileTabLogin').classList.add('active');
+    document.getElementById('mobileTabRegister').classList.remove('active');
+  });
+  document.getElementById('mobileTabRegister')?.addEventListener('click', () => {
+    container.classList.add('right-panel-active');
+    document.getElementById('mobileTabLogin').classList.remove('active');
+    document.getElementById('mobileTabRegister').classList.add('active');
   });
 
   // Interceptar submit de registro para manejar respuesta JSON y redirigir
@@ -697,23 +818,19 @@ input:focus{ outline:2px solid var(--accentH); box-shadow:0 0 0 3px rgba(230, 12
   });
 
   // Mostrar/ocultar contraseña en login y registro
-  if (window.addEventListener) {
-    window.addEventListener('DOMContentLoaded', function() {
-      document.querySelectorAll('.toggle-pwd').forEach(function(eye){
-        eye.addEventListener('click', function(){
-          const targetId = eye.getAttribute('data-target');
-          const input = document.getElementById(targetId);
-          if (!input) return;
-          if (input.type === 'password') {
-            input.type = 'text';
-            eye.querySelector('svg').style.stroke = '#ff8c00';
-          } else {
-            input.type = 'password';
-            eye.querySelector('svg').style.stroke = '#6c757d';
-          }
-        });
-      });
+  document.querySelectorAll('.toggle-pwd').forEach(function(eye){
+    eye.addEventListener('click', function(){
+      const targetId = eye.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        eye.querySelector('svg').style.stroke = '#ff8c00';
+      } else {
+        input.type = 'password';
+        eye.querySelector('svg').style.stroke = '#6c757d';
+      }
     });
-  }
+  });
 </script>
 @endpush
