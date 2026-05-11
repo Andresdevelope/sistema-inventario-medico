@@ -39,7 +39,7 @@ class AuthController extends Controller
             'email' => [
                 'required',
                 'string',
-                'max:60',
+                'max:100',
                 'email:rfc',
                 'unique:users,email',
                 function ($attribute, $value, $fail) {
@@ -104,7 +104,7 @@ class AuthController extends Controller
             'email.required' => 'El correo es obligatorio.',
             'email.string' => 'El correo debe ser texto válido.',
             'email.email' => 'El formato del correo no es válido.',
-            'email.max' => 'El correo no puede superar 60 caracteres.',
+            'email.max' => 'El correo no puede superar 100 caracteres.',
             'email.unique' => 'Este correo ya está registrado.',
             'password.required' => 'La contraseña es obligatoria.',
             'password.string' => 'La contraseña debe ser texto válido.',
