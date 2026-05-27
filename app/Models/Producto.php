@@ -29,6 +29,7 @@ class Producto extends Model
         'subcategoria_id',
         'presentacion',
         'unidad_medida',
+        'usa_blister',
         'tipo_producto',
         'categoria_inventario',
         'stock',
@@ -38,6 +39,10 @@ class Producto extends Model
         'fecha_vencimiento',
         'created_by',
         'updated_by',
+    ];
+
+    protected $casts = [
+        'usa_blister' => 'boolean',
     ];
 
     // Relaciones

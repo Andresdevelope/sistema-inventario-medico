@@ -294,14 +294,13 @@ class InventarioService
                 }
                 $lote = $data['lote'] ?? null;
                 $inv = $this->findOrCreateInventario($producto, $lote, $fv);
-                // Reglas por unidad de medida: mg/mcg => blíster con contenido obligatorio; resto => unidad directa
-                $unidadMedida = strtolower($producto->unidad_medida ?? '');
-                $esBlister = in_array($unidadMedida, ['mg', 'mcg']);
+                // Reglas por el toggle usa_blister del producto
+                $esBlister = (bool) $producto->usa_blister;
 
                 if ($esBlister) {
                     $contenido = (int)($data['contenido_por_blister'] ?? 0);
                     if ($contenido <= 0) {
-                        throw new InvalidArgumentException('Para productos en mg/mcg (tabletas/cápsulas), el contenido por blíster es obligatorio y debe ser mayor que 0');
+                        throw new InvalidArgumentException('Este producto está configurado como blíster. El contenido por blíster es obligatorio y debe ser mayor que 0.');
                     }
                     // Si el inventario ya existe y tiene um_operativa distinta o contenido distinto, bloquear mezcla
                     if (!empty($inv->um_operativa) || !empty($inv->contenido_por_blister)) {
@@ -314,7 +313,7 @@ class InventarioService
                         $inv->contenido_por_blister = $contenido;
                     }
                 } else {
-                    // Para unidades que no son blíster (ml, g, UI, mEq, %, U), um_operativa = unidad
+                    // Para unidades que no son blíster, um_operativa = unidad
                     if (!empty($inv->um_operativa) && $inv->um_operativa !== 'unidad') {
                         throw new InvalidArgumentException('El lote seleccionado fue creado como blíster. Cree un nuevo lote para este producto.');
                     }

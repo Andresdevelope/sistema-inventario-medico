@@ -14,19 +14,7 @@ class ProductoController extends Controller
      * mg/mcg → implica manejo por blíster (tabletas, cápsulas).
      * Resto → unidad directa (frascos, cremas, insumos).
      */
-    public const UNIDADES_MEDIDA = [
-        'mg'  => 'mg (Miligramos) — Ej: Pastillas, Cápsulas',
-        'ml'  => 'ml (Mililitros) — Ej: Jarabes, Gotas, Inyectables',
-        'g'   => 'g (Gramos) — Ej: Cremas, Geles, Polvos',
-        'UI'  => 'UI (Unidades Internacionales) — Ej: Insulinas, Vitaminas',
-        'mcg' => 'mcg (Microgramos) — Ej: Levotiroxina, Parches',
-        'mEq' => 'mEq (Miliequivalentes) — Ej: Potasio, Calcio',
-        '%'   => '% (Porcentaje) — Ej: Soluciones tópicas, Alcohol',
-        'U'   => 'U (Unidades) — Ej: Jeringas, Gasas, Guantes',
-    ];
-
-    /** Unidades que implican manejo por blíster */
-    public const UNIDADES_BLISTER = ['mg', 'mcg'];
+    // Las constantes fijas de UNIDADES_MEDIDA y UNIDADES_BLISTER han sido eliminadas para soportar texto libre y el checkbox usa_blister.
 
     public function __construct()
     {
@@ -87,8 +75,7 @@ class ProductoController extends Controller
         $categorias = \App\Models\Categoria::all();
         $subcategorias = \App\Models\Subcategoria::all();
         $proveedores = \App\Models\Proveedor::all();
-        $unidadesMedida = self::UNIDADES_MEDIDA;
-        return view('productos.create', compact('categorias', 'subcategorias', 'proveedores', 'unidadesMedida'));
+        return view('productos.create', compact('categorias', 'subcategorias', 'proveedores'));
     }
 
     /**
@@ -96,6 +83,7 @@ class ProductoController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge(['usa_blister' => $request->has('usa_blister')]);
         $request->merge($this->normalizarCamposTextoProducto($request));
 
         $rules = [
@@ -121,7 +109,8 @@ class ProductoController extends Controller
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
-            'unidad_medida' => 'required|string|in:' . implode(',', array_keys(self::UNIDADES_MEDIDA)),
+            'unidad_medida' => 'required|string|min:1|max:20|regex:/^[\pL\pN\s\-\.%\/]+$/u',
+            'usa_blister' => 'boolean',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:1|max:9999|digits_between:1,4',
@@ -165,7 +154,7 @@ class ProductoController extends Controller
         $perPage = (int) $request->input('per_page', 15);
         $perPage = max(5, min(30, $perPage));
 
-        $query = Producto::query()->select(['id','nombre','codigo','tipo_producto','unidad_medida']);
+        $query = Producto::query()->select(['id','nombre','codigo','tipo_producto','unidad_medida','usa_blister']);
 
         if ($term !== '') {
             $query->where(function($qb) use ($term) {
@@ -187,6 +176,7 @@ class ProductoController extends Controller
                 'codigo' => $producto->codigo,
                 'tipo' => $producto->tipo_producto,
                 'unidad_medida' => $producto->unidad_medida,
+                'usa_blister' => (bool)$producto->usa_blister,
                 'display' => sprintf('%s (%s)', $producto->nombre, $producto->codigo),
             ];
         })->values();
@@ -220,8 +210,7 @@ class ProductoController extends Controller
         $categorias = \App\Models\Categoria::all();
         $subcategorias = \App\Models\Subcategoria::all();
         $proveedores = \App\Models\Proveedor::all();
-        $unidadesMedida = self::UNIDADES_MEDIDA;
-        return view('productos.edit', compact('producto', 'categorias', 'subcategorias', 'proveedores', 'unidadesMedida'));
+        return view('productos.edit', compact('producto', 'categorias', 'subcategorias', 'proveedores'));
     }
 
     /**
@@ -229,6 +218,7 @@ class ProductoController extends Controller
      */
     public function update(Request $request, Producto $producto)
     {
+        $request->merge(['usa_blister' => $request->has('usa_blister')]);
         $request->merge($this->normalizarCamposTextoProducto($request));
 
         $rules = [
@@ -254,7 +244,8 @@ class ProductoController extends Controller
             'categoria_id' => 'required|exists:categorias,id',
             'subcategoria_id' => 'required|exists:subcategorias,id',
             'presentacion' => 'required|string|min:2|max:60|regex:/^(?=.*\pL)[\pL\pN\s\-\.,\(\)\/\+%]+$/u',
-            'unidad_medida' => 'required|string|in:' . implode(',', array_keys(self::UNIDADES_MEDIDA)),
+            'unidad_medida' => 'required|string|min:1|max:20|regex:/^[\pL\pN\s\-\.%\/]+$/u',
+            'usa_blister' => 'boolean',
             'tipo_producto' => 'required|string|in:medicamento,insumo',
             'categoria_inventario' => 'required|string|in:general,odontologia',
             'stock' => 'required|integer|min:1|max:9999|digits_between:1,4',
@@ -266,7 +257,7 @@ class ProductoController extends Controller
 
         $request->validate($rules, $this->mensajesValidacion());
 
-        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','categoria_inventario','stock','proveedor_id','stock_minimo','fecha_vencimiento']);
+        $old = $producto->only(['id','nombre','codigo','categoria_id','subcategoria_id','presentacion','unidad_medida','usa_blister','categoria_inventario','stock','proveedor_id','stock_minimo','fecha_vencimiento']);
         $oldFechaVencimiento = $producto->fecha_vencimiento;
         $producto->update($request->all() + [
             'updated_by' => Auth::user() ? Auth::user()->id : null,
@@ -358,7 +349,9 @@ class ProductoController extends Controller
 
             'unidad_medida.required' => 'La unidad de medida es obligatoria.',
             'unidad_medida.string' => 'La unidad de medida debe ser un texto válido.',
-            'unidad_medida.in' => 'Selecciona una unidad de medida válida de la lista.',
+            'unidad_medida.min' => 'La unidad de medida debe tener al menos 1 carácter.',
+            'unidad_medida.max' => 'La unidad de medida no puede superar los 20 caracteres.',
+            'unidad_medida.regex' => 'La unidad de medida contiene caracteres no permitidos.',
 
             'tipo_producto.required' => 'Debes seleccionar el tipo de producto.',
             'tipo_producto.string' => 'El tipo de producto debe ser un texto válido.',
@@ -394,7 +387,7 @@ class ProductoController extends Controller
 
     private function normalizarCamposTextoProducto(Request $request): array
     {
-        $campos = ['nombre', 'codigo', 'presentacion', 'descripcion'];
+        $campos = ['nombre', 'codigo', 'presentacion', 'descripcion', 'unidad_medida'];
         $normalizados = [];
 
         foreach ($campos as $campo) {
@@ -425,6 +418,11 @@ class ProductoController extends Controller
 
             if ($campo === 'presentacion') {
                 $texto = $this->capitalizarPrimeraLetra($texto);
+            }
+
+            if ($campo === 'unidad_medida') {
+                // Las unidades de medida se guardan normalizadas en minúscula
+                $texto = mb_strtolower($texto);
             }
 
             $normalizados[$campo] = $texto;

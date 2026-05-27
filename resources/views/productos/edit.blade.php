@@ -67,18 +67,54 @@
                         @error('presentacion')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
+                        <!-- Input de texto libre para unidad de medida con datalist -->
                         <div class="form-floating mb-3 position-relative">
-                            <select name="unidad_medida" id="unidad_medida" class="form-select ps-5 @error('unidad_medida') is-invalid @enderror" required>
-                                <option value="" disabled {{ old('unidad_medida', $producto->unidad_medida) ? '' : 'selected' }}>Selecciona una unidad</option>
-                                @foreach($unidadesMedida as $key => $label)
-                                    <option value="{{ $key }}" {{ old('unidad_medida', $producto->unidad_medida) == $key ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <label for="unidad_medida"><i class="fas fa-ruler me-2"></i> Unidad de Medida</label>
+                            <input type="text"
+                                   name="unidad_medida"
+                                   id="unidad_medida"
+                                   list="unidades-sugeridas"
+                                   class="form-control ps-5 @error('unidad_medida') is-invalid @enderror"
+                                   placeholder="Ej: mg, ml, blister, frasco"
+                                   value="{{ old('unidad_medida', $producto->unidad_medida) }}"
+                                   maxlength="20"
+                                   autocomplete="off"
+                                   required>
+                            <label for="unidad_medida">
+                                <i class="fas fa-ruler me-2"></i> Unidad de Medida
+                            </label>
+                            <datalist id="unidades-sugeridas">
+                                <option value="blister">
+                                <option value="unidad">
+                                <option value="frasco">
+                                <option value="ampolla">
+                                <option value="mg">
+                                <option value="ml">
+                                <option value="g">
+                                <option value="UI">
+                                <option value="mcg">
+                                <option value="mEq">
+                                <option value="%">
+                                <option value="U">
+                            </datalist>
                         </div>
                         @error('unidad_medida')
                           <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
+
+                        <!-- Toggle switch: ¿usa blíster? -->
+                        <div class="card bg-light border-0 mb-3">
+                          <div class="card-body py-2 px-3">
+                            <div class="form-check form-switch ps-0 d-flex align-items-center">
+                              <input class="form-check-input ms-0 me-3 cursor-pointer" type="checkbox"
+                                     role="switch" id="usa_blister" name="usa_blister"
+                                     value="1" {{ old('usa_blister', $producto->usa_blister) ? 'checked' : '' }} style="width: 2.5em; height: 1.25em;">
+                              <label class="form-check-label d-flex flex-column cursor-pointer" for="usa_blister">
+                                <span class="fw-bold text-dark"><i class="fas fa-prescription-bottle me-1"></i> ¿Se maneja en blíster?</span>
+                                <span class="text-muted small">Actívalo si el producto viene en blíster (tabletas, cápsulas). Habilita "Contenido por blíster" en movimientos.</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
                         <div class="form-floating mb-3 position-relative">
                             <select name="tipo_producto" id="tipo_producto" class="form-select ps-5 @error('tipo_producto') is-invalid @enderror" required>
                                 <option value="medicamento" {{ old('tipo_producto', $producto->tipo_producto ?? 'medicamento') == 'medicamento' ? 'selected' : '' }}>Medicamento</option>
@@ -213,11 +249,16 @@
         color: #ff9800;
     }
 
-    .btn-med-outline:hover,
-    .btn-med-outline:focus {
+    /* Estilos para el switch de usa_blister naranja */
+    #usa_blister:checked {
         background-color: #ff9800;
         border-color: #ff9800;
-        color: #ffffff;
+    }
+    #usa_blister:focus {
+        box-shadow: 0 0 0 0.25rem rgba(255, 152, 0, 0.25);
+    }
+    .cursor-pointer {
+        cursor: pointer;
     }
 </style>
 @endpush

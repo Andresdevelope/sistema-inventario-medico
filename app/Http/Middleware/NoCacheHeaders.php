@@ -15,13 +15,19 @@ class NoCacheHeaders
      */
     public function handle(Request $request, Closure $next): Response
     {
-        /** @var Response $response */
         $response = $next($request);
 
-        if (Auth::check()) {
-            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-            $response->headers->set('Pragma', 'no-cache');
-            $response->headers->set('Expires', '0');
+        // 1. Verificamos que el usuario esté autenticado.
+        // 2. Aseguramos que la respuesta sea una instancia válida que maneje cabeceras (evita errores con descargas o respuestas atípicas).
+        if (Auth::check() && $response instanceof Response) {
+            
+            // Usamos 'no-cache, no-store' juntos para cubrir tanto HTTP/1.1 como navegadores más rebeldes
+            $response->headers->set('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+            $response->headers->set('Pragma', 'no-cache'); // Para compatibilidad con HTTP/1.0
+            
+            // MEJORA CLAVE: Algunos navegadores estrictos ignoran '0' como fecha de expiración. 
+            // Es mucho más seguro usar una fecha exacta en el pasado.
+            $response->headers->set('Expires', 'Fri, 01 Jan 1990 00:00:00 GMT');
         }
 
         return $response;

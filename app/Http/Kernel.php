@@ -29,6 +29,7 @@ class Kernel extends HttpKernel
             \Illuminate\Session\Middleware\StartSession::class,
             // Reactivar protección CSRF para rutas web
             \App\Http\Middleware\VerifyCsrfToken::class,
+            \App\Http\Middleware\NoCacheHeaders::class,
             // ...otros middleware web...
         ],
 

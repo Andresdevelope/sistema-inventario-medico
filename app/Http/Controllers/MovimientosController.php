@@ -58,11 +58,11 @@ class MovimientosController extends Controller
             return redirect('/dashboard')->with('error', 'Acceso restringido: no tienes permisos para usar el módulo de movimientos.');
         }
 
-        // Incluir tipo_producto para auto-clasificación en la vista (Medicamento/Insumo)
+        // Incluir tipo_producto y usa_blister para auto-clasificación en la vista (Medicamento/Insumo)
         // Limitamos el set inicial para evitar renderizar cientos de opciones; el resto se consulta vía AJAX.
         $productos = Producto::query()->orderBy('nombre', 'asc')
             ->limit(50)
-            ->get(['id','nombre','codigo','tipo_producto','unidad_medida']);
+            ->get(['id','nombre','codigo','tipo_producto','unidad_medida','usa_blister']);
         $destinos = \App\Models\Destino::query()->where('activo', '=', true)->orderBy('nombre', 'asc')->get(['id','nombre','codigo']);
         // Últimos movimientos (paginados)
         $ultimos = Movimiento::with(['producto:id,nombre,codigo', 'usuario:id,name', 'inventario:id,fecha_vencimiento'])
@@ -74,7 +74,7 @@ class MovimientosController extends Controller
             ->whereNotNull('producto_id')
             ->groupBy('producto_id')
             ->orderByDesc('total')
-            ->with('producto:id,nombre,codigo,tipo_producto,unidad_medida')
+            ->with('producto:id,nombre,codigo,tipo_producto,unidad_medida,usa_blister')
             ->limit(8)
             ->get()
             ->map(function ($row) {
@@ -87,6 +87,7 @@ class MovimientosController extends Controller
                     'nombre' => $producto->nombre,
                     'codigo' => $producto->codigo,
                     'tipo' => $producto->tipo_producto,
+                    'usa_blister' => (bool) $producto->usa_blister,
                     'uso' => (int) $row->total,
                 ];
             })
