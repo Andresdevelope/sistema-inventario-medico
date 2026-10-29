@@ -10,7 +10,7 @@ El sistema sigue un patrón MVC estricto, encapsulando la lógica de negocio com
 
 | Componente | Tecnología / Versión | Propósito |
 | :--- | :--- | :--- |
-| **Framework Base** | Laravel 10/11 (PHP) | Estructura principal, Routing, ORM, Auth. |
+| **Framework Base** | Laravel 12 (PHP) | Estructura principal, Routing, ORM, Auth. |
 | **Frontend** | Blade + Bootstrap 5.3 + Vanilla JS | Renderizado SSR (Server-Side Rendering) y vistas responsive. |
 | **Base de Datos** | MySQL / MariaDB | Persistencia de datos relacional. |
 | **Generación PDF** | DomPDF | Exportación de reportes de inventario y consumos. |
